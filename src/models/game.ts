@@ -61,6 +61,14 @@ export interface Game {
   subtitle?: string
   totalAchievementsCount?: number
   cloudSynced?: boolean
+  igdbId?: number
+  rating?: number
+  ratingCount?: number
+  storyline?: string
+  themes?: string[]
+  gameModes?: string[]
+  websites?: Array<{ category: string; url: string }>
+  videos?: Array<{ name: string; videoId: string }>
 }
 
 export interface GameFilter {

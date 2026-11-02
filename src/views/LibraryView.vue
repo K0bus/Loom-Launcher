@@ -7,6 +7,7 @@ import type { Game, GameFilter } from '@/models/game'
 import GameCard from '@/components/games/GameCard.vue'
 import GameFilterModal from '@/components/games/GameFilterModal.vue'
 import GameRunnerModal from '@/components/games/GameRunnerModal.vue'
+import IgdbSearchModal from '@/components/igdb/IgdbSearchModal.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiBadge from '@/components/ui/UiBadge.vue'
 
@@ -17,6 +18,7 @@ const toast = useToastStore()
 
 const filterModalOpen = ref(false)
 const runnerModalOpen = ref(false)
+const igdbModalOpen = ref(false)
 const selectedGameForRunner = ref<Game | null>(null)
 
 // 1. HERO : Dernier jeu joué
@@ -385,6 +387,18 @@ function scrollToCatalog() {
                 {{ activeFiltersCount }}
               </span>
             </UiButton>
+
+            <!-- IGDB Explorer Button -->
+            <UiButton
+              variant="primary"
+              size="md"
+              @click="igdbModalOpen = true"
+            >
+              <template #prefix>
+                <i class="ph-fill ph-compass text-base"></i>
+              </template>
+              Explorer IGDB
+            </UiButton>
           </div>
         </div>
 
@@ -464,6 +478,12 @@ function scrollToCatalog() {
       :open="runnerModalOpen"
       :game="selectedGameForRunner"
       @close="runnerModalOpen = false"
+    />
+
+    <IgdbSearchModal
+      :open="igdbModalOpen"
+      @close="igdbModalOpen = false"
+      @imported="(id) => router.push(`/games/${id}`)"
     />
   </div>
 </template>

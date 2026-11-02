@@ -12,7 +12,19 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    strictPort: true
+    strictPort: true,
+    proxy: {
+      '/igdb-api': {
+        target: 'https://api.igdb.com/v4',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/igdb-api/, '')
+      },
+      '/twitch-oauth': {
+        target: 'https://id.twitch.tv/oauth2',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/twitch-oauth/, '')
+      }
+    }
   },
   clearScreen: false
 })

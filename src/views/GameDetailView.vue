@@ -6,11 +6,14 @@ import { useToastStore } from '@/stores/toastStore'
 import type { Game, RunnerType } from '@/models/game'
 import UiModal from '@/components/ui/UiModal.vue'
 import UiButton from '@/components/ui/UiButton.vue'
+import IgdbSearchModal from '@/components/igdb/IgdbSearchModal.vue'
 
 const route = useRoute()
 const router = useRouter()
 const gamesStore = useGamesStore()
 const toast = useToastStore()
+
+const igdbModalOpen = ref(false)
 
 const gameId = computed(() => (route.params.id as string) || 'hollow-knight-silksong')
 const game = computed<Game | undefined>(() => {
@@ -206,14 +209,32 @@ const achievementPercent = computed(() => {
             type="button"
             @click="openMinecraftStudio"
             class="p-3 rounded-xl bg-zinc-900/80 hover:bg-amber-500/10 hover:border-amber-500/40 border border-zinc-800/80 text-zinc-300 hover:text-amber-300 transition backdrop-blur-md flex items-center gap-2 text-xs font-medium"
-            title="Open Minecraft Studio Profiles"
+            title="Ouvrir les profils Minecraft Studio"
           >
             <i class="ph-fill ph-cube text-base text-amber-400"></i>
             <span class="hidden sm:inline">Mods & Instances</span>
           </button>
 
+          <!-- IGDB Sync Button -->
+          <button
+            type="button"
+            @click="igdbModalOpen = true"
+            class="p-3 rounded-xl bg-zinc-900/80 hover:bg-amber-500/10 hover:border-amber-500/40 border border-zinc-800/80 text-zinc-300 hover:text-amber-300 transition backdrop-blur-md flex items-center gap-2 text-xs font-medium"
+            title="Synchroniser les métadonnées officielles via l'API IGDB"
+          >
+            <i class="ph-fill ph-database text-base text-amber-400"></i>
+            <span class="hidden sm:inline">Sync IGDB</span>
+          </button>
+
           <!-- Horizontal Metrics Bar -->
           <div class="flex flex-wrap items-center gap-6 sm:gap-8 px-5 py-2.5 rounded-xl bg-zinc-900/80 border border-zinc-800/80 backdrop-blur-md text-xs">
+            <!-- IGDB Rating (if available) -->
+            <div v-if="game.rating" class="space-y-0.5">
+              <span class="text-[10px] tracking-wider uppercase font-medium text-zinc-400">Note IGDB</span>
+              <p class="font-bold text-amber-400 flex items-center gap-1">
+                <i class="ph-fill ph-star text-xs"></i> {{ game.rating }}/100
+              </p>
+            </div>
             <!-- Last Played -->
             <div class="space-y-0.5">
               <span class="text-[10px] tracking-wider uppercase font-medium text-zinc-400">Last Played</span>
@@ -560,5 +581,12 @@ const achievementPercent = computed(() => {
         </UiButton>
       </template>
     </UiModal>
+
+    <!-- IGDB Sync Modal -->
+    <IgdbSearchModal
+      :open="igdbModalOpen"
+      :target-sync-game-id="game?.id"
+      @close="igdbModalOpen = false"
+    />
   </div>
 </template>

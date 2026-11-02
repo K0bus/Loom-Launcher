@@ -10,12 +10,14 @@ import {
   Check
 } from 'lucide-vue-next'
 import { useSystemStore } from '@/stores/systemStore'
+import { useIgdbStore } from '@/stores/igdbStore'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiBadge from '@/components/ui/UiBadge.vue'
 
 const systemStore = useSystemStore()
+const igdbStore = useIgdbStore()
 
 // Settings states
 const defaultRunner = ref('proton-ge')
@@ -26,11 +28,23 @@ const minecraftDirectory = ref('~/.local/share/loom/instances')
 const winePrefixesDirectory = ref('~/.local/share/loom/prefixes')
 const checkUpdatesAuto = ref(true)
 
+// IGDB states
+const igdbClientId = ref(igdbStore.credentials.clientId)
+const igdbAccessToken = ref(igdbStore.credentials.accessToken)
+const igdbClientSecret = ref(igdbStore.credentials.clientSecret)
+
 const saved = ref(false)
 
 function saveSettings() {
+  igdbStore.saveCredentials(igdbClientId.value, igdbAccessToken.value, igdbClientSecret.value)
   saved.value = true
   setTimeout(() => (saved.value = false), 2000)
+}
+
+async function handleGenerateToken() {
+  if (!igdbClientSecret.value) return
+  await igdbStore.generateTwitchToken(igdbClientSecret.value)
+  igdbAccessToken.value = igdbStore.credentials.accessToken
 }
 </script>
 
@@ -170,6 +184,105 @@ function saveSettings() {
           </template>
           Rafraîchir les sondes
         </UiButton>
+      </div>
+    </section>
+
+    <!-- Section 4 : Intégration API IGDB & Métadonnées des Jeux -->
+    <section class="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 space-y-4 shadow-lg">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold text-zinc-100 uppercase tracking-wider font-mono flex items-center gap-2">
+          <i class="ph-fill ph-database text-amber-400 text-lg"></i>
+          API IGDB v4 & Twitch Developer
+        </h3>
+        <UiBadge :variant="igdbStore.isLive ? 'emerald' : 'amber'" size="xs">
+          {{ igdbStore.isLive ? 'API v4 En Direct' : 'Mode Hybride (Token Public)' }}
+        </UiBadge>
+      </div>
+
+      <p class="text-xs text-zinc-400 leading-relaxed">
+        L'API IGDB (Internet Game Database) alimente les affiches de cinéma 3:4, les artworks 1080p, les résumés, les captures d'écran, les développeurs et les notes globales de vos jeux.
+      </p>
+
+      <div class="space-y-4 pt-1">
+        <!-- Client ID Public -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider font-mono">
+              Client ID Public de l'Application
+            </label>
+            <span class="text-[11px] text-amber-400 font-mono">Token Public Requis</span>
+          </div>
+          <UiInput v-model="igdbClientId" placeholder="yxup2w2zyqkugl2erkq2ni9ih59rq7" />
+        </div>
+
+        <!-- Access Token (Bearer) -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider font-mono">
+              Bearer Access Token (Twitch OAuth)
+            </label>
+            <span class="text-[11px] text-zinc-500">Optionnel si Secret renseigné</span>
+          </div>
+          <UiInput
+            v-model="igdbAccessToken"
+            type="password"
+            placeholder="Token d'accès généré (ex: gq4h...)"
+          />
+        </div>
+
+        <!-- Client Secret (Optional for auto-generation) -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-xs font-semibold text-zinc-300 uppercase tracking-wider font-mono">
+              Twitch Client Secret (Génération automatique)
+            </label>
+            <span class="text-[11px] text-zinc-500">Stocké localement uniquement</span>
+          </div>
+          <UiInput
+            v-model="igdbClientSecret"
+            type="password"
+            placeholder="Client secret de votre console Twitch Developer"
+          />
+        </div>
+
+        <!-- Buttons test & generate -->
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+          <div class="flex items-center gap-2">
+            <UiButton
+              variant="secondary"
+              size="sm"
+              :disabled="!igdbClientSecret"
+              @click="handleGenerateToken"
+            >
+              <template #prefix>
+                <i class="ph ph-key text-base"></i>
+              </template>
+              Générer Token Automatiquement
+            </UiButton>
+
+            <UiButton
+              variant="secondary"
+              size="sm"
+              :loading="igdbStore.isTesting"
+              @click="igdbStore.testConnection"
+            >
+              <template #prefix>
+                <i class="ph ph-plugs-connected text-base"></i>
+              </template>
+              Tester la Connexion IGDB
+            </UiButton>
+          </div>
+
+          <a
+            href="https://dev.twitch.tv/console/apps"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1 font-mono"
+          >
+            Console Twitch Developer
+            <i class="ph ph-arrow-square-out text-sm"></i>
+          </a>
+        </div>
       </div>
     </section>
 
