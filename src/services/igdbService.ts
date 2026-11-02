@@ -63,19 +63,35 @@ const MOCK_IGDB_CATALOG: IGDBGame[] = [
       'Incarnez Hornet, la princesse et protectrice d\'Hallownest, et aventurez-vous dans un royaume inédit dominé par la soie et le chant. Capturée et emmenée dans cette terre inconnue, Hornet devra affronter des ennemis redoutables et élucider d\'anciens mystères au cours d\'un pèlerinage mortel jusqu\'au sommet du monde.',
     storyline:
       'Faisant suite au chef-d\'œuvre Hollow Knight, Silksong introduit une nouvelle protagoniste agile dotée d\'un arsenal d\'armes et de pièges à aiguilles, dans un vaste monde gothique entièrement dessiné à la main.',
-    first_release_date: 1735689600, // Upcoming 2026
+    first_release_date: 1776000000, // Upcoming
     total_rating: 96,
     total_rating_count: 8420,
     rating: 96,
     aggregated_rating: 97,
     category: 0,
-    cover: { id: 101, image_id: 'co1rbo' },
-    artworks: [{ id: 201, image_id: 'ar173x' }, { id: 202, image_id: 'ar173y' }],
+    cover: {
+      id: 101,
+      image_id: 'co1rbo',
+      url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1030300/library_600x900_2x.jpg'
+    },
+    artworks: [
+      {
+        id: 201,
+        image_id: 'ar-silksong',
+        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1030300/library_hero.jpg'
+      }
+    ],
     screenshots: [
-      { id: 301, image_id: 'sc6x7n' },
-      { id: 302, image_id: 'sc6x7o' },
-      { id: 303, image_id: 'sc6x7p' },
-      { id: 304, image_id: 'sc6x7q' }
+      {
+        id: 301,
+        image_id: 'sc-silksong-1',
+        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1030300/26950369fe4b03c2268620eb9815c8a246aa0b06/ss_26950369fe4b03c2268620eb9815c8a246aa0b06.1920x1080.jpg?t=1776125736'
+      },
+      {
+        id: 302,
+        image_id: 'sc-silksong-2',
+        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1030300/09ccaa6c16f158f9df8298feb5d196098506a028/ss_09ccaa6c16f158f9df8298feb5d196098506a028.1920x1080.jpg?t=1776125736'
+      }
     ],
     genres: [
       { id: 1, name: 'Metroidvania', slug: 'metroidvania' },
@@ -83,7 +99,7 @@ const MOCK_IGDB_CATALOG: IGDBGame[] = [
       { id: 3, name: 'Action', slug: 'action' }
     ],
     platforms: [
-      { id: 6, name: 'PC (Linux)', abbreviation: 'Linux' },
+      { id: 6, name: 'PC (Linux Natif)', abbreviation: 'Linux' },
       { id: 7, name: 'PC (Windows)', abbreviation: 'Win' },
       { id: 8, name: 'Steam Deck', abbreviation: 'Deck' }
     ],
@@ -120,12 +136,24 @@ const MOCK_IGDB_CATALOG: IGDBGame[] = [
     rating: 89,
     aggregated_rating: 86,
     category: 0,
-    cover: { id: 102, image_id: 'co2mjs' },
-    artworks: [{ id: 203, image_id: 'ar8o6' }, { id: 204, image_id: 'ar8o7' }],
+    cover: {
+      id: 102,
+      image_id: 'co2mjs',
+      url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1091500/library_600x900_2x.jpg'
+    },
+    artworks: [
+      {
+        id: 203,
+        image_id: 'ar-cp2077',
+        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1091500/library_hero.jpg'
+      }
+    ],
     screenshots: [
-      { id: 305, image_id: 'sc83v2' },
-      { id: 306, image_id: 'sc83v3' },
-      { id: 307, image_id: 'sc83v4' }
+      {
+        id: 305,
+        image_id: 'sc-cp2077-1',
+        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1091500/header.jpg'
+      }
     ],
     genres: [
       { id: 12, name: 'Jeu de rôle (RPG)', slug: 'role-playing-rpg' },
@@ -155,6 +183,116 @@ const MOCK_IGDB_CATALOG: IGDBGame[] = [
     ]
   },
   {
+    id: 25076,
+    name: 'Red Dead Redemption 2',
+    slug: 'red-dead-redemption-2',
+    summary:
+      'Amérique, 1899. L\'ère de l\'Ouest sauvage touche à sa fin. Arthur Morgan et la bande de Van der Linde prennent la fuite après un braquage raté dans la ville de Blackwater.',
+    storyline:
+      'Poursuivis par les agents fédéraux et les meilleurs chasseurs de primes du pays, la bande doit piller et se battre pour survivre à travers les terres rudes de l\'Amérique.',
+    first_release_date: 1540512000,
+    total_rating: 97,
+    total_rating_count: 31000,
+    rating: 97,
+    category: 0,
+    cover: {
+      id: 110,
+      image_id: 'co1q1f',
+      url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1174180/library_600x900_2x.jpg'
+    },
+    artworks: [
+      {
+        id: 212,
+        image_id: 'ar-rdr2',
+        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1174180/library_hero.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 316,
+        image_id: 'sc-rdr2-1',
+        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1174180/ss_66b553f4c209476d3e4ce25fa4714002cc914c4f.1920x1080.jpg?t=1759502961'
+      },
+      {
+        id: 317,
+        image_id: 'sc-rdr2-2',
+        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1174180/ss_bac60bacbf5da8945103648c08d27d5e202444ca.1920x1080.jpg?t=1759502961'
+      }
+    ],
+    genres: [
+      { id: 3, name: 'Action-Aventure', slug: 'action-adventure' },
+      { id: 31, name: 'Monde Ouvert', slug: 'open-world' }
+    ],
+    platforms: [{ id: 6, name: 'PC (Linux / Proton)', abbreviation: 'Linux' }],
+    themes: [{ id: 1, name: 'Western', slug: 'western' }],
+    game_modes: [
+      { id: 1, name: 'Solo', slug: 'single-player' },
+      { id: 2, name: 'Multijoueur en ligne', slug: 'multiplayer' }
+    ],
+    involved_companies: [
+      {
+        id: 12,
+        developer: true,
+        publisher: true,
+        company: { id: 1012, name: 'Rockstar Games', slug: 'rockstar-games' }
+      }
+    ],
+    websites: [
+      { id: 1, category: 13, url: 'https://store.steampowered.com/app/1174180/Red_Dead_Redemption_2/' },
+      { id: 2, category: 1, url: 'https://www.rockstargames.com/reddeadredemption2' }
+    ]
+  },
+  {
+    id: 1942,
+    name: 'The Witcher 3: Wild Hunt',
+    slug: 'the-witcher-3-wild-hunt',
+    summary:
+      'Incarnez Geralt de Riv, un tueur de monstres à gages dans un monde ouvert riche en aventures fantastiques, à la recherche de l\'enfant de la prophétie.',
+    first_release_date: 1431993600,
+    total_rating: 95,
+    total_rating_count: 28000,
+    rating: 95,
+    aggregated_rating: 93,
+    category: 0,
+    cover: {
+      id: 109,
+      image_id: 'co1wyy',
+      url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/292030/library_600x900_2x.jpg'
+    },
+    artworks: [
+      {
+        id: 211,
+        image_id: 'ar-tw3',
+        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/292030/library_hero.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 315,
+        image_id: 'sc-tw3-1',
+        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/292030/f7f564ecedd09b3e503b071a637aeefdedbeedd8/ss_f7f564ecedd09b3e503b071a637aeefdedbeedd8.1920x1080.jpg?t=1790845156'
+      }
+    ],
+    genres: [
+      { id: 12, name: 'Action RPG', slug: 'action-rpg' },
+      { id: 31, name: 'Monde Ouvert', slug: 'open-world' }
+    ],
+    platforms: [{ id: 6, name: 'PC (Linux / Proton)', abbreviation: 'Linux' }],
+    themes: [{ id: 17, name: 'Dark Fantasy', slug: 'dark-fantasy' }],
+    game_modes: [{ id: 1, name: 'Solo', slug: 'single-player' }],
+    involved_companies: [
+      {
+        id: 11,
+        developer: true,
+        publisher: true,
+        company: { id: 1002, name: 'CD PROJEKT RED', slug: 'cd-projekt-red' }
+      }
+    ],
+    websites: [
+      { id: 1, category: 13, url: 'https://store.steampowered.com/app/292030/The_Witcher_3_Wild_Hunt/' }
+    ]
+  },
+  {
     id: 119133,
     name: 'Elden Ring',
     slug: 'elden-ring',
@@ -166,11 +304,24 @@ const MOCK_IGDB_CATALOG: IGDBGame[] = [
     total_rating: 95,
     total_rating_count: 22100,
     category: 0,
-    cover: { id: 103, image_id: 'co4jni' },
-    artworks: [{ id: 205, image_id: 'ar9d9' }],
+    cover: {
+      id: 103,
+      image_id: 'co4jni',
+      url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1245620/library_600x900_2x.jpg'
+    },
+    artworks: [
+      {
+        id: 205,
+        image_id: 'ar-er',
+        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1245620/library_hero.jpg'
+      }
+    ],
     screenshots: [
-      { id: 308, image_id: 'scatgq' },
-      { id: 309, image_id: 'scatgr' }
+      {
+        id: 308,
+        image_id: 'sc-er-1',
+        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1245620/ss_943bf6fe62352757d9070c1d33e50b92fe8539f1.1920x1080.jpg?t=1790290043'
+      }
     ],
     genres: [
       { id: 12, name: 'Action RPG', slug: 'role-playing-rpg' },
@@ -195,67 +346,9 @@ const MOCK_IGDB_CATALOG: IGDBGame[] = [
         publisher: true,
         company: { id: 1004, name: 'Bandai Namco Entertainment', slug: 'bandai-namco' }
       }
-    ]
-  },
-  {
-    id: 227618,
-    name: 'Hades II',
-    slug: 'hades-ii',
-    summary:
-      'Combattez par-delà les Enfers en faisant appel à la magie noire pour affronter le Titan du Temps dans la suite ensorcelante du rogue-like dungeon crawler primé de Supergiant Games.',
-    first_release_date: 1715011200,
-    total_rating: 94,
-    total_rating_count: 5300,
-    category: 0,
-    cover: { id: 104, image_id: 'co62tu' },
-    artworks: [{ id: 206, image_id: 'ar187v' }],
-    screenshots: [{ id: 310, image_id: 'scitq2' }],
-    genres: [
-      { id: 1, name: 'Rogue-like / Rogue-lite', slug: 'roguelike' },
-      { id: 2, name: 'Action', slug: 'action' }
     ],
-    platforms: [{ id: 6, name: 'PC (Linux Natif / Proton)', abbreviation: 'Linux' }],
-    themes: [{ id: 17, name: 'Mythologie Grecque', slug: 'mythology' }],
-    game_modes: [{ id: 1, name: 'Solo', slug: 'single-player' }],
-    involved_companies: [
-      {
-        id: 5,
-        developer: true,
-        publisher: true,
-        company: { id: 1005, name: 'Supergiant Games', slug: 'supergiant-games' }
-      }
-    ]
-  },
-  {
-    id: 121,
-    name: 'Minecraft',
-    slug: 'minecraft',
-    summary:
-      'Explorez des mondes infinis générés aléatoirement et construisez tout ce qui vous passe par la tête, du modeste abri au plus grandiose des châteaux.',
-    first_release_date: 1321574400,
-    total_rating: 91,
-    total_rating_count: 32000,
-    category: 0,
-    cover: { id: 105, image_id: 'co807s' },
-    artworks: [{ id: 207, image_id: 'ar442' }],
-    screenshots: [{ id: 311, image_id: 'sc4h1' }],
-    genres: [
-      { id: 1, name: 'Sandbox / Survie', slug: 'sandbox' },
-      { id: 2, name: 'Aventure', slug: 'adventure' }
-    ],
-    platforms: [{ id: 6, name: 'PC (Linux Natif)', abbreviation: 'Linux' }],
-    themes: [{ id: 1, name: 'Survie & Création', slug: 'survival' }],
-    game_modes: [
-      { id: 1, name: 'Solo', slug: 'single-player' },
-      { id: 2, name: 'Multijoueur', slug: 'multiplayer' }
-    ],
-    involved_companies: [
-      {
-        id: 6,
-        developer: true,
-        publisher: true,
-        company: { id: 1006, name: 'Mojang Studios', slug: 'mojang-studios' }
-      }
+    websites: [
+      { id: 1, category: 13, url: 'https://store.steampowered.com/app/1245620/ELDEN_RING/' }
     ]
   },
   {
@@ -268,9 +361,25 @@ const MOCK_IGDB_CATALOG: IGDBGame[] = [
     total_rating: 96,
     total_rating_count: 18900,
     category: 0,
-    cover: { id: 106, image_id: 'co670h' },
-    artworks: [{ id: 208, image_id: 'ar9d1' }],
-    screenshots: [{ id: 312, image_id: 'scatg1' }],
+    cover: {
+      id: 106,
+      image_id: 'co670h',
+      url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1086940/library_600x900_2x.jpg'
+    },
+    artworks: [
+      {
+        id: 208,
+        image_id: 'ar-bg3',
+        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1086940/library_hero.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 312,
+        image_id: 'sc-bg3-1',
+        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1086940/ss_c73bc54415178c07fef85f54ee26621728c77504.1920x1080.jpg?t=1777363040'
+      }
+    ],
     genres: [
       { id: 12, name: 'Jeu de rôle au tour par tour (cRPG)', slug: 'crpg' },
       { id: 3, name: 'Aventure', slug: 'adventure' }
@@ -288,6 +397,57 @@ const MOCK_IGDB_CATALOG: IGDBGame[] = [
         publisher: true,
         company: { id: 1007, name: 'Larian Studios', slug: 'larian-studios' }
       }
+    ],
+    websites: [
+      { id: 1, category: 13, url: 'https://store.steampowered.com/app/1086940/Baldurs_Gate_3/' }
+    ]
+  },
+  {
+    id: 227618,
+    name: 'Hades II',
+    slug: 'hades-ii',
+    summary:
+      'Combattez par-delà les Enfers en faisant appel à la magie noire pour affronter le Titan du Temps dans la suite ensorcelante du rogue-like dungeon crawler primé de Supergiant Games.',
+    first_release_date: 1715011200,
+    total_rating: 94,
+    total_rating_count: 5300,
+    category: 0,
+    cover: {
+      id: 104,
+      image_id: 'co62tu',
+      url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1145350/library_600x900_2x.jpg'
+    },
+    artworks: [
+      {
+        id: 206,
+        image_id: 'ar-h2',
+        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1145350/library_hero.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 310,
+        image_id: 'sc-h2-1',
+        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1145350/ss_ef0f63061d0a0a9a7e46f3b84f125d25330e8f19.1920x1080.jpg?t=1779901265'
+      }
+    ],
+    genres: [
+      { id: 1, name: 'Rogue-like / Rogue-lite', slug: 'roguelike' },
+      { id: 2, name: 'Action', slug: 'action' }
+    ],
+    platforms: [{ id: 6, name: 'PC (Linux Natif / Proton)', abbreviation: 'Linux' }],
+    themes: [{ id: 17, name: 'Mythologie Grecque', slug: 'mythology' }],
+    game_modes: [{ id: 1, name: 'Solo', slug: 'single-player' }],
+    involved_companies: [
+      {
+        id: 5,
+        developer: true,
+        publisher: true,
+        company: { id: 1005, name: 'Supergiant Games', slug: 'supergiant-games' }
+      }
+    ],
+    websites: [
+      { id: 1, category: 13, url: 'https://store.steampowered.com/app/1145350/Hades_II/' }
     ]
   },
   {
@@ -300,9 +460,25 @@ const MOCK_IGDB_CATALOG: IGDBGame[] = [
     total_rating: 86,
     total_rating_count: 8100,
     category: 0,
-    cover: { id: 107, image_id: 'co81g3' },
-    artworks: [{ id: 209, image_id: 'ar189z' }],
-    screenshots: [{ id: 313, image_id: 'scj1a1' }],
+    cover: {
+      id: 107,
+      image_id: 'co81g3',
+      url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/2358720/library_600x900_2x.jpg'
+    },
+    artworks: [
+      {
+        id: 209,
+        image_id: 'ar-bmw',
+        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/2358720/library_hero.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 313,
+        image_id: 'sc-bmw-1',
+        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2358720/ss_86c4b7462bba219a0d0b89931a35812b9f188976.1920x1080.jpg?t=1760601605'
+      }
+    ],
     genres: [
       { id: 1, name: 'Action RPG', slug: 'action-rpg' },
       { id: 2, name: 'Mythologie', slug: 'mythology' }
@@ -317,6 +493,405 @@ const MOCK_IGDB_CATALOG: IGDBGame[] = [
         publisher: true,
         company: { id: 1008, name: 'Game Science', slug: 'game-science' }
       }
+    ],
+    websites: [
+      { id: 1, category: 13, url: 'https://store.steampowered.com/app/2358720/Black_Myth_Wukong/' }
+    ]
+  },
+  {
+    id: 103020,
+    name: 'Sekiro: Shadows Die Twice',
+    slug: 'sekiro-shadows-die-twice',
+    summary:
+      'Dans Sekiro: Shadows Die Twice, vous êtes le « loup à un bras », un guerrier défiguré et tombé en disgrâce sauvé de justesse de la mort au cœur du Japon féodal.',
+    first_release_date: 1553212800,
+    total_rating: 93,
+    total_rating_count: 21000,
+    category: 0,
+    cover: {
+      id: 116,
+      image_id: 'co1rvj',
+      url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/814380/library_600x900_2x.jpg'
+    },
+    artworks: [
+      {
+        id: 218,
+        image_id: 'ar-sekiro',
+        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/814380/library_hero.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 322,
+        image_id: 'sc-sekiro-1',
+        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/814380/ss_0f7b0f8ed9ffc49aba26f9328caa9a1d59ad60f0.1920x1080.jpg?t=1762888662'
+      }
+    ],
+    genres: [
+      { id: 1, name: 'Action-Aventure', slug: 'action-adventure' },
+      { id: 12, name: 'Souls-like', slug: 'souls-like' }
+    ],
+    platforms: [{ id: 6, name: 'PC (Linux / Proton)', abbreviation: 'Linux' }],
+    themes: [{ id: 1, name: 'Japon Féodal & Mythologie', slug: 'feudal-japan' }],
+    game_modes: [{ id: 1, name: 'Solo', slug: 'single-player' }],
+    involved_companies: [
+      {
+        id: 19,
+        developer: true,
+        publisher: false,
+        company: { id: 1003, name: 'FromSoftware', slug: 'fromsoftware' }
+      }
+    ],
+    websites: [
+      { id: 1, category: 13, url: 'https://store.steampowered.com/app/814380/Sekiro_Shadows_Die_Twice/' }
+    ]
+  },
+  {
+    id: 11133,
+    name: 'Dark Souls III',
+    slug: 'dark-souls-iii',
+    summary:
+      'Alors que les feux s\'éteignent et que le monde s\'effondre, plongez dans un univers d\'ennemis colossaux et d\'environnements spectaculaires.',
+    first_release_date: 1458777600,
+    total_rating: 91,
+    total_rating_count: 24000,
+    category: 0,
+    cover: {
+      id: 117,
+      image_id: 'co1vcf',
+      url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/374320/library_600x900_2x.jpg'
+    },
+    artworks: [
+      {
+        id: 219,
+        image_id: 'ar-ds3',
+        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/374320/library_hero.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 323,
+        image_id: 'sc-ds3-1',
+        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/374320/ss_5efd318b85a3917d1c6e717f4cb813b47547cd6f.1920x1080.jpg?t=1748630784'
+      }
+    ],
+    genres: [
+      { id: 12, name: 'Action RPG', slug: 'action-rpg' },
+      { id: 1, name: 'Dark Fantasy', slug: 'dark-fantasy' }
+    ],
+    platforms: [{ id: 6, name: 'PC (Linux / Proton)', abbreviation: 'Linux' }],
+    themes: [{ id: 17, name: 'Dark Fantasy', slug: 'dark-fantasy' }],
+    game_modes: [
+      { id: 1, name: 'Solo', slug: 'single-player' },
+      { id: 2, name: 'Multijoueur Coop & Invasion', slug: 'multiplayer' }
+    ],
+    involved_companies: [
+      {
+        id: 20,
+        developer: true,
+        publisher: false,
+        company: { id: 1003, name: 'FromSoftware', slug: 'fromsoftware' }
+      }
+    ],
+    websites: [
+      { id: 1, category: 13, url: 'https://store.steampowered.com/app/374320/DARK_SOULS_III/' }
+    ]
+  },
+  {
+    id: 9764,
+    name: 'Hollow Knight',
+    slug: 'hollow-knight',
+    summary:
+      'Forgez votre propre chemin dans Hollow Knight ! Une aventure d\'action épique à travers un vaste royaume en ruine peuplé d\'insectes et de héros.',
+    first_release_date: 1487894400,
+    total_rating: 93,
+    total_rating_count: 36000,
+    category: 0,
+    cover: {
+      id: 115,
+      image_id: 'co1rba',
+      url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/367520/library_600x900_2x.jpg'
+    },
+    artworks: [
+      {
+        id: 217,
+        image_id: 'ar-hk',
+        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/367520/library_hero.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 321,
+        image_id: 'sc-hk-1',
+        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/367520/ss_5384f9f8b96a0b9934b2bc35a4058376211636d2.1920x1080.jpg?t=1776125684'
+      }
+    ],
+    genres: [
+      { id: 1, name: 'Metroidvania', slug: 'metroidvania' },
+      { id: 2, name: 'Action', slug: 'action' }
+    ],
+    platforms: [{ id: 6, name: 'PC (Linux Natif)', abbreviation: 'Linux' }],
+    themes: [{ id: 17, name: 'Dark Fantasy', slug: 'dark-fantasy' }],
+    game_modes: [{ id: 1, name: 'Solo', slug: 'single-player' }],
+    involved_companies: [
+      {
+        id: 18,
+        developer: true,
+        publisher: true,
+        company: { id: 1001, name: 'Team Cherry', slug: 'team-cherry' }
+      }
+    ],
+    websites: [
+      { id: 1, category: 13, url: 'https://store.steampowered.com/app/367520/Hollow_Knight/' }
+    ]
+  },
+  {
+    id: 107223,
+    name: 'S.T.A.L.K.E.R. 2: Heart of Chornobyl',
+    slug: 'stalker-2-heart-of-chornobyl',
+    summary:
+      'Explorez la vaste zone d\'exclusion de Tchernobyl, remplie d\'ennemis dangereux, d\'anomalies mortelles et d\'artefacts puissants.',
+    first_release_date: 1732060800,
+    total_rating: 89,
+    total_rating_count: 11000,
+    category: 0,
+    cover: {
+      id: 114,
+      image_id: 'co2x5k',
+      url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1643320/library_600x900_2x.jpg'
+    },
+    artworks: [
+      {
+        id: 216,
+        image_id: 'ar-stalker',
+        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1643320/library_hero.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 320,
+        image_id: 'sc-stalker-1',
+        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1643320/6467b08ef0929424e016dc9ac613656f2119f9a0/ss_6467b08ef0929424e016dc9ac613656f2119f9a0.1920x1080.jpg?t=1793009305'
+      }
+    ],
+    genres: [
+      { id: 5, name: 'FPS / Survie', slug: 'fps-survival' },
+      { id: 31, name: 'Monde Ouvert', slug: 'open-world' }
+    ],
+    platforms: [{ id: 6, name: 'PC (Linux / Proton)', abbreviation: 'Linux' }],
+    themes: [{ id: 1, name: 'Post-apocalyptique', slug: 'post-apocalyptic' }],
+    game_modes: [{ id: 1, name: 'Solo', slug: 'single-player' }],
+    involved_companies: [
+      {
+        id: 17,
+        developer: true,
+        publisher: true,
+        company: { id: 1017, name: 'GSC Game World', slug: 'gsc-game-world' }
+      }
+    ],
+    websites: [
+      { id: 1, category: 13, url: 'https://store.steampowered.com/app/1643320/STALKER_2_Heart_of_Chornobyl/' }
+    ]
+  },
+  {
+    id: 112875,
+    name: 'God of War Ragnarök',
+    slug: 'god-of-war-ragnarok',
+    summary:
+      'Kratos et Atreus doivent voyager à travers chacun des Neuf Royaumes à la recherche de réponses tandis que les forces d\'Asgard se préparent à une bataille prophétisée.',
+    first_release_date: 1667952000,
+    total_rating: 94,
+    total_rating_count: 27000,
+    category: 0,
+    cover: {
+      id: 118,
+      image_id: 'co5s5v',
+      url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/2322010/library_600x900_2x.jpg'
+    },
+    artworks: [
+      {
+        id: 220,
+        image_id: 'ar-gowr',
+        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/2322010/library_hero.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 324,
+        image_id: 'sc-gowr-1',
+        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2322010/ss_7c59382e67eadf779e0e15c3837ee91158237f11.1920x1080.jpg?t=1776465233'
+      }
+    ],
+    genres: [
+      { id: 3, name: 'Action-Aventure', slug: 'action-adventure' },
+      { id: 1, name: 'Mythologie Nordique', slug: 'nordic' }
+    ],
+    platforms: [{ id: 6, name: 'PC (Linux / Proton)', abbreviation: 'Linux' }],
+    themes: [{ id: 1, name: 'Mythologie', slug: 'mythology' }],
+    game_modes: [{ id: 1, name: 'Solo', slug: 'single-player' }],
+    involved_companies: [
+      {
+        id: 21,
+        developer: true,
+        publisher: false,
+        company: { id: 1021, name: 'Santa Monica Studio', slug: 'santa-monica' }
+      }
+    ],
+    websites: [
+      { id: 1, category: 13, url: 'https://store.steampowered.com/app/2322010/God_of_War_Ragnarok/' }
+    ]
+  },
+  {
+    id: 75235,
+    name: 'Ghost of Tsushima',
+    slug: 'ghost-of-tsushima',
+    summary:
+      'À la fin du XIIIe siècle, l\'empire mongol a dévasté des nations entières. L\'île de Tsushima est tout ce qui sépare le Japon d\'une invasion monumentale.',
+    first_release_date: 1594944000,
+    total_rating: 91,
+    total_rating_count: 22000,
+    category: 0,
+    cover: {
+      id: 119,
+      image_id: 'co21re',
+      url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/2215430/library_600x900_2x.jpg'
+    },
+    artworks: [
+      {
+        id: 221,
+        image_id: 'ar-got',
+        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/2215430/library_hero.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 325,
+        image_id: 'sc-got-1',
+        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2215430/ss_51eb1a47a41271abb0aa781de576f704d95b601b.1920x1080.jpg?t=1763409398'
+      }
+    ],
+    genres: [
+      { id: 3, name: 'Action-Aventure', slug: 'action-adventure' },
+      { id: 31, name: 'Monde Ouvert', slug: 'open-world' }
+    ],
+    platforms: [{ id: 6, name: 'PC (Linux / Proton)', abbreviation: 'Linux' }],
+    themes: [{ id: 1, name: 'Samouraï & Japon Historique', slug: 'samurai' }],
+    game_modes: [
+      { id: 1, name: 'Solo', slug: 'single-player' },
+      { id: 2, name: 'Mode Légendes Co-op', slug: 'coop' }
+    ],
+    involved_companies: [
+      {
+        id: 22,
+        developer: true,
+        publisher: false,
+        company: { id: 1022, name: 'Sucker Punch Productions', slug: 'sucker-punch' }
+      }
+    ],
+    websites: [
+      { id: 1, category: 13, url: 'https://store.steampowered.com/app/2215430/Ghost_of_Tsushima_DIRECTORS_CUT/' }
+    ]
+  },
+  {
+    id: 281691,
+    name: 'Monster Hunter Wilds',
+    slug: 'monster-hunter-wilds',
+    summary:
+      'Une force indomptée de la nature. Des environnements dynamiques en constante évolution. Chassez de redoutables monstres dans des écosystèmes vivants.',
+    first_release_date: 1740700800, // Upcoming early 2025/2026
+    total_rating: 92,
+    total_rating_count: 14000,
+    category: 0,
+    cover: {
+      id: 113,
+      image_id: 'co7rvi',
+      url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/2246340/library_600x900_2x.jpg'
+    },
+    artworks: [
+      {
+        id: 215,
+        image_id: 'ar-mhw',
+        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/2246340/library_hero.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 319,
+        image_id: 'sc-mhw-1',
+        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2246340/ss_31b5597fecf2d9a2904bc9bbf8011aacb18143db.1920x1080.jpg?t=1787549555'
+      }
+    ],
+    genres: [
+      { id: 1, name: 'Action RPG', slug: 'action-rpg' },
+      { id: 2, name: 'Chasse aux Monstres', slug: 'hunting' }
+    ],
+    platforms: [{ id: 6, name: 'PC (Linux / Proton)', abbreviation: 'Linux' }],
+    themes: [{ id: 1, name: 'Nature & Fantastique', slug: 'fantasy' }],
+    game_modes: [
+      { id: 1, name: 'Solo', slug: 'single-player' },
+      { id: 2, name: 'Co-op en ligne 4 joueurs', slug: 'coop' }
+    ],
+    involved_companies: [
+      {
+        id: 16,
+        developer: true,
+        publisher: true,
+        company: { id: 1016, name: 'Capcom', slug: 'capcom' }
+      }
+    ],
+    websites: [
+      { id: 1, category: 13, url: 'https://store.steampowered.com/app/2246340/Monster_Hunter_Wilds/' }
+    ]
+  },
+  {
+    id: 121,
+    name: 'Minecraft',
+    slug: 'minecraft',
+    summary:
+      'Explorez des mondes infinis générés aléatoirement et construisez tout ce qui vous passe par la tête, du modeste abri au plus grandiose des châteaux.',
+    first_release_date: 1321574400,
+    total_rating: 91,
+    total_rating_count: 32000,
+    category: 0,
+    cover: {
+      id: 105,
+      image_id: 'co807s',
+      url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co807s.jpg'
+    },
+    artworks: [
+      {
+        id: 207,
+        image_id: 'ar442',
+        url: 'https://images.unsplash.com/photo-1627856013091-fed6e4e30025?q=80&w=2070&auto=format&fit=crop'
+      }
+    ],
+    screenshots: [
+      {
+        id: 311,
+        image_id: 'sc4h1',
+        url: 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?q=80&w=1200&auto=format&fit=crop'
+      }
+    ],
+    genres: [
+      { id: 1, name: 'Sandbox / Survie', slug: 'sandbox' },
+      { id: 2, name: 'Aventure', slug: 'adventure' }
+    ],
+    platforms: [{ id: 6, name: 'PC (Linux Natif)', abbreviation: 'Linux' }],
+    themes: [{ id: 1, name: 'Survie & Création', slug: 'survival' }],
+    game_modes: [
+      { id: 1, name: 'Solo', slug: 'single-player' },
+      { id: 2, name: 'Multijoueur', slug: 'multiplayer' }
+    ],
+    involved_companies: [
+      {
+        id: 6,
+        developer: true,
+        publisher: true,
+        company: { id: 1006, name: 'Mojang Studios', slug: 'mojang-studios' }
+      }
+    ],
+    websites: [
+      { id: 1, category: 1, url: 'https://www.minecraft.net' }
     ]
   },
   {
@@ -329,9 +904,25 @@ const MOCK_IGDB_CATALOG: IGDBGame[] = [
     total_rating: 92,
     total_rating_count: 2400,
     category: 0,
-    cover: { id: 108, image_id: 'co88c2' },
-    artworks: [{ id: 210, image_id: 'ar194k' }],
-    screenshots: [{ id: 314, image_id: 'sck29z' }],
+    cover: {
+      id: 108,
+      image_id: 'co88c2',
+      url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co88c2.jpg'
+    },
+    artworks: [
+      {
+        id: 210,
+        image_id: 'ar194k',
+        url: 'https://images.igdb.com/igdb/image/upload/t_1080p/co88c2.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 314,
+        image_id: 'sck29z',
+        url: 'https://images.igdb.com/igdb/image/upload/t_screenshot_huge/co88c2.jpg'
+      }
+    ],
     genres: [
       { id: 12, name: 'Turn-Based RPG', slug: 'turn-based-rpg' },
       { id: 3, name: 'Aventure Narrative', slug: 'narrative' }
@@ -355,82 +946,34 @@ const MOCK_IGDB_CATALOG: IGDBGame[] = [
     ]
   },
   {
-    id: 1942,
-    name: 'The Witcher 3: Wild Hunt',
-    slug: 'the-witcher-3-wild-hunt',
-    summary:
-      'Incarnez Geralt de Riv, un tueur de monstres à gages dans un monde ouvert riche en aventures fantastiques, à la recherche de l\'enfant de la prophétie.',
-    first_release_date: 1431993600,
-    total_rating: 95,
-    total_rating_count: 28000,
-    rating: 95,
-    aggregated_rating: 93,
-    category: 0,
-    cover: { id: 109, image_id: 'co1wyy' },
-    artworks: [{ id: 211, image_id: 'ar8o6' }],
-    screenshots: [{ id: 315, image_id: 'sc83v2' }],
-    genres: [
-      { id: 12, name: 'Action RPG', slug: 'action-rpg' },
-      { id: 31, name: 'Monde Ouvert', slug: 'open-world' }
-    ],
-    platforms: [{ id: 6, name: 'PC (Linux / Proton)', abbreviation: 'Linux' }],
-    themes: [{ id: 17, name: 'Dark Fantasy', slug: 'dark-fantasy' }],
-    game_modes: [{ id: 1, name: 'Solo', slug: 'single-player' }],
-    involved_companies: [
-      {
-        id: 11,
-        developer: true,
-        publisher: true,
-        company: { id: 1002, name: 'CD PROJEKT RED', slug: 'cd-projekt-red' }
-      }
-    ]
-  },
-  {
-    id: 25076,
-    name: 'Red Dead Redemption 2',
-    slug: 'red-dead-redemption-2',
-    summary:
-      'Amérique, 1899. L\'ère de l\'Ouest sauvage touche à sa fin. Arthur Morgan et la bande de Van der Linde prennent la fuite après un braquage raté.',
-    first_release_date: 1540512000,
-    total_rating: 97,
-    total_rating_count: 31000,
-    rating: 97,
-    category: 0,
-    cover: { id: 110, image_id: 'co1q1f' },
-    artworks: [{ id: 212, image_id: 'ar8o7' }],
-    screenshots: [{ id: 316, image_id: 'sc83v3' }],
-    genres: [
-      { id: 3, name: 'Action-Aventure', slug: 'action-adventure' },
-      { id: 31, name: 'Monde Ouvert', slug: 'open-world' }
-    ],
-    platforms: [{ id: 6, name: 'PC (Linux / Proton)', abbreviation: 'Linux' }],
-    themes: [{ id: 1, name: 'Western', slug: 'western' }],
-    game_modes: [
-      { id: 1, name: 'Solo', slug: 'single-player' },
-      { id: 2, name: 'Multijoueur en ligne', slug: 'multiplayer' }
-    ],
-    involved_companies: [
-      {
-        id: 12,
-        developer: true,
-        publisher: true,
-        company: { id: 1012, name: 'Rockstar Games', slug: 'rockstar-games' }
-      }
-    ]
-  },
-  {
     id: 38787,
     name: 'Grand Theft Auto VI',
     slug: 'grand-theft-auto-vi',
     summary:
       'Grand Theft Auto VI prend place dans l\'État de Leonida, qui abrite les rues baignées de néons de Vice City et ses environs, dans la plus grande et la plus immersive évolution de la saga GTA.',
-    first_release_date: 1767225600, // 2026 Upcoming
+    first_release_date: 1775000000,
     total_rating: 99,
     total_rating_count: 55000,
     category: 0,
-    cover: { id: 111, image_id: 'co7p76' },
-    artworks: [{ id: 213, image_id: 'ar189z' }],
-    screenshots: [{ id: 317, image_id: 'scj1a1' }],
+    cover: {
+      id: 111,
+      image_id: 'co7p76',
+      url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co7p76.jpg'
+    },
+    artworks: [
+      {
+        id: 213,
+        image_id: 'ar-gta6',
+        url: 'https://images.igdb.com/igdb/image/upload/t_1080p/co7p76.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 317,
+        image_id: 'sc-gta6',
+        url: 'https://images.igdb.com/igdb/image/upload/t_screenshot_huge/co7p76.jpg'
+      }
+    ],
     genres: [
       { id: 3, name: 'Action-Aventure', slug: 'action-adventure' },
       { id: 31, name: 'Monde Ouvert', slug: 'open-world' }
@@ -445,6 +988,9 @@ const MOCK_IGDB_CATALOG: IGDBGame[] = [
         publisher: true,
         company: { id: 1012, name: 'Rockstar Games', slug: 'rockstar-games' }
       }
+    ],
+    websites: [
+      { id: 1, category: 1, url: 'https://www.rockstargames.com/VI' }
     ]
   },
   {
@@ -453,13 +999,29 @@ const MOCK_IGDB_CATALOG: IGDBGame[] = [
     slug: 'doom-the-dark-ages',
     summary:
       'Préquelle des célèbres DOOM (2016) et DOOM Eternal, découvrez l\'histoire de l\'origine cinématographique de la rage du Slayer dans une guerre médiévale et sombre contre les Enfers.',
-    first_release_date: 1748736000, // 2025/2026 Upcoming
+    first_release_date: 1750000000,
     total_rating: 94,
     total_rating_count: 9200,
     category: 0,
-    cover: { id: 112, image_id: 'co861v' },
-    artworks: [{ id: 214, image_id: 'ar194k' }],
-    screenshots: [{ id: 318, image_id: 'sck29z' }],
+    cover: {
+      id: 112,
+      image_id: 'co861v',
+      url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co861v.jpg'
+    },
+    artworks: [
+      {
+        id: 214,
+        image_id: 'ar-doom',
+        url: 'https://images.igdb.com/igdb/image/upload/t_1080p/co861v.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 318,
+        image_id: 'sc-doom',
+        url: 'https://images.igdb.com/igdb/image/upload/t_screenshot_huge/co861v.jpg'
+      }
+    ],
     genres: [
       { id: 5, name: 'Tir à la première personne (FPS)', slug: 'fps' },
       { id: 1, name: 'Action Médiévale Sombre', slug: 'action' }
@@ -479,218 +1041,6 @@ const MOCK_IGDB_CATALOG: IGDBGame[] = [
         developer: false,
         publisher: true,
         company: { id: 1015, name: 'Bethesda Softworks', slug: 'bethesda' }
-      }
-    ]
-  },
-  {
-    id: 281691,
-    name: 'Monster Hunter Wilds',
-    slug: 'monster-hunter-wilds',
-    summary:
-      'Une force indomptée de la nature. Des environnements dynamiques en constante évolution. Chassez de redoutables monstres dans des écosystèmes vivants.',
-    first_release_date: 1740700800, // Upcoming early 2025/2026
-    total_rating: 92,
-    total_rating_count: 14000,
-    category: 0,
-    cover: { id: 113, image_id: 'co7rvi' },
-    artworks: [{ id: 215, image_id: 'ar187v' }],
-    screenshots: [{ id: 319, image_id: 'scitq2' }],
-    genres: [
-      { id: 1, name: 'Action RPG', slug: 'action-rpg' },
-      { id: 2, name: 'Chasse aux Monstres', slug: 'hunting' }
-    ],
-    platforms: [{ id: 6, name: 'PC (Linux / Proton)', abbreviation: 'Linux' }],
-    themes: [{ id: 1, name: 'Nature & Fantastique', slug: 'fantasy' }],
-    game_modes: [
-      { id: 1, name: 'Solo', slug: 'single-player' },
-      { id: 2, name: 'Co-op en ligne 4 joueurs', slug: 'coop' }
-    ],
-    involved_companies: [
-      {
-        id: 16,
-        developer: true,
-        publisher: true,
-        company: { id: 1016, name: 'Capcom', slug: 'capcom' }
-      }
-    ]
-  },
-  {
-    id: 107223,
-    name: 'S.T.A.L.K.E.R. 2: Heart of Chornobyl',
-    slug: 'stalker-2-heart-of-chornobyl',
-    summary:
-      'Explorez la vaste zone d\'exclusion de Tchernobyl, remplie d\'ennemis dangereux, d\'anomalies mortelles et d\'artefacts puissants.',
-    first_release_date: 1732060800,
-    total_rating: 89,
-    total_rating_count: 11000,
-    category: 0,
-    cover: { id: 114, image_id: 'co2x5k' },
-    artworks: [{ id: 216, image_id: 'ar9d9' }],
-    screenshots: [{ id: 320, image_id: 'scatgq' }],
-    genres: [
-      { id: 5, name: 'FPS / Survie', slug: 'fps-survival' },
-      { id: 31, name: 'Monde Ouvert', slug: 'open-world' }
-    ],
-    platforms: [{ id: 6, name: 'PC (Linux / Proton)', abbreviation: 'Linux' }],
-    themes: [{ id: 1, name: 'Post-apocalyptique', slug: 'post-apocalyptic' }],
-    game_modes: [{ id: 1, name: 'Solo', slug: 'single-player' }],
-    involved_companies: [
-      {
-        id: 17,
-        developer: true,
-        publisher: true,
-        company: { id: 1017, name: 'GSC Game World', slug: 'gsc-game-world' }
-      }
-    ]
-  },
-  {
-    id: 9764,
-    name: 'Hollow Knight',
-    slug: 'hollow-knight',
-    summary:
-      'Forgez votre propre chemin dans Hollow Knight ! Une aventure d\'action épique à travers un vaste royaume en ruine peuplé d\'insectes et de héros.',
-    first_release_date: 1487894400,
-    total_rating: 93,
-    total_rating_count: 36000,
-    category: 0,
-    cover: { id: 115, image_id: 'co1rba' },
-    artworks: [{ id: 217, image_id: 'ar173x' }],
-    screenshots: [{ id: 321, image_id: 'sc6x7n' }],
-    genres: [
-      { id: 1, name: 'Metroidvania', slug: 'metroidvania' },
-      { id: 2, name: 'Action', slug: 'action' }
-    ],
-    platforms: [{ id: 6, name: 'PC (Linux Natif)', abbreviation: 'Linux' }],
-    themes: [{ id: 17, name: 'Dark Fantasy', slug: 'dark-fantasy' }],
-    game_modes: [{ id: 1, name: 'Solo', slug: 'single-player' }],
-    involved_companies: [
-      {
-        id: 18,
-        developer: true,
-        publisher: true,
-        company: { id: 1001, name: 'Team Cherry', slug: 'team-cherry' }
-      }
-    ]
-  },
-  {
-    id: 103020,
-    name: 'Sekiro: Shadows Die Twice',
-    slug: 'sekiro-shadows-die-twice',
-    summary:
-      'Dans Sekiro: Shadows Die Twice, vous êtes le « loup à un bras », un guerrier défiguré et tombé en disgrâce sauvé de justesse de la mort au cœur du Japon féodal.',
-    first_release_date: 1553212800,
-    total_rating: 93,
-    total_rating_count: 21000,
-    category: 0,
-    cover: { id: 116, image_id: 'co1rvj' },
-    artworks: [{ id: 218, image_id: 'ar9d9' }],
-    screenshots: [{ id: 322, image_id: 'scatgr' }],
-    genres: [
-      { id: 1, name: 'Action-Aventure', slug: 'action-adventure' },
-      { id: 12, name: 'Souls-like', slug: 'souls-like' }
-    ],
-    platforms: [{ id: 6, name: 'PC (Linux / Proton)', abbreviation: 'Linux' }],
-    themes: [{ id: 1, name: 'Japon Féodal & Mythologie', slug: 'feudal-japan' }],
-    game_modes: [{ id: 1, name: 'Solo', slug: 'single-player' }],
-    involved_companies: [
-      {
-        id: 19,
-        developer: true,
-        publisher: false,
-        company: { id: 1003, name: 'FromSoftware', slug: 'fromsoftware' }
-      }
-    ]
-  },
-  {
-    id: 11133,
-    name: 'Dark Souls III',
-    slug: 'dark-souls-iii',
-    summary:
-      'Alors que les feux s\'éteignent et que le monde s\'effondre, plongez dans un univers d\'ennemis colossaux et d\'environnements spectaculaires.',
-    first_release_date: 1458777600,
-    total_rating: 91,
-    total_rating_count: 24000,
-    category: 0,
-    cover: { id: 117, image_id: 'co1vcf' },
-    artworks: [{ id: 219, image_id: 'ar9d1' }],
-    screenshots: [{ id: 323, image_id: 'scatg1' }],
-    genres: [
-      { id: 12, name: 'Action RPG', slug: 'action-rpg' },
-      { id: 1, name: 'Dark Fantasy', slug: 'dark-fantasy' }
-    ],
-    platforms: [{ id: 6, name: 'PC (Linux / Proton)', abbreviation: 'Linux' }],
-    themes: [{ id: 17, name: 'Dark Fantasy', slug: 'dark-fantasy' }],
-    game_modes: [
-      { id: 1, name: 'Solo', slug: 'single-player' },
-      { id: 2, name: 'Multijoueur Coop & Invasion', slug: 'multiplayer' }
-    ],
-    involved_companies: [
-      {
-        id: 20,
-        developer: true,
-        publisher: false,
-        company: { id: 1003, name: 'FromSoftware', slug: 'fromsoftware' }
-      }
-    ]
-  },
-  {
-    id: 112875,
-    name: 'God of War Ragnarök',
-    slug: 'god-of-war-ragnarok',
-    summary:
-      'Kratos et Atreus doivent voyager à travers chacun des Neuf Royaumes à la recherche de réponses tandis que les forces d\'Asgard se préparent à une bataille prophétisée.',
-    first_release_date: 1667952000,
-    total_rating: 94,
-    total_rating_count: 27000,
-    category: 0,
-    cover: { id: 118, image_id: 'co5s5v' },
-    artworks: [{ id: 220, image_id: 'ar8o6' }],
-    screenshots: [{ id: 324, image_id: 'sc83v2' }],
-    genres: [
-      { id: 3, name: 'Action-Aventure', slug: 'action-adventure' },
-      { id: 1, name: 'Mythologie Nordique', slug: 'nordic' }
-    ],
-    platforms: [{ id: 6, name: 'PC (Linux / Proton)', abbreviation: 'Linux' }],
-    themes: [{ id: 1, name: 'Mythologie', slug: 'mythology' }],
-    game_modes: [{ id: 1, name: 'Solo', slug: 'single-player' }],
-    involved_companies: [
-      {
-        id: 21,
-        developer: true,
-        publisher: false,
-        company: { id: 1021, name: 'Santa Monica Studio', slug: 'santa-monica' }
-      }
-    ]
-  },
-  {
-    id: 75235,
-    name: 'Ghost of Tsushima',
-    slug: 'ghost-of-tsushima',
-    summary:
-      'À la fin du XIIIe siècle, l\'empire mongol a dévasté des nations entières. L\'île de Tsushima est tout ce qui sépare le Japon d\'une invasion monumentale.',
-    first_release_date: 1594944000,
-    total_rating: 91,
-    total_rating_count: 22000,
-    category: 0,
-    cover: { id: 119, image_id: 'co21re' },
-    artworks: [{ id: 221, image_id: 'ar8o7' }],
-    screenshots: [{ id: 325, image_id: 'sc83v3' }],
-    genres: [
-      { id: 3, name: 'Action-Aventure', slug: 'action-adventure' },
-      { id: 31, name: 'Monde Ouvert', slug: 'open-world' }
-    ],
-    platforms: [{ id: 6, name: 'PC (Linux / Proton)', abbreviation: 'Linux' }],
-    themes: [{ id: 1, name: 'Samouraï & Japon Historique', slug: 'samurai' }],
-    game_modes: [
-      { id: 1, name: 'Solo', slug: 'single-player' },
-      { id: 2, name: 'Mode Légendes Co-op', slug: 'coop' }
-    ],
-    involved_companies: [
-      {
-        id: 22,
-        developer: true,
-        publisher: false,
-        company: { id: 1022, name: 'Sucker Punch Productions', slug: 'sucker-punch' }
       }
     ]
   }

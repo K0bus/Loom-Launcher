@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useGamesStore } from '@/stores/gamesStore'
 import { useToastStore } from '@/stores/toastStore'
@@ -15,11 +15,35 @@ const toast = useToastStore()
 
 const igdbModalOpen = ref(false)
 const buyModalOpen = ref(false)
+const selectedScreenshot = ref<string | null>(null)
+const isLoadingGame = ref(false)
 
-const gameId = computed(() => (route.params.id as string) || 'hollow-knight-silksong')
+const gameId = computed(() => (route.params.id as string) || 'red-dead-redemption-2')
 const game = computed<Game | undefined>(() => {
-  return gamesStore.getGameById(gameId.value) || gamesStore.getGameById('hollow-knight-silksong') || gamesStore.games[0]
+  return gamesStore.getGameById(gameId.value) || gamesStore.games[0]
 })
+
+async function loadGameDetails() {
+  if (!gamesStore.getGameById(gameId.value)) {
+    isLoadingGame.value = true
+    try {
+      await gamesStore.fetchAndRegisterGame(gameId.value)
+    } finally {
+      isLoadingGame.value = false
+    }
+  }
+}
+
+onMounted(() => {
+  loadGameDetails()
+})
+
+watch(
+  () => gameId.value,
+  () => {
+    loadGameDetails()
+  }
+)
 
 function handleAddToLibrary() {
   if (!game.value) return
@@ -156,32 +180,45 @@ const achievementPercent = computed(() => {
 
       <!-- 2. HERO CINEMATIC (Game Logo, Categories, Play CTA & Metrics) -->
       <div class="relative z-20 px-6 sm:px-10 lg:px-14 pb-8 pt-6 md:pt-14 max-w-7xl w-full">
-        <!-- Typographic Stylized Logo -->
-        <div class="space-y-1 mb-5">
-          <div class="flex items-center gap-2 text-zinc-400 text-xs tracking-widest font-mono uppercase">
-            <span>{{ game.developer }}</span>
-            <span>•</span>
-            <span class="text-amber-400/90 font-medium font-sans">
-              {{ game.config.runner === 'proton-ge' ? 'Proton GE-9-20' : game.config.runner }}
-            </span>
+        <!-- Hero Title Row with 3:4 Box Cover Art -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-end gap-5 mb-5">
+          <!-- 3:4 Box Art Cover Poster -->
+          <div class="w-24 sm:w-28 md:w-32 aspect-[3/4] rounded-2xl overflow-hidden border-2 border-zinc-700/80 shadow-[0_12px_36px_rgba(0,0,0,0.85)] flex-shrink-0 bg-zinc-950 hidden sm:block">
+            <img
+              :src="game.coverUrl"
+              :alt="game.title"
+              class="w-full h-full object-cover"
+              loading="lazy"
+            />
           </div>
 
-          <div class="relative inline-block">
-            <h1 class="font-cinzel text-3xl sm:text-5xl lg:text-6xl font-black tracking-wider text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.8)]">
-              {{ game.title }}
-            </h1>
-            <div v-if="game.subtitle" class="flex items-center justify-between -mt-1 sm:-mt-2">
-              <span class="h-[1px] flex-1 bg-gradient-to-r from-transparent via-zinc-400 to-transparent"></span>
-              <span class="font-cinzel text-lg sm:text-2xl font-bold tracking-[0.3em] text-amber-200 px-3 drop-shadow-md">
-                {{ game.subtitle }}
+          <!-- Typographic Stylized Logo -->
+          <div class="space-y-1">
+            <div class="flex items-center gap-2 text-zinc-400 text-xs tracking-widest font-mono uppercase">
+              <span>{{ game.developer }}</span>
+              <span>•</span>
+              <span class="text-amber-400/90 font-medium font-sans">
+                {{ game.config.runner === 'proton-ge' ? 'Proton GE-9-20' : game.config.runner }}
               </span>
-              <span class="h-[1px] flex-1 bg-gradient-to-r from-transparent via-zinc-400 to-transparent"></span>
             </div>
-          </div>
 
-          <p class="text-xs sm:text-sm text-zinc-400 font-medium pt-1">
-            {{ game.genre.join(' • ') }}
-          </p>
+            <div class="relative inline-block">
+              <h1 class="font-cinzel text-3xl sm:text-5xl lg:text-6xl font-black tracking-wider text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.8)]">
+                {{ game.title }}
+              </h1>
+              <div v-if="game.subtitle" class="flex items-center justify-between -mt-1 sm:-mt-2">
+                <span class="h-[1px] flex-1 bg-gradient-to-r from-transparent via-zinc-400 to-transparent"></span>
+                <span class="font-cinzel text-lg sm:text-2xl font-bold tracking-[0.3em] text-amber-200 px-3 drop-shadow-md">
+                  {{ game.subtitle }}
+                </span>
+                <span class="h-[1px] flex-1 bg-gradient-to-r from-transparent via-zinc-400 to-transparent"></span>
+              </div>
+            </div>
+
+            <p class="text-xs sm:text-sm text-zinc-400 font-medium pt-1">
+              {{ game.genre.join(' • ') }}
+            </p>
+          </div>
         </div>
 
         <!-- Play CTA + Runner Settings + Metrics pill bar -->
@@ -333,6 +370,48 @@ const achievementPercent = computed(() => {
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <!-- Left Column: Activity & News timeline (8 cols) -->
         <div class="lg:col-span-8 space-y-6">
+          <!-- Description & Synopsis -->
+          <section v-if="game.description" class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800/60 space-y-3">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="ph-bold ph-book-open text-amber-400"></i>
+              À propos de {{ game.title }}
+            </h3>
+            <p class="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">
+              {{ game.description }}
+            </p>
+          </section>
+
+          <!-- Galerie de Captures d'Écran Officielles (1080p) -->
+          <section v-if="game.screenshots && game.screenshots.length > 0" class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800/60 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <i class="ph-bold ph-image text-amber-400"></i>
+                Captures d'écran officielles
+              </h3>
+              <span class="text-xs text-zinc-500 font-mono">{{ game.screenshots.length }} images HD</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div
+                v-for="(shot, idx) in game.screenshots"
+                :key="idx"
+                class="group/shot relative aspect-video rounded-xl overflow-hidden border border-zinc-800 hover:border-amber-500/50 transition-all cursor-pointer bg-zinc-950"
+                @click="selectedScreenshot = shot"
+              >
+                <img
+                  :src="shot"
+                  :alt="`${game.title} capture ${idx + 1}`"
+                  class="w-full h-full object-cover group-hover/shot:scale-105 transition-transform duration-500"
+                  loading="lazy"
+                />
+                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover/shot:opacity-100 transition-opacity flex items-center justify-center">
+                  <span class="p-2.5 rounded-full bg-zinc-900/90 text-amber-400 border border-amber-500/40 shadow-xl">
+                    <i class="ph-bold ph-magnifying-glass-plus text-base"></i>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <!-- Filter Tabs (All / News / Updates & patches) -->
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2 bg-zinc-900/60 p-1 rounded-full border border-zinc-800/80">
@@ -538,9 +617,45 @@ const achievementPercent = computed(() => {
               </div>
             </div>
           </div>
+
+          <!-- Official Store Links -->
+          <div v-if="game.storeLinks && game.storeLinks.length > 0" class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800/60 space-y-4">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="ph-bold ph-shopping-bag text-amber-400"></i>
+              Boutiques Officielles
+            </h3>
+            <div class="space-y-2">
+              <a
+                v-for="store in game.storeLinks"
+                :key="store.store"
+                :href="store.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="flex items-center justify-between p-3 rounded-xl bg-zinc-950/60 hover:bg-zinc-800/60 border border-zinc-800 hover:border-amber-500/40 transition group text-xs"
+              >
+                <div class="flex items-center gap-2.5">
+                  <i :class="[store.icon || 'ph-fill ph-storefront', 'text-base text-amber-400']"></i>
+                  <span class="font-semibold text-zinc-200 group-hover:text-amber-300 transition-colors">{{ store.store }}</span>
+                </div>
+                <i class="ph ph-arrow-up-right text-zinc-500 group-hover:text-amber-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"></i>
+              </a>
+            </div>
+          </div>
         </aside>
       </div>
     </main>
+
+    <!-- MODAL: LIGHTBOX CAPTURE D'ÉCRAN -->
+    <UiModal
+      :open="Boolean(selectedScreenshot)"
+      title="Aperçu HD"
+      max-width="3xl"
+      @close="selectedScreenshot = null"
+    >
+      <div v-if="selectedScreenshot" class="aspect-video w-full rounded-xl overflow-hidden bg-zinc-950 border border-zinc-800">
+        <img :src="selectedScreenshot" :alt="game.title" class="w-full h-full object-contain" />
+      </div>
+    </UiModal>
 
     <!-- MODAL: RUNNER SETTINGS (MATCHING REFERENCE DESIGN) -->
     <UiModal

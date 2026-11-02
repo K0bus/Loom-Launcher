@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Game, GameFilter, RunnerType, GameConfig } from '@/models/game'
 import { mapIGDBGameToLoomGame } from '@/models/igdb'
-import { MOCK_IGDB_CATALOG } from '@/services/igdbService'
+import { MOCK_IGDB_CATALOG, igdbService } from '@/services/igdbService'
 import { ipc } from '@/services/ipc'
 
 export const useGamesStore = defineStore('games', () => {
@@ -11,13 +11,15 @@ export const useGamesStore = defineStore('games', () => {
       id: 'cyberpunk-2077',
       title: 'Cyberpunk 2077: Phantom Liberty',
       slug: 'cyberpunk-2077',
-      bannerUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070&auto=format&fit=crop',
-      coverUrl: 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?q=80&w=1074&auto=format&fit=crop',
+      igdbId: 1877,
+      bannerUrl: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1091500/library_hero.jpg',
+      coverUrl: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1091500/library_600x900_2x.jpg',
       platform: 'steam',
       genre: ['Action RPG', 'Open World', 'Cyberpunk'],
       playtimeMinutes: 7420, // 123.6 hours
       lastPlayed: 'Il y a 2 heures',
       installed: true,
+      inLibrary: true,
       installPath: '/mnt/games-nvme/SteamLibrary/steamapps/common/Cyberpunk 2077',
       sizeGb: 86.4,
       developer: 'CD PROJEKT RED',
@@ -40,9 +42,8 @@ export const useGamesStore = defineStore('games', () => {
         launchArguments: '-high -novid'
       },
       screenshots: [
-        'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1200&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=1200&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=1200&auto=format&fit=crop'
+        'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/ss_2f649b68d579bf87011487d29bc4ccbfdd97d34f.1920x1080.jpg',
+        'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/900f9bda156599fcd235f08ffb64667f9baa1afe/ss_900f9bda156599fcd235f08ffb64667f9baa1afe.1920x1080.jpg'
       ],
       achievements: [
         {
@@ -96,19 +97,125 @@ export const useGamesStore = defineStore('games', () => {
           date: '24 Oct 2026',
           author: 'CDPR Events'
         }
+      ],
+      storeLinks: [
+        {
+          store: 'Steam Store',
+          url: 'https://store.steampowered.com/app/1091500/Cyberpunk_2077/',
+          icon: 'ph-fill ph-steam-logo'
+        },
+        {
+          store: 'GOG.com (DRM-Free)',
+          url: 'https://www.gog.com/game/cyberpunk_2077',
+          icon: 'ph-fill ph-shopping-bag'
+        }
+      ]
+    },
+    {
+      id: 'red-dead-redemption-2',
+      title: 'Red Dead Redemption 2',
+      slug: 'red-dead-redemption-2',
+      igdbId: 25076,
+      bannerUrl: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1174180/library_hero.jpg',
+      coverUrl: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1174180/library_600x900_2x.jpg',
+      platform: 'steam',
+      genre: ['Action-Aventure', 'Monde Ouvert', 'Western'],
+      playtimeMinutes: 8940, // 149 hours
+      lastPlayed: 'Hier',
+      installed: true,
+      inLibrary: true,
+      installPath: '/mnt/games-nvme/SteamLibrary/steamapps/common/Red Dead Redemption 2',
+      sizeGb: 119.5,
+      developer: 'Rockstar Games',
+      publisher: 'Rockstar Games',
+      releaseYear: 2018,
+      description: 'Amérique, 1899. L\'ère de l\'Ouest sauvage touche à sa fin. Arthur Morgan et la bande de Van der Linde prennent la fuite après un braquage raté dans la ville de Blackwater.',
+      isFavorite: true,
+      config: {
+        runner: 'proton-ge',
+        winePrefix: '~/.local/share/loom/prefixes/rdr2',
+        gamemode: true,
+        mangohud: true,
+        gamescope: false,
+        envVariables: {
+          'RADV_PERFTEST': 'gpl',
+          'ENABLE_VKBASALT': '1'
+        },
+        launchArguments: '-vulkan'
+      },
+      screenshots: [
+        'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1174180/ss_66b553f4c209476d3e4ce25fa4714002cc914c4f.1920x1080.jpg',
+        'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1174180/ss_bac60bacbf5da8945103648c08d27d5e202444ca.1920x1080.jpg'
+      ],
+      achievements: [
+        {
+          id: 'rdr2-1',
+          name: 'Légende de l\'Ouest',
+          description: 'Compléter l\'histoire principale de Red Dead Redemption 2.',
+          unlocked: true,
+          unlockedAt: '18 Oct 2026',
+          icon: '🤠',
+          rarityPercentage: 21.4
+        },
+        {
+          id: 'rdr2-2',
+          name: 'Ruée vers l\'or',
+          description: 'Obtenir 70 médailles d\'or dans les missions de l\'histoire.',
+          unlocked: true,
+          unlockedAt: '10 Oct 2026',
+          icon: '⭐',
+          rarityPercentage: 4.8
+        },
+        {
+          id: 'rdr2-3',
+          name: 'Un coup de main',
+          description: 'Terminer toutes les missions d\'honneur facultatives de l\'histoire.',
+          unlocked: true,
+          unlockedAt: '28 Sept 2026',
+          icon: '🤝',
+          rarityPercentage: 15.2
+        }
+      ],
+      news: [
+        {
+          id: 'rdr2-n1',
+          title: 'Optimisation Vulkan sous Linux & Support HDR natif avec Proton-GE',
+          summary: 'La version PC de Red Dead Redemption 2 sous Linux bénéficie d\'une stabilité sans crash mémoire avec Proton-GE 9-20 et le pilote Mesa RADV.',
+          date: 'Il y a 2 jours',
+          author: 'Rockstar Newswire'
+        }
+      ],
+      storeLinks: [
+        {
+          store: 'Steam Store',
+          url: 'https://store.steampowered.com/app/1174180/Red_Dead_Redemption_2/',
+          icon: 'ph-fill ph-steam-logo'
+        },
+        {
+          store: 'Rockstar Games Launcher',
+          url: 'https://www.rockstargames.com/reddeadredemption2',
+          icon: 'ph-fill ph-globe'
+        },
+        {
+          store: 'Epic Games Store',
+          url: 'https://store.epicgames.com/fr/p/red-dead-redemption-2',
+          icon: 'ph-fill ph-storefront'
+        }
       ]
     },
     {
       id: 'minecraft',
       title: 'Minecraft: Java Edition',
       slug: 'minecraft',
-      bannerUrl: 'https://images.unsplash.com/photo-1627856013091-fed6e4e30025?q=80&w=2070&auto=format&fit=crop',
-      coverUrl: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=1074&auto=format&fit=crop',
+      igdbId: 121,
+      bannerUrl: 'https://images.igdb.com/igdb/image/upload/t_1080p/ar85b.jpg',
+      coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co807s.jpg',
       platform: 'minecraft',
       genre: ['Sandbox', 'Survie', 'Aventure'],
       playtimeMinutes: 28400, // 473 hours
       lastPlayed: 'Hier à 22:15',
       installed: true,
+      inLibrary: true,
       installPath: '~/.local/share/loom/instances',
       sizeGb: 12.8,
       developer: 'Mojang Studios',
@@ -127,8 +234,8 @@ export const useGamesStore = defineStore('games', () => {
         launchArguments: '-XX:+UseG1GC -XX:+ParallelRefProcEnabled'
       },
       screenshots: [
-        'https://images.unsplash.com/photo-1627856013091-fed6e4e30025?q=80&w=1200&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?q=80&w=1200&auto=format&fit=crop'
+        'https://images.igdb.com/igdb/image/upload/t_1080p/sc7x72.jpg',
+        'https://images.igdb.com/igdb/image/upload/t_1080p/sc7x71.jpg'
       ],
       achievements: [
         {
@@ -157,19 +264,28 @@ export const useGamesStore = defineStore('games', () => {
           date: 'Il y a 3 jours',
           author: 'Mojang Studios'
         }
+      ],
+      storeLinks: [
+        {
+          store: 'Site Officiel Minecraft.net',
+          url: 'https://www.minecraft.net/',
+          icon: 'ph-fill ph-globe'
+        }
       ]
     },
     {
       id: 'elden-ring',
       title: 'Elden Ring: Shadow of the Erdtree',
       slug: 'elden-ring',
-      bannerUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=2084&auto=format&fit=crop',
-      coverUrl: 'https://images.unsplash.com/photo-1563089145-599997674d42?q=80&w=1074&auto=format&fit=crop',
+      igdbId: 119133,
+      bannerUrl: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1245620/library_hero.jpg',
+      coverUrl: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1245620/library_600x900_2x.jpg',
       platform: 'steam',
       genre: ['Action RPG', 'Souls-like', 'Dark Fantasy'],
       playtimeMinutes: 11200, // 186.6 hours
       lastPlayed: 'Il y a 3 jours',
       installed: true,
+      inLibrary: true,
       installPath: '/mnt/games-nvme/SteamLibrary/steamapps/common/ELDEN RING',
       sizeGb: 64.2,
       developer: 'FromSoftware Inc.',
@@ -189,7 +305,8 @@ export const useGamesStore = defineStore('games', () => {
         launchArguments: ''
       },
       screenshots: [
-        'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1200&auto=format&fit=crop'
+        'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1245620/ss_943bf6fe62352757d9070c1d33e50b92fe8539f1.1920x1080.jpg',
+        'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1245620/ss_dcdac9e4b26ac0ee5248bfd2967d764fd00cdb42.1920x1080.jpg'
       ],
       achievements: [
         {
@@ -217,19 +334,28 @@ export const useGamesStore = defineStore('games', () => {
           date: '19 Oct 2026',
           author: 'FromSoftware'
         }
+      ],
+      storeLinks: [
+        {
+          store: 'Steam Store',
+          url: 'https://store.steampowered.com/app/1245620/ELDEN_RING/',
+          icon: 'ph-fill ph-steam-logo'
+        }
       ]
     },
     {
       id: 'baldurs-gate-3',
       title: 'Baldur\'s Gate 3',
       slug: 'baldurs-gate-3',
-      bannerUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=2070&auto=format&fit=crop',
-      coverUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1074&auto=format&fit=crop',
+      igdbId: 119171,
+      bannerUrl: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1086940/library_hero.jpg',
+      coverUrl: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1086940/library_600x900_2x.jpg',
       platform: 'steam',
       genre: ['CRPG', 'Tour par tour', 'Fantasy'],
       playtimeMinutes: 9800,
       lastPlayed: 'Il y a 5 jours',
       installed: true,
+      inLibrary: true,
       sizeGb: 122.0,
       developer: 'Larian Studios',
       publisher: 'Larian Studios',
@@ -244,21 +370,55 @@ export const useGamesStore = defineStore('games', () => {
         envVariables: {},
         launchArguments: '--skip-launcher'
       },
-      screenshots: [],
-      achievements: [],
-      news: []
+      screenshots: [
+        'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1086940/ss_c73bc54415178c07fef85f54ee26621728c77504.1920x1080.jpg',
+        'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1086940/ss_73d93bea842b93914d966622104dcb8c0f42972b.1920x1080.jpg'
+      ],
+      achievements: [
+        {
+          id: 'bg3-1',
+          name: 'Héros des Portes',
+          description: 'Sauver la Porte de Baldur de la menace absolue.',
+          unlocked: true,
+          icon: '🛡️',
+          rarityPercentage: 19.5
+        }
+      ],
+      news: [
+        {
+          id: 'bg3-n1',
+          title: 'Patch 7 officiel : Outils de modding complets et fins diaboliques',
+          summary: 'Le gestionnaire de mods intégré est désormais disponible sur Linux avec synchronisation automatique.',
+          date: 'Il y a 4 jours',
+          author: 'Larian Publishing'
+        }
+      ],
+      storeLinks: [
+        {
+          store: 'Steam Store',
+          url: 'https://store.steampowered.com/app/1086940/Baldurs_Gate_3/',
+          icon: 'ph-fill ph-steam-logo'
+        },
+        {
+          store: 'GOG.com (DRM-Free)',
+          url: 'https://www.gog.com/game/baldurs_gate_iii',
+          icon: 'ph-fill ph-shopping-bag'
+        }
+      ]
     },
     {
       id: 'hades-2',
       title: 'Hades II',
       slug: 'hades-2',
-      bannerUrl: 'https://images.unsplash.com/photo-1551103782-8ab07afd45c1?q=80&w=2070&auto=format&fit=crop',
-      coverUrl: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=1074&auto=format&fit=crop',
+      igdbId: 227618,
+      bannerUrl: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1145350/library_hero.jpg',
+      coverUrl: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1145350/library_600x900_2x.jpg',
       platform: 'steam',
       genre: ['Rogue-like', 'Action', 'Mythologie'],
       playtimeMinutes: 3450,
       lastPlayed: 'Il y a 1 semaine',
       installed: true,
+      inLibrary: true,
       sizeGb: 14.5,
       developer: 'Supergiant Games',
       publisher: 'Supergiant Games',
@@ -273,22 +433,56 @@ export const useGamesStore = defineStore('games', () => {
         envVariables: {},
         launchArguments: ''
       },
-      screenshots: [],
-      achievements: [],
-      news: []
+      screenshots: [
+        'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1145350/ss_ef0f63061d0a0a9a7e46f3b84f125d25330e8f19.1920x1080.jpg',
+        'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1145350/ss_f28befd916e59b8bf0a8a801b8a498b8adaa01eb.1920x1080.jpg'
+      ],
+      achievements: [
+        {
+          id: 'hades2-1',
+          name: 'La Sorcière des Enfers',
+          description: 'Vaincre le premier gardien du Tartare.',
+          unlocked: true,
+          icon: '🔮',
+          rarityPercentage: 42.1
+        }
+      ],
+      news: [
+        {
+          id: 'hades2-n1',
+          title: 'The Olympic Update : Nouvelles armes et bénédictions',
+          summary: 'Découvrez la nouvelle région de la surface, de nouveaux familiers et l\'arme Griffes de Sombre-Nuit.',
+          date: 'Il y a 6 jours',
+          author: 'Supergiant Games'
+        }
+      ],
+      storeLinks: [
+        {
+          store: 'Steam Store',
+          url: 'https://store.steampowered.com/app/1145350/Hades_II/',
+          icon: 'ph-fill ph-steam-logo'
+        },
+        {
+          store: 'Epic Games Store',
+          url: 'https://store.epicgames.com/fr/p/hades-ii',
+          icon: 'ph-fill ph-storefront'
+        }
+      ]
     },
     {
       id: 'hollow-knight-silksong',
       title: 'HOLLOW KNIGHT',
       subtitle: 'SILKSONG',
       slug: 'hollow-knight-silksong',
-      bannerUrl: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=2070&auto=format&fit=crop',
-      coverUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1074&auto=format&fit=crop',
+      igdbId: 115278,
+      bannerUrl: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1030300/library_hero.jpg',
+      coverUrl: 'https://shared.steamstatic.com/store_item_assets/steam/apps/1030300/library_600x900_2x.jpg',
       platform: 'steam',
       genre: ['Metroidvania', 'Action', 'Difficult', 'Atmospheric'],
       playtimeMinutes: 2406, // 40.1 hours
       lastPlayed: 'Yesterday',
       installed: true,
+      inLibrary: true,
       installPath: '~/.local/share/wine/hk_ss',
       sizeGb: 18.4,
       developer: 'Team Cherry',
@@ -312,8 +506,8 @@ export const useGamesStore = defineStore('games', () => {
         launchArguments: ''
       },
       screenshots: [
-        'https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1200&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1200&auto=format&fit=crop'
+        'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1030300/26950369fe4b03c2268620eb9815c8a246aa0b06/ss_26950369fe4b03c2268620eb9815c8a246aa0b06.1920x1080.jpg',
+        'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1030300/09ccaa6c16f158f9df8298feb5d196098506a028/ss_09ccaa6c16f158f9df8298feb5d196098506a028.1920x1080.jpg'
       ],
       achievements: [
         {
@@ -383,6 +577,23 @@ export const useGamesStore = defineStore('games', () => {
           comments: 512,
           type: 'news'
         }
+      ],
+      storeLinks: [
+        {
+          store: 'Steam Store',
+          url: 'https://store.steampowered.com/app/1030300/Hollow_Knight_Silksong/',
+          icon: 'ph-fill ph-steam-logo'
+        },
+        {
+          store: 'Site Officiel Team Cherry',
+          url: 'https://www.hollowknightsilksong.com',
+          icon: 'ph-fill ph-globe'
+        },
+        {
+          store: 'GOG.com',
+          url: 'https://www.gog.com/game/hollow_knight_silksong',
+          icon: 'ph-fill ph-shopping-bag'
+        }
       ]
     }
   ])
@@ -420,8 +631,10 @@ export const useGamesStore = defineStore('games', () => {
 
   // Actions
   function getGameById(id: string): Game | undefined {
-    // 1. Search in user's library
-    const inLib = games.value.find((g) => g.id === id || g.slug === id)
+    // 1. Search in user's library (by id, slug, or matching igdb-${igdbId})
+    const inLib = games.value.find(
+      (g) => g.id === id || g.slug === id || (g.igdbId && `igdb-${g.igdbId}` === id)
+    )
     if (inLib) {
       if (inLib.inLibrary === undefined) inLib.inLibrary = true
       return inLib
@@ -452,6 +665,28 @@ export const useGamesStore = defineStore('games', () => {
       return mapped
     }
 
+    return undefined
+  }
+
+  async function fetchAndRegisterGame(id: string): Promise<Game | undefined> {
+    const existing = getGameById(id)
+    if (existing) return existing
+
+    if (id.startsWith('igdb-')) {
+      const numericId = parseInt(id.replace('igdb-', ''), 10)
+      if (!isNaN(numericId)) {
+        try {
+          const liveGame = await igdbService.getGameById(numericId)
+          if (liveGame) {
+            const mapped = mapIGDBGameToLoomGame(liveGame, { inLibrary: false })
+            discoveredGames.value.set(id, mapped)
+            return mapped
+          }
+        } catch (e) {
+          console.warn('[gamesStore] Failed to fetch live game from IGDB:', e)
+        }
+      }
+    }
     return undefined
   }
 
@@ -580,6 +815,7 @@ export const useGamesStore = defineStore('games', () => {
     installedGames,
     allNews,
     getGameById,
+    fetchAndRegisterGame,
     launchGame,
     stopGame,
     updateGameRunner,

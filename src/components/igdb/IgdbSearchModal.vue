@@ -206,7 +206,7 @@ watch(
             <!-- 3:4 Poster Image -->
             <div class="relative aspect-[3/4] bg-zinc-950 overflow-hidden flex items-center justify-center">
               <img
-                :src="getIGDBCoverUrl(game.cover?.image_id, 'cover_big')"
+                :src="game.cover?.url || getIGDBCoverUrl(game.cover?.image_id, 'cover_big')"
                 :alt="game.name"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 loading="lazy"
@@ -324,7 +324,7 @@ watch(
         <!-- Hero Header -->
         <div class="relative rounded-2xl overflow-hidden border border-zinc-800 shadow-xl min-h-[260px] flex items-end p-6">
           <img
-            :src="getIGDBArtworkUrl(selectedGame.artworks?.[0]?.image_id, '1080p') || getIGDBScreenshotUrl(selectedGame.screenshots?.[0]?.image_id, '1080p') || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1200&auto=format&fit=crop'"
+            :src="selectedGame.artworks?.[0]?.url || getIGDBArtworkUrl(selectedGame.artworks?.[0]?.image_id, '1080p') || selectedGame.screenshots?.[0]?.url || getIGDBScreenshotUrl(selectedGame.screenshots?.[0]?.image_id, '1080p') || selectedGame.cover?.url || getIGDBCoverUrl(selectedGame.cover?.image_id, '1080p')"
             :alt="selectedGame.name"
             class="absolute inset-0 w-full h-full object-cover"
           />
@@ -334,7 +334,7 @@ watch(
           <div class="relative z-10 flex flex-col md:flex-row items-start md:items-end justify-between gap-6 w-full">
             <div class="flex items-end gap-5">
               <img
-                :src="getIGDBCoverUrl(selectedGame.cover?.image_id, 'cover_big') || 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?q=80&w=400&auto=format&fit=crop'"
+                :src="selectedGame.cover?.url || getIGDBCoverUrl(selectedGame.cover?.image_id, 'cover_big')"
                 :alt="selectedGame.name"
                 class="w-24 h-32 rounded-xl object-cover border-2 border-zinc-800 shadow-2xl flex-shrink-0 hidden sm:block"
               />

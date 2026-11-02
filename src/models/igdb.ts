@@ -121,21 +121,25 @@ export type IGDBImageSize =
 
 export function getIGDBImageUrl(imageId?: string, size: IGDBImageSize = '1080p'): string {
   if (!imageId) return ''
+  if (imageId.startsWith('http://') || imageId.startsWith('https://')) return imageId
   return `https://images.igdb.com/igdb/image/upload/t_${size}/${imageId}.jpg`
 }
 
 export function getIGDBCoverUrl(imageId?: string, size: IGDBImageSize = 'cover_big'): string {
   if (!imageId) return ''
+  if (imageId.startsWith('http://') || imageId.startsWith('https://')) return imageId
   return `https://images.igdb.com/igdb/image/upload/t_${size}/${imageId}.jpg`
 }
 
 export function getIGDBArtworkUrl(imageId?: string, size: IGDBImageSize = '1080p'): string {
   if (!imageId) return ''
+  if (imageId.startsWith('http://') || imageId.startsWith('https://')) return imageId
   return `https://images.igdb.com/igdb/image/upload/t_${size}/${imageId}.jpg`
 }
 
 export function getIGDBScreenshotUrl(imageId?: string, size: IGDBImageSize = 'screenshot_huge'): string {
   if (!imageId) return ''
+  if (imageId.startsWith('http://') || imageId.startsWith('https://')) return imageId
   return `https://images.igdb.com/igdb/image/upload/t_${size}/${imageId}.jpg`
 }
 
@@ -170,15 +174,15 @@ export function mapIGDBGameToLoomGame(igdb: IGDBGame, defaults?: Partial<Game>):
   const dev = igdb.involved_companies?.find((c) => c.developer)?.company.name || 'Studio Indépendant'
   const pub = igdb.involved_companies?.find((c) => c.publisher)?.company.name || dev
 
-  // Banner priority: 1st artwork 1080p -> 1st screenshot 1080p -> cover
+  // Banner priority: 1st artwork (url or image_id) -> 1st screenshot (url or image_id) -> cover (url or image_id)
   const primaryBanner =
-    (igdb.artworks && igdb.artworks.length > 0 && getIGDBArtworkUrl(igdb.artworks[0].image_id, '1080p')) ||
-    (igdb.screenshots && igdb.screenshots.length > 0 && getIGDBScreenshotUrl(igdb.screenshots[0].image_id, '1080p')) ||
-    (igdb.cover && getIGDBCoverUrl(igdb.cover.image_id, '1080p')) ||
+    (igdb.artworks && igdb.artworks.length > 0 && (igdb.artworks[0].url || getIGDBArtworkUrl(igdb.artworks[0].image_id, '1080p'))) ||
+    (igdb.screenshots && igdb.screenshots.length > 0 && (igdb.screenshots[0].url || getIGDBScreenshotUrl(igdb.screenshots[0].image_id, '1080p'))) ||
+    (igdb.cover && (igdb.cover.url || getIGDBCoverUrl(igdb.cover.image_id, '1080p'))) ||
     'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070&auto=format&fit=crop'
 
   const primaryCover =
-    (igdb.cover && getIGDBCoverUrl(igdb.cover.image_id, 'cover_big')) ||
+    (igdb.cover && (igdb.cover.url || getIGDBCoverUrl(igdb.cover.image_id, 'cover_big'))) ||
     'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?q=80&w=1074&auto=format&fit=crop'
 
   const releaseYear = igdb.first_release_date
@@ -187,7 +191,7 @@ export function mapIGDBGameToLoomGame(igdb: IGDBGame, defaults?: Partial<Game>):
 
   const screenshots = (igdb.screenshots || [])
     .slice(0, 6)
-    .map((s) => getIGDBScreenshotUrl(s.image_id, 'screenshot_huge'))
+    .map((s) => s.url || getIGDBScreenshotUrl(s.image_id, 'screenshot_huge'))
 
   const websites = (igdb.websites || []).map((w) => ({
     category: getWebsiteCategoryLabel(w.category),
