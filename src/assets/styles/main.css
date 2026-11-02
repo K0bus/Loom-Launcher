@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  
+  body {
+    @apply bg-zinc-950 text-zinc-100 font-sans selection:bg-amber-500/30 selection:text-amber-200;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #09090b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+/* Radial and linear ambient lighting overlay from reference */
+.hero-glow {
+  background: radial-gradient(circle at 65% 28%, rgba(220, 38, 38, 0.22) 0%, rgba(245, 158, 11, 0.12) 35%, transparent 70%);
+}
+
+.hero-vignette {
+  background: linear-gradient(180deg, rgba(9, 9, 11, 0.4) 0%, rgba(9, 9, 11, 0.75) 55%, #09090b 100%),
+              linear-gradient(90deg, rgba(9, 9, 11, 0.85) 0%, rgba(9, 9, 11, 0.3) 45%, rgba(9, 9, 11, 0.7) 100%);
+}
+
+/* Desktop App Drag Region for Tauri v2 window */
+[data-tauri-drag-region] {
+  -webkit-app-region: drag;
+}
+
+button, input, a, [role="button"], select, textarea {
+  -webkit-app-region: no-drag;
+}

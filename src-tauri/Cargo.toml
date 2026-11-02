@@ -1,0 +1,18 @@
+[package]
+name = "loom-launcher"
+version = "0.1.0"
+description = "Universal Gaming Launcher with modern Vue 3 UI and Tauri v2"
+authors = ["Loom Team"]
+edition = "2021"
+
+[lib]
+name = "loom_launcher_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.0.0", features = [] }
+
+[dependencies]
+tauri = { version = "2.0.0", features = [] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
