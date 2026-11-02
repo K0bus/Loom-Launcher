@@ -171,7 +171,7 @@ export function getWebsiteCategoryLabel(catId: number): string {
  * Transforms an IGDBGame record into Loom's internal Game model
  */
 export function mapIGDBGameToLoomGame(igdb: IGDBGame, defaults?: Partial<Game>): Game {
-  const dev = igdb.involved_companies?.find((c) => c.developer)?.company.name || 'Studio Indépendant'
+  const dev = igdb.involved_companies?.find((c) => c.developer)?.company.name || 'Studio Inconnu'
   const pub = igdb.involved_companies?.find((c) => c.publisher)?.company.name || dev
 
   // Banner priority: 1st artwork (url or image_id) -> 1st screenshot (url or image_id) -> cover (url or image_id)
@@ -179,19 +179,21 @@ export function mapIGDBGameToLoomGame(igdb: IGDBGame, defaults?: Partial<Game>):
     (igdb.artworks && igdb.artworks.length > 0 && (igdb.artworks[0].url || getIGDBArtworkUrl(igdb.artworks[0].image_id, '1080p'))) ||
     (igdb.screenshots && igdb.screenshots.length > 0 && (igdb.screenshots[0].url || getIGDBScreenshotUrl(igdb.screenshots[0].image_id, '1080p'))) ||
     (igdb.cover && (igdb.cover.url || getIGDBCoverUrl(igdb.cover.image_id, '1080p'))) ||
-    'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070&auto=format&fit=crop'
+    ''
 
   const primaryCover =
     (igdb.cover && (igdb.cover.url || getIGDBCoverUrl(igdb.cover.image_id, 'cover_big'))) ||
-    'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?q=80&w=1074&auto=format&fit=crop'
+    (igdb.artworks && igdb.artworks.length > 0 && (igdb.artworks[0].url || getIGDBArtworkUrl(igdb.artworks[0].image_id, 'cover_big'))) ||
+    primaryBanner
 
   const releaseYear = igdb.first_release_date
     ? new Date(igdb.first_release_date * 1000).getFullYear()
     : new Date().getFullYear()
 
   const screenshots = (igdb.screenshots || [])
-    .slice(0, 6)
+    .slice(0, 10)
     .map((s) => s.url || getIGDBScreenshotUrl(s.image_id, 'screenshot_huge'))
+    .filter(Boolean)
 
   const websites = (igdb.websites || []).map((w) => ({
     category: getWebsiteCategoryLabel(w.category),
@@ -236,33 +238,27 @@ export function mapIGDBGameToLoomGame(igdb: IGDBGame, defaults?: Partial<Game>):
     })
   }
 
+  const slug = igdb.slug || igdb.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+
   return {
-    id: defaults?.id || `igdb-${igdb.id}`,
+    id: defaults?.id || slug,
     title: igdb.name,
-    slug: igdb.slug || igdb.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    slug,
     bannerUrl: defaults?.bannerUrl || primaryBanner,
     coverUrl: defaults?.coverUrl || primaryCover,
     iconUrl: defaults?.iconUrl,
     platform: defaults?.platform || 'steam',
-    genre: igdb.genres?.map((g) => g.name) || ['Aventure'],
+    genre: igdb.genres?.map((g) => g.name) || [],
     playtimeMinutes: defaults?.playtimeMinutes ?? 0,
     lastPlayed: defaults?.lastPlayed,
     installed: defaults?.installed ?? false,
     installPath: defaults?.installPath,
-    sizeGb: defaults?.sizeGb ?? (Math.floor(15 + (igdb.id % 60) * 1.5)),
+    sizeGb: defaults?.sizeGb ?? 0,
     achievements: defaults?.achievements || [],
-    news: defaults?.news || [
-      {
-        id: `news-${igdb.id}-1`,
-        title: `Fiche officielle synchronisée via l'API IGDB`,
-        summary: igdb.summary?.slice(0, 160) + '...' || 'Métadonnées et captures récupérées depuis la base IGDB.',
-        date: 'Aujourd\'hui',
-        author: dev
-      }
-    ],
+    news: defaults?.news || [],
     config: defaults?.config || {
       runner: 'proton-ge',
-      winePrefix: `~/.local/share/loom/prefixes/${igdb.slug}`,
+      winePrefix: `~/.local/share/loom/prefixes/${slug}`,
       gamemode: true,
       mangohud: true,
       gamescope: false,
@@ -275,11 +271,11 @@ export function mapIGDBGameToLoomGame(igdb: IGDBGame, defaults?: Partial<Game>):
     developer: dev,
     publisher: pub,
     releaseYear,
-    description: igdb.summary || igdb.storyline || 'Aucune description disponible pour ce titre.',
-    screenshots: screenshots.length > 0 ? screenshots : [primaryBanner],
+    description: igdb.summary || igdb.storyline || '',
+    screenshots: screenshots.length > 0 ? screenshots : (primaryBanner ? [primaryBanner] : []),
     isFavorite: defaults?.isFavorite ?? false,
     subtitle: igdb.genres?.[0]?.name ? `${igdb.genres[0].name} par ${dev}` : `Par ${dev}`,
-    cloudSynced: defaults?.cloudSynced ?? true,
+    cloudSynced: defaults?.cloudSynced ?? false,
     igdbId: igdb.id,
     rating,
     ratingCount: igdb.total_rating_count,

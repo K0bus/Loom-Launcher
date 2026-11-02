@@ -54,7 +54,7 @@ function isAlreadyInLibrary(game: IGDBGame): boolean {
 function handleImport(game: IGDBGame) {
   const success = igdbStore.importToLibrary(game)
   if (success) {
-    emit('imported', `igdb-${game.id}`)
+    emit('imported', game.slug || `igdb-${game.id}`)
   }
 }
 
@@ -72,7 +72,7 @@ function openFullscreenPage(game: IGDBGame) {
   })
   gamesStore.registerDiscoveredGame(mapped)
   emit('close')
-  router.push(`/games/igdb-${game.id}`)
+  router.push(`/games/${game.slug || `igdb-${game.id}`}`)
 }
 
 onMounted(() => {

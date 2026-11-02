@@ -23,13 +23,13 @@ const runnerModalOpen = ref(false)
 const igdbModalOpen = ref(false)
 const selectedGameForRunner = ref<Game | null>(null)
 
-// 1. HERO : Dernier jeu joué
-const heroGame = computed<Game>(() => {
-  return gamesStore.recentGames[0] || gamesStore.heroGame || gamesStore.games[0]
+// 1. HERO : Dernier jeu joué (null si bibliothèque vide)
+const heroGame = computed<Game | null>(() => {
+  return gamesStore.heroGame
 })
 
 const isHeroRunning = computed(() => {
-  return gamesStore.runningGameId === heroGame.value?.id
+  return heroGame.value ? gamesStore.runningGameId === heroGame.value.id : false
 })
 
 async function handlePlayHero() {
@@ -43,19 +43,20 @@ async function handlePlayHero() {
   }
 }
 
-// Avancement des succès du Hero
+// Avancement réel des succès du Hero
 const heroUnlockedAchievements = computed(() => {
-  if (!heroGame.value) return 0
+  if (!heroGame.value || !heroGame.value.achievements) return 0
   return heroGame.value.achievements.filter((a) => a.unlocked).length
 })
 
 const heroTotalAchievements = computed(() => {
-  if (!heroGame.value) return 52
-  return heroGame.value.totalAchievementsCount || heroGame.value.achievements.length || 52
+  if (!heroGame.value || !heroGame.value.achievements) return 0
+  return heroGame.value.totalAchievementsCount || heroGame.value.achievements.length || 0
 })
 
 const heroAchievementPercent = computed(() => {
-  return Math.round((heroUnlockedAchievements.value / heroTotalAchievements.value) * 100) || 31
+  if (!heroTotalAchievements.value) return 0
+  return Math.round((heroUnlockedAchievements.value / heroTotalAchievements.value) * 100)
 })
 
 // 2. RECENT GAMES
@@ -128,7 +129,7 @@ function openIgdbWithSearch(query?: string) {
 }
 
 function openGameDetail(game: Game) {
-  router.push(`/games/${game.id}`)
+  router.push(`/games/${game.slug || game.id}`)
 }
 
 function configureRunner(game: Game) {
@@ -247,7 +248,7 @@ function scrollToCatalog() {
                 <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
                   <i class="ph ph-trophy text-xl"></i>
                 </div>
-                <div class="space-y-1">
+                <div v-if="heroTotalAchievements > 0" class="space-y-1">
                   <div class="flex items-center justify-between gap-4">
                     <span class="text-[10px] tracking-wider uppercase font-semibold text-zinc-400 font-mono">Succès débloqués</span>
                     <span class="font-bold text-xs text-amber-300 font-mono">
@@ -260,6 +261,10 @@ function scrollToCatalog() {
                       :style="{ width: `${heroAchievementPercent}%` }"
                     />
                   </div>
+                </div>
+                <div v-else>
+                  <span class="text-[10px] tracking-wider uppercase font-semibold text-zinc-400 block font-mono">Succès</span>
+                  <p class="font-bold text-xs text-zinc-400 font-mono">Non répertoriés</p>
                 </div>
               </div>
             </div>
@@ -279,11 +284,102 @@ function scrollToCatalog() {
     </section>
 
     <!-- ========================================================================= -->
-    <!-- CONTENU EN DESSOUS : CARROUSEL RÉCENTS & CATALOGUE COMPLET                 -->
+    <!-- ÉCRAN D'ACCUEIL BIBLIOTHÈQUE VIDE (ZÉRO FAUSSE DONNÉE)                     -->
     <!-- ========================================================================= -->
-    <div id="catalog-section" class="max-w-7xl mx-auto px-6 sm:px-10 lg:px-14 py-10 space-y-10">
+    <div v-if="gamesStore.games.length === 0" class="max-w-4xl mx-auto px-6 py-16 text-center space-y-10">
+      <div class="space-y-4">
+        <div class="w-20 h-20 rounded-3xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto shadow-2xl">
+          <i class="ph-bold ph-game-controller text-4xl"></i>
+        </div>
+        <div class="space-y-2">
+          <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight font-cinzel">
+            Votre Bibliothèque Loom est Vide
+          </h1>
+          <p class="text-sm text-zinc-400 max-w-xl mx-auto leading-relaxed">
+            Aucun jeu n'a encore été détecté dans votre stockage local. Loom est connecté en temps réel aux métadonnées officielles IGDB sans aucune donnée fictive.
+          </p>
+        </div>
+      </div>
+
+      <!-- Quick Action Cards Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+        <!-- Carte Steam -->
+        <div
+          @click="router.push('/accounts')"
+          class="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 hover:border-amber-500/60 hover:bg-zinc-900/90 transition-all duration-200 cursor-pointer group flex flex-col justify-between space-y-4"
+        >
+          <div class="flex items-start justify-between">
+            <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 text-2xl group-hover:scale-105 transition-transform">
+              <i class="ph-bold ph-steam-logo"></i>
+            </div>
+            <span class="text-[11px] font-mono px-2.5 py-1 rounded-full bg-zinc-800 text-amber-300 border border-zinc-700">
+              Prochaine étape
+            </span>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white group-hover:text-amber-400 transition-colors">
+              Lier votre compte Steam
+            </h3>
+            <p class="text-xs text-zinc-400 mt-1 leading-relaxed">
+              Détectez automatiquement vos jeux installés, votre historique de temps de jeu et vos succès Steam officiels.
+            </p>
+          </div>
+          <div class="flex items-center gap-1.5 text-xs font-semibold text-amber-400 group-hover:translate-x-1 transition-transform">
+            <span>Configurer la liaison</span>
+            <i class="ph ph-arrow-right"></i>
+          </div>
+        </div>
+
+        <!-- Carte IGDB Explore -->
+        <div
+          @click="openIgdbWithSearch('')"
+          class="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 hover:border-amber-500/60 hover:bg-zinc-900/90 transition-all duration-200 cursor-pointer group flex flex-col justify-between space-y-4"
+        >
+          <div class="flex items-start justify-between">
+            <div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 text-2xl group-hover:scale-105 transition-transform">
+              <i class="ph-bold ph-globe-hemisphere-west"></i>
+            </div>
+            <span class="text-[11px] font-mono px-2.5 py-1 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700">
+              API IGDB v4
+            </span>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white group-hover:text-amber-400 transition-colors">
+              Explorer le catalogue IGDB
+            </h3>
+            <p class="text-xs text-zinc-400 mt-1 leading-relaxed">
+              Recherchez des fiches officielles par slug, visualisez les artworks 1080p et ajoutez vos jeux manuellement.
+            </p>
+          </div>
+          <div class="flex items-center gap-1.5 text-xs font-semibold text-amber-400 group-hover:translate-x-1 transition-transform">
+            <span>Ouvrir le catalogue</span>
+            <i class="ph ph-arrow-right"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Footer: Refresh / Rescan -->
+      <div class="flex items-center justify-center gap-3 pt-2">
+        <UiButton
+          variant="secondary"
+          size="md"
+          :loading="gamesStore.isScanningLibrary"
+          @click="gamesStore.fetchLibrary()"
+        >
+          <template #prefix>
+            <i class="ph ph-arrows-clockwise text-base"></i>
+          </template>
+          Actualiser la détection locale
+        </UiButton>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- CONTENU SI JEUX EN BIBLIOTHÈQUE : CARROUSEL RÉCENTS & CATALOGUE COMPLET    -->
+    <!-- ========================================================================= -->
+    <div v-else id="catalog-section" class="max-w-7xl mx-auto px-6 sm:px-10 lg:px-14 py-10 space-y-10">
       <!-- 2. RANGÉE DES DERNIERS JEUX JOUÉS (CARROUSEL HORIZONTAL) -->
-      <section class="space-y-4">
+      <section v-if="recentPlayedGames.length > 0" class="space-y-4">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2.5">
             <i class="ph-fill ph-fire text-amber-400 text-lg"></i>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Play,
@@ -10,7 +11,8 @@ import {
   ChevronRight,
   Sparkles,
   Newspaper,
-  Calendar
+  Calendar,
+  Gamepad2
 } from 'lucide-vue-next'
 import { useGamesStore } from '@/stores/gamesStore'
 import { useSystemStore } from '@/stores/systemStore'
@@ -23,17 +25,17 @@ const router = useRouter()
 const gamesStore = useGamesStore()
 const systemStore = useSystemStore()
 
-const hero = gamesStore.heroGame
+const hero = computed(() => gamesStore.heroGame)
 
 function openGame(game: Game) {
-  router.push(`/games/${game.id}`)
+  router.push(`/games/${game.slug || game.id}`)
 }
 </script>
 
 <template>
   <div class="space-y-8 pb-12">
     <!-- 1. HERO CINÉMATIQUE 21:9 -->
-    <section class="relative rounded-3xl overflow-hidden border border-zinc-800/80 shadow-2xl bg-zinc-950 group">
+    <section v-if="hero" class="relative rounded-3xl overflow-hidden border border-zinc-800/80 shadow-2xl bg-zinc-950 group">
       <!-- Background Banner 21:9 format -->
       <div class="relative w-full aspect-[21/9] min-h-[360px] max-h-[460px] overflow-hidden">
         <img
@@ -133,8 +135,27 @@ function openGame(game: Game) {
       </div>
     </section>
 
+    <!-- Empty hero fallback if no games in library -->
+    <section v-else class="p-10 rounded-3xl border border-zinc-800/80 bg-zinc-950/80 text-center space-y-4">
+      <div class="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto text-2xl">
+        <Gamepad2 class="w-7 h-7" />
+      </div>
+      <div class="space-y-1">
+        <h2 class="text-xl font-bold text-white">Aucun jeu dans la bibliothèque</h2>
+        <p class="text-xs text-zinc-400">Connectez votre compte Steam ou explorez IGDB pour démarrer votre collection.</p>
+      </div>
+      <div class="flex items-center justify-center gap-3 pt-2">
+        <UiButton variant="primary" size="sm" @click="router.push('/accounts')">
+          Lier un compte Steam
+        </UiButton>
+        <UiButton variant="secondary" size="sm" @click="router.push('/library')">
+          Aller à la bibliothèque
+        </UiButton>
+      </div>
+    </section>
+
     <!-- 2. CARROUSEL HORIZONTAL DES DERNIERS JEUX JOUÉS -->
-    <section class="space-y-4">
+    <section v-if="gamesStore.recentGames.length > 0" class="space-y-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2.5">
           <Flame class="w-5 h-5 text-amber-400" />

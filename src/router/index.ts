@@ -16,7 +16,8 @@ const routes = [
     component: LibraryView
   },
   {
-    path: '/games/:id',
+    path: '/games/:slug',
+    alias: ['/games/:id', '/game/:slug'],
     name: 'game-detail',
     component: GameDetailView,
     props: true

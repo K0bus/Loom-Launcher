@@ -18,16 +18,18 @@ const buyModalOpen = ref(false)
 const selectedScreenshot = ref<string | null>(null)
 const isLoadingGame = ref(false)
 
-const gameId = computed(() => (route.params.id as string) || 'red-dead-redemption-2')
+const gameSlug = computed(() => (route.params.slug as string) || (route.params.id as string) || '')
 const game = computed<Game | undefined>(() => {
-  return gamesStore.getGameById(gameId.value) || gamesStore.games[0]
+  if (!gameSlug.value) return undefined
+  return gamesStore.getGameBySlug(gameSlug.value) || gamesStore.getGameById(gameSlug.value)
 })
 
 async function loadGameDetails() {
-  if (!gamesStore.getGameById(gameId.value)) {
+  if (!gameSlug.value) return
+  if (!gamesStore.getGameBySlug(gameSlug.value)) {
     isLoadingGame.value = true
     try {
-      await gamesStore.fetchAndRegisterGame(gameId.value)
+      await gamesStore.fetchAndRegisterGame(gameSlug.value)
     } finally {
       isLoadingGame.value = false
     }
@@ -39,7 +41,7 @@ onMounted(() => {
 })
 
 watch(
-  () => gameId.value,
+  () => gameSlug.value,
   () => {
     loadGameDetails()
   }
@@ -48,7 +50,7 @@ watch(
 function handleAddToLibrary() {
   if (!game.value) return
   game.value.inLibrary = true
-  gamesStore.addToLibrary(game.value.id)
+  gamesStore.addToLibrary(game.value)
   toast.show(`${game.value.title} ajouté à votre bibliothèque Loom !`, 'success')
 }
 
@@ -81,7 +83,7 @@ async function handlePlay() {
 const currentNewsFilter = ref<'all' | 'news' | 'patches'>('all')
 
 const filteredNews = computed(() => {
-  if (!game.value) return []
+  if (!game.value || !game.value.news) return []
   if (currentNewsFilter.value === 'all') return game.value.news
   return game.value.news.filter((n) => n.type === currentNewsFilter.value)
 })
@@ -119,19 +121,20 @@ function openMinecraftStudio() {
   router.push('/minecraft')
 }
 
-// Achievements calculation
+// Achievements calculation (real data only)
 const unlockedCount = computed(() => {
-  if (!game.value) return 0
+  if (!game.value || !game.value.achievements) return 0
   return game.value.achievements.filter((a) => a.unlocked).length
 })
 
 const totalAchievements = computed(() => {
-  if (!game.value) return 52
-  return game.value.totalAchievementsCount || game.value.achievements.length || 52
+  if (!game.value || !game.value.achievements) return 0
+  return game.value.totalAchievementsCount || game.value.achievements.length || 0
 })
 
 const achievementPercent = computed(() => {
-  return Math.round((unlockedCount.value / totalAchievements.value) * 100) || 31
+  if (!totalAchievements.value) return 0
+  return Math.round((unlockedCount.value / totalAchievements.value) * 100)
 })
 </script>
 
@@ -316,7 +319,7 @@ const achievementPercent = computed(() => {
             </div>
 
             <!-- Achievements with micro progress bar -->
-            <div class="space-y-1">
+            <div v-if="totalAchievements > 0" class="space-y-1">
               <div class="flex items-center justify-between gap-3">
                 <span class="text-[10px] tracking-wider uppercase font-medium text-zinc-400">Achievements</span>
                 <span class="font-semibold text-zinc-200 text-[11px]">{{ unlockedCount }}/{{ totalAchievements }}</span>
@@ -327,6 +330,10 @@ const achievementPercent = computed(() => {
                   :style="{ width: `${achievementPercent}%` }"
                 />
               </div>
+            </div>
+            <div v-else class="space-y-0.5">
+              <span class="text-[10px] tracking-wider uppercase font-medium text-zinc-400">Succès</span>
+              <p class="font-semibold text-zinc-500">Non répertoriés</p>
             </div>
 
             <!-- Cloud Saves -->
@@ -457,58 +464,65 @@ const achievementPercent = computed(() => {
           </div>
 
           <!-- News / Patch Cards -->
-          <article
-            v-for="item in filteredNews"
-            :key="item.id"
-            class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800/60 hover:border-zinc-700/80 transition group space-y-4"
-          >
-            <div class="flex items-center justify-between text-xs">
-              <div class="flex items-center gap-2">
-                <span
-                  v-if="item.tag"
-                  :class="[
-                    'px-2.5 py-0.5 rounded-full text-[11px] font-medium border',
-                    item.type === 'patches'
-                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
-                      : 'bg-zinc-800 border-zinc-700 text-zinc-300'
-                  ]"
+          <div v-if="filteredNews.length > 0" class="space-y-4">
+            <article
+              v-for="item in filteredNews"
+              :key="item.id"
+              class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800/60 hover:border-zinc-700/80 transition group space-y-4"
+            >
+              <div class="flex items-center justify-between text-xs">
+                <div class="flex items-center gap-2">
+                  <span
+                    v-if="item.tag"
+                    :class="[
+                      'px-2.5 py-0.5 rounded-full text-[11px] font-medium border',
+                      item.type === 'patches'
+                        ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                        : 'bg-zinc-800 border-zinc-700 text-zinc-300'
+                    ]"
+                  >
+                    {{ item.tag }}
+                  </span>
+                  <span class="text-zinc-400">{{ item.author }}</span>
+                </div>
+                <time class="text-zinc-400">{{ item.date }}</time>
+              </div>
+
+              <div class="space-y-2">
+                <h3 class="text-lg font-bold text-white group-hover:text-amber-300 transition">
+                  {{ item.title }}
+                </h3>
+                <p class="text-sm text-zinc-300 line-clamp-3 leading-relaxed">
+                  {{ item.summary }}
+                </p>
+              </div>
+
+              <div class="flex items-center justify-between pt-2 border-t border-zinc-800/40 text-xs">
+                <div class="flex items-center gap-4 text-zinc-400">
+                  <span v-if="item.hearts" class="flex items-center gap-1">
+                    <i class="ph ph-heart text-rose-400"></i>
+                    {{ item.hearts }}
+                  </span>
+                  <span v-if="item.comments" class="flex items-center gap-1">
+                    <i class="ph ph-chat-circle"></i>
+                    {{ item.comments }} commentaires
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  @click="toast.show(`Ouverture de : ${item.title}`, 'info')"
+                  class="text-amber-400 hover:text-amber-300 font-medium flex items-center gap-1 ml-auto"
                 >
-                  {{ item.tag }}
-                </span>
-                <span class="text-zinc-400">{{ item.author }}</span>
+                  Lire l'annonce <i class="ph ph-arrow-right"></i>
+                </button>
               </div>
-              <time class="text-zinc-400">{{ item.date }}</time>
-            </div>
-
-            <div class="space-y-2">
-              <h3 class="text-lg font-bold text-white group-hover:text-amber-300 transition">
-                {{ item.title }}
-              </h3>
-              <p class="text-sm text-zinc-300 line-clamp-3 leading-relaxed">
-                {{ item.summary }}
-              </p>
-            </div>
-
-            <div class="flex items-center justify-between pt-2 border-t border-zinc-800/40 text-xs">
-              <div class="flex items-center gap-4 text-zinc-400">
-                <span class="flex items-center gap-1">
-                  <i class="ph ph-heart text-rose-400"></i>
-                  {{ item.hearts || 1420 }}
-                </span>
-                <span class="flex items-center gap-1">
-                  <i class="ph ph-chat-circle"></i>
-                  {{ item.comments || 284 }} comments
-                </span>
-              </div>
-              <button
-                type="button"
-                @click="toast.show(`Ouverture de : ${item.title}`, 'info')"
-                class="text-amber-400 hover:text-amber-300 font-medium flex items-center gap-1"
-              >
-                Read announcement <i class="ph ph-arrow-right"></i>
-              </button>
-            </div>
-          </article>
+            </article>
+          </div>
+          <div v-else class="p-8 rounded-2xl bg-zinc-900/30 border border-zinc-800/60 text-center space-y-2">
+            <i class="ph ph-newspaper text-zinc-500 text-2xl"></i>
+            <p class="text-xs text-zinc-400 font-medium">Aucune actualité officielle répertoriée</p>
+            <p class="text-[11px] text-zinc-500">Les annonces et patch notes synchronisés apparaîtront ici.</p>
+          </div>
         </div>
 
         <!-- Right Column: Achievements & Runner Info (4 cols) -->
@@ -517,71 +531,76 @@ const achievementPercent = computed(() => {
           <div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800/60 space-y-5">
             <div class="flex items-center justify-between">
               <h3 class="text-base font-bold text-white flex items-center gap-2">
-                Achievements
+                Succès
               </h3>
-              <button
-                type="button"
-                @click="toast.show('Visualisation des 52 succès', 'info')"
-                class="text-xs text-zinc-400 hover:text-amber-400 transition font-medium"
-              >
-                All {{ totalAchievements }}
-              </button>
+              <span v-if="totalAchievements > 0" class="text-xs text-zinc-400 font-mono">
+                {{ unlockedCount }}/{{ totalAchievements }}
+              </span>
             </div>
 
-            <!-- Circular / radial progress indicator display -->
-            <div class="flex items-center gap-4 p-3 rounded-xl bg-zinc-950/60 border border-zinc-800/60">
-              <!-- Progress Circle SVG -->
-              <div class="relative w-16 h-16 flex items-center justify-center flex-shrink-0">
-                <svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                  <!-- Background track -->
-                  <path
-                    class="text-zinc-800"
-                    stroke-width="3.5"
-                    stroke="currentColor"
-                    fill="none"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                  <!-- Active stroke -->
-                  <path
-                    class="text-amber-400"
-                    stroke-width="3.5"
-                    :stroke-dasharray="`${achievementPercent}, 100`"
-                    stroke-linecap="round"
-                    stroke="currentColor"
-                    fill="none"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                </svg>
-                <span class="absolute font-bold text-xs text-white">{{ achievementPercent }}%</span>
+            <!-- Progress display if achievements exist -->
+            <div v-if="totalAchievements > 0" class="space-y-4">
+              <div class="flex items-center gap-4 p-3 rounded-xl bg-zinc-950/60 border border-zinc-800/60">
+                <!-- Progress Circle SVG -->
+                <div class="relative w-16 h-16 flex items-center justify-center flex-shrink-0">
+                  <svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                    <path
+                      class="text-zinc-800"
+                      stroke-width="3.5"
+                      stroke="currentColor"
+                      fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                    <path
+                      class="text-amber-400"
+                      stroke-width="3.5"
+                      :stroke-dasharray="`${achievementPercent}, 100`"
+                      stroke-linecap="round"
+                      stroke="currentColor"
+                      fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                  </svg>
+                  <span class="absolute font-bold text-xs text-white">{{ achievementPercent }}%</span>
+                </div>
+
+                <div>
+                  <p class="text-sm font-semibold text-zinc-200">
+                    {{ unlockedCount }} sur {{ totalAchievements }} débloqués
+                  </p>
+                  <p class="text-xs text-zinc-400">
+                    {{ totalAchievements - unlockedCount }} succès restants
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <p class="text-sm font-semibold text-zinc-200">
-                  {{ unlockedCount }} of {{ totalAchievements }} Unlocked
-                </p>
-                <p class="text-xs text-zinc-400">
-                  {{ totalAchievements - unlockedCount }} remaining hidden achievements
-                </p>
+              <!-- Recent achievements badge list -->
+              <div v-if="unlockedCount > 0" class="space-y-2">
+                <span class="text-[11px] uppercase tracking-wider text-zinc-400 font-semibold">Derniers débloqués</span>
+
+                <div
+                  v-for="ach in game.achievements.filter(a => a.unlocked).slice(0, 3)"
+                  :key="ach.id"
+                  class="flex items-center gap-3 p-2.5 rounded-lg bg-zinc-800/30 hover:bg-zinc-800/50 transition border border-zinc-800/40"
+                >
+                  <div class="w-9 h-9 rounded bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-300 text-lg">
+                    {{ ach.icon }}
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs font-semibold text-zinc-200 truncate">{{ ach.name }}</p>
+                    <p class="text-[10px] text-zinc-400 truncate">{{ ach.description }}</p>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- Recent achievements badge list -->
-            <div class="space-y-2">
-              <span class="text-[11px] uppercase tracking-wider text-zinc-400 font-semibold">Latest Unlocked</span>
-
-              <div
-                v-for="ach in game.achievements.filter(a => a.unlocked).slice(0, 3)"
-                :key="ach.id"
-                class="flex items-center gap-3 p-2.5 rounded-lg bg-zinc-800/30 hover:bg-zinc-800/50 transition border border-zinc-800/40"
-              >
-                <div class="w-9 h-9 rounded bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-300 text-lg">
-                  {{ ach.icon }}
-                </div>
-                <div class="flex-1 min-w-0">
-                  <p class="text-xs font-semibold text-zinc-200 truncate">{{ ach.name }}</p>
-                  <p class="text-[10px] text-zinc-400 truncate">{{ ach.description }}</p>
-                </div>
+            <!-- Honest Empty State for achievements -->
+            <div v-else class="py-4 text-center space-y-2">
+              <div class="w-10 h-10 rounded-full bg-zinc-800/80 mx-auto flex items-center justify-center text-zinc-500">
+                <i class="ph ph-trophy text-lg"></i>
               </div>
+              <p class="text-xs text-zinc-400 font-medium">Aucun succès répertorié sur IGDB</p>
+              <p class="text-[11px] text-zinc-500">Les succès officiels seront synchronisés dès la connexion à Steam.</p>
             </div>
           </div>
 
@@ -795,5 +814,41 @@ const achievementPercent = computed(() => {
         </div>
       </div>
     </UiModal>
+  </div>
+
+  <!-- Loading or Not Found State -->
+  <div v-else class="min-h-[75vh] flex flex-col items-center justify-center px-6 text-center">
+    <div v-if="isLoadingGame" class="space-y-4">
+      <div class="w-12 h-12 rounded-full border-2 border-amber-500/20 border-t-amber-500 animate-spin mx-auto" />
+      <div class="space-y-1">
+        <h2 class="text-lg font-bold text-white">Recherche sur IGDB...</h2>
+        <p class="text-xs text-zinc-400 font-mono">Chargement des métadonnées officielles pour "{{ gameSlug }}"</p>
+      </div>
+    </div>
+    <div v-else class="space-y-5 max-w-md">
+      <div class="w-16 h-16 rounded-2xl bg-zinc-900 border border-zinc-800 mx-auto flex items-center justify-center text-zinc-500 text-3xl">
+        <i class="ph ph-game-controller"></i>
+      </div>
+      <div class="space-y-1.5">
+        <h2 class="text-xl font-bold text-white">Jeu introuvable</h2>
+        <p class="text-xs text-zinc-400 leading-relaxed">
+          Le jeu <span class="text-amber-300 font-mono">"{{ gameSlug }}"</span> n'a pas été trouvé dans votre bibliothèque locale ni dans le catalogue IGDB.
+        </p>
+      </div>
+      <div class="flex items-center justify-center gap-3 pt-2">
+        <UiButton variant="secondary" size="sm" @click="router.push('/library')">
+          <template #prefix>
+            <i class="ph ph-arrow-left text-xs"></i>
+          </template>
+          Bibliothèque
+        </UiButton>
+        <UiButton variant="primary" size="sm" @click="igdbModalOpen = true">
+          <template #prefix>
+            <i class="ph-bold ph-magnifying-glass text-xs"></i>
+          </template>
+          Rechercher sur IGDB
+        </UiButton>
+      </div>
+    </div>
   </div>
 </template>
