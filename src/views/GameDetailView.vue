@@ -29,13 +29,16 @@ const game = computed<Game | undefined>(() => {
 
 async function loadGameDetails() {
   if (!gameSlug.value) return
-  if (!gamesStore.getGameBySlug(gameSlug.value)) {
-    isLoadingGame.value = true
-    try {
+  isLoadingGame.value = true
+  try {
+    const existing = gamesStore.getGameBySlug(gameSlug.value) || gamesStore.getGameById(gameSlug.value)
+    if (existing) {
+      await gamesStore.enrichGameWithIGDB(existing)
+    } else {
       await gamesStore.fetchAndRegisterGame(gameSlug.value)
-    } finally {
-      isLoadingGame.value = false
     }
+  } finally {
+    isLoadingGame.value = false
   }
 }
 

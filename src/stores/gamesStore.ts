@@ -10,32 +10,99 @@ import { ipc } from '@/services/ipc'
 export const useGamesStore = defineStore('games', () => {
   const STORAGE_KEY_LIBRARY = 'loom_real_library_games'
 
+  function applyIGDBMatch(game: Game, igdbMatch: any) {
+    const devCompany = igdbMatch.involved_companies?.find((c: any) => c.developer)?.company?.name
+    const pubCompany = igdbMatch.involved_companies?.find((c: any) => c.publisher)?.company?.name
+    const year = igdbMatch.first_release_date
+      ? new Date(igdbMatch.first_release_date * 1000).getFullYear()
+      : game.releaseYear
+
+    if (devCompany) game.developer = devCompany
+    if (pubCompany) game.publisher = pubCompany
+    if (year) game.releaseYear = year
+    if (igdbMatch.summary) game.description = igdbMatch.summary
+    if (igdbMatch.storyline) game.storyline = igdbMatch.storyline
+    if (igdbMatch.genres && igdbMatch.genres.length > 0) {
+      game.genre = igdbMatch.genres.map((g: any) => g.name)
+    }
+    if (igdbMatch.total_rating || igdbMatch.rating) {
+      game.rating = Math.round(igdbMatch.total_rating || igdbMatch.rating || 0)
+      game.ratingCount = igdbMatch.total_rating_count
+    }
+    if (igdbMatch.themes && igdbMatch.themes.length > 0) {
+      game.themes = igdbMatch.themes.map((t: any) => t.name)
+    }
+    if (igdbMatch.game_modes && igdbMatch.game_modes.length > 0) {
+      game.gameModes = igdbMatch.game_modes.map((m: any) => m.name)
+    }
+    if (igdbMatch.screenshots && igdbMatch.screenshots.length > 0) {
+      game.screenshots = igdbMatch.screenshots.map((s: any) => s.url)
+    }
+    if (igdbMatch.artworks && igdbMatch.artworks.length > 0 && igdbMatch.artworks[0].url) {
+      game.bannerUrl = igdbMatch.artworks[0].url
+    }
+    if (igdbMatch.cover?.url) {
+      game.coverUrl = igdbMatch.cover.url
+    }
+    game.igdbId = igdbMatch.id
+  }
+
+  function enrichWithCatalogIfAvailable(game: Game) {
+    if (game.igdbId && game.developer !== 'Valve / Steam Partner') {
+      return
+    }
+    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
+    const gameNormSlug = normalize(game.slug)
+    const gameNormTitle = normalize(game.title)
+    const catalogMatch = MOCK_IGDB_CATALOG.find((entry) => {
+      const entryNormSlug = normalize(entry.slug)
+      const entryNormName = normalize(entry.name)
+      return (
+        entry.slug === game.slug ||
+        entryNormSlug === gameNormSlug ||
+        entryNormName === gameNormTitle ||
+        (entry.id === 480 && (game.slug === 'spacewar' || game.id === 'steam-480'))
+      )
+    })
+    if (catalogMatch) {
+      applyIGDBMatch(game, catalogMatch)
+    }
+  }
+
   function loadPersistedLibrary(): Game[] {
     try {
+      const fresh = steamService.getLoomLibraryGames()
+      fresh.forEach(enrichWithCatalogIfAvailable)
+
       const saved = localStorage.getItem(STORAGE_KEY_LIBRARY)
       if (saved) {
         const parsed = JSON.parse(saved)
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // If games don't have lastPlayedTimestamp, refresh from steamService
-          if (parsed.some((g) => g.platform === 'steam' && g.lastPlayedTimestamp === undefined)) {
-            const fresh = steamService.getLoomLibraryGames()
+          // Refresh if library count expanded (e.g. from 294 to 860) or missing lastPlayedTimestamp or missing IGDB match for known games
+          if (
+            parsed.length < fresh.length ||
+            parsed.some((g) => g.platform === 'steam' && g.lastPlayedTimestamp === undefined) ||
+            parsed.some((g) => (g.slug === 'aniimo' || g.slug === 'meccha-chameleon' || g.slug === 'spacewar') && !g.igdbId)
+          ) {
             try {
               localStorage.setItem(STORAGE_KEY_LIBRARY, JSON.stringify(fresh))
             } catch {}
             return fresh
           }
+          parsed.forEach(enrichWithCatalogIfAvailable)
           return parsed
         }
       }
+      try {
+        localStorage.setItem(STORAGE_KEY_LIBRARY, JSON.stringify(fresh))
+      } catch {}
+      return fresh
     } catch (e) {
       console.warn('[gamesStore] Failed to load persisted library:', e)
+      const fresh = steamService.getLoomLibraryGames()
+      fresh.forEach(enrichWithCatalogIfAvailable)
+      return fresh
     }
-    // Fallback: automatically load real detected local Steam library (294 real games)
-    const fresh = steamService.getLoomLibraryGames()
-    try {
-      localStorage.setItem(STORAGE_KEY_LIBRARY, JSON.stringify(fresh))
-    } catch {}
-    return fresh
   }
 
   function saveLibrary() {
@@ -193,8 +260,10 @@ export const useGamesStore = defineStore('games', () => {
   }
 
   async function fetchAndRegisterGame(idOrSlug: string): Promise<Game | undefined> {
-    const existing = getGameById(idOrSlug)
-    if (existing) return existing
+    const existing = getGameById(idOrSlug) || getGameBySlug(idOrSlug)
+    if (existing) {
+      return enrichGameWithIGDB(existing)
+    }
 
     // 1. Direct query by slug to IGDB
     try {
@@ -234,6 +303,63 @@ export const useGamesStore = defineStore('games', () => {
     }
 
     return undefined
+  }
+
+  /**
+   * Associe et enrichit un jeu local ou Steam avec les métadonnées officielles IGDB
+   */
+  async function enrichGameWithIGDB(gameOrSlug: Game | string): Promise<Game | undefined> {
+    const game =
+      typeof gameOrSlug === 'string'
+        ? getGameBySlug(gameOrSlug) || getGameById(gameOrSlug)
+        : gameOrSlug
+    if (!game) return undefined
+
+    // Si le jeu est déjà enrichi avec IGDB
+    if (game.igdbId && game.developer !== 'Valve / Steam Partner') {
+      return game
+    }
+
+    try {
+      // 1. Recherche par slug
+      let igdbMatch = await igdbService.getGameBySlug(game.slug)
+
+      // 2. Recherche par slug normalisé
+      if (!igdbMatch && game.title) {
+        const altSlug = game.title
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '')
+        if (altSlug && altSlug !== game.slug) {
+          igdbMatch = await igdbService.getGameBySlug(altSlug)
+        }
+      }
+
+      // 3. Recherche textuelle IGDB par titre
+      if (!igdbMatch && game.title) {
+        const results = await igdbService.searchGames(game.title, 5)
+        if (results && results.length > 0) {
+          const exact = results.find(
+            (r) =>
+              r.name.toLowerCase() === game.title.toLowerCase() ||
+              r.slug.toLowerCase() === game.slug.toLowerCase()
+          )
+          igdbMatch = exact || results[0]
+        }
+      }
+
+      if (igdbMatch) {
+        applyIGDBMatch(game, igdbMatch)
+        saveLibrary()
+        return game
+      }
+    } catch (e) {
+      console.warn(`[gamesStore] Failed to enrich game ${game.id} with IGDB:`, e)
+    }
+
+    return game
   }
 
   function registerDiscoveredGame(game: Game) {
@@ -489,6 +615,7 @@ export const useGamesStore = defineStore('games', () => {
     getGameById,
     getGameBySlug,
     fetchAndRegisterGame,
+    enrichGameWithIGDB,
     fetchLibrary,
     syncAchievementSummaries,
     loadGameAchievements,

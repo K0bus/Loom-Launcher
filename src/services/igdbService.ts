@@ -56,6 +56,189 @@ export const IGDB_EXHAUSTIVE_FIELDS = [
  */
 const MOCK_IGDB_CATALOG: IGDBGame[] = [
   {
+    id: 4126040,
+    name: 'Aniimo',
+    slug: 'aniimo',
+    summary:
+      "Aniimo est un jeu d'action-RPG en monde ouvert nouvelle génération centré sur la capture et le dressage de créatures fantastiques. Explorez les biomes luxuriants d'Idyll et utilisez le mécanisme unique de 'Twining' pour fusionner vos compétences avec vos créatures partenaires.",
+    storyline:
+      "Dans le monde vibrant d'Idyll, les humains et les créatures Aniimo cohabitent depuis des siècles. En tant que Gardien nouvellement éveillé, partez en quête des origines du dérèglement élémentaire et maîtrisez les liens télépathiques pour restaurer la paix.",
+    first_release_date: 1789500000,
+    total_rating: 92,
+    total_rating_count: 2450,
+    rating: 92,
+    aggregated_rating: 90,
+    category: 0,
+    cover: {
+      id: 4126040,
+      image_id: 'co_aniimo',
+      url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/4126040/library_600x900_2x.jpg'
+    },
+    artworks: [
+      {
+        id: 41260401,
+        image_id: 'ar_aniimo',
+        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/4126040/library_hero.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 41260402,
+        image_id: 'sc_aniimo_1',
+        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4126040/header.jpg'
+      }
+    ],
+    genres: [
+      { id: 12, name: 'Action RPG', slug: 'role-playing-rpg' },
+      { id: 31, name: 'Aventure', slug: 'adventure' },
+      { id: 24, name: 'Monde Ouvert', slug: 'open-world' }
+    ],
+    platforms: [
+      { id: 6, name: 'PC (Windows)', abbreviation: 'PC' },
+      { id: 167, name: 'PlayStation 5', abbreviation: 'PS5' }
+    ],
+    themes: [
+      { id: 1, name: 'Action', slug: 'action' },
+      { id: 17, name: 'Fantasy', slug: 'fantasy' }
+    ],
+    game_modes: [
+      { id: 1, name: 'Solo', slug: 'single-player' },
+      { id: 2, name: 'Multijoueur', slug: 'multiplayer' }
+    ],
+    involved_companies: [
+      {
+        id: 101,
+        developer: true,
+        publisher: true,
+        company: { id: 1001, name: 'Pawprint Studio' }
+      }
+    ],
+    websites: [
+      { id: 1011, category: 1, url: 'https://store.steampowered.com/app/4126040/Aniimo/' }
+    ]
+  },
+  {
+    id: 4704690,
+    name: 'MECCHA CHAMELEON',
+    slug: 'meccha-chameleon',
+    summary:
+      "Peignez votre propre corps et fondez-vous dans le décor comme un caméléon dans ce jeu de cache-cache multijoueur hilarant et ultra-tactique !",
+    storyline:
+      "Incarnez une silhouette blanche et absorbez les textures de votre environnement : brique, herbe, bois, béton. Choisissez la pose parfaite pour tromper les chercheurs et survivre aux manches endiablées.",
+    first_release_date: 1781000000,
+    total_rating: 88,
+    total_rating_count: 890,
+    rating: 88,
+    aggregated_rating: 87,
+    category: 0,
+    cover: {
+      id: 4704690,
+      image_id: 'co_chameleon',
+      url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/4704690/library_600x900_2x.jpg'
+    },
+    artworks: [
+      {
+        id: 47046901,
+        image_id: 'ar_chameleon',
+        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/4704690/library_hero.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 47046902,
+        image_id: 'sc_chameleon_1',
+        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4704690/header.jpg'
+      }
+    ],
+    genres: [
+      { id: 15, name: 'Tactique & Furtivité', slug: 'strategy' },
+      { id: 32, name: 'Indie', slug: 'indie' },
+      { id: 25, name: 'Casual', slug: 'casual' }
+    ],
+    platforms: [
+      { id: 6, name: 'PC (Windows)', abbreviation: 'PC' }
+    ],
+    themes: [
+      { id: 27, name: 'Comédie', slug: 'comedy' },
+      { id: 1, name: 'Action', slug: 'action' }
+    ],
+    game_modes: [
+      { id: 2, name: 'Multijoueur', slug: 'multiplayer' },
+      { id: 3, name: 'Coopération', slug: 'co-op' }
+    ],
+    involved_companies: [
+      {
+        id: 102,
+        developer: true,
+        publisher: true,
+        company: { id: 1002, name: 'LEMORION' }
+      }
+    ],
+    websites: [
+      { id: 1021, category: 1, url: 'https://store.steampowered.com/app/4704690/MECCHA_CHAMELEON/' }
+    ]
+  },
+  {
+    id: 480,
+    name: 'Spacewar',
+    slug: 'spacewar',
+    summary:
+      "Le jeu spatial légendaire de Valve servant de fondation technique pour le réseau Steamworks et les fonctionnalités multijoueurs de l'écosystème Steam.",
+    storyline:
+      "Deux vaisseaux spatiaux luttent dans l'orbite d'un corps stellaire massif, tirant des torpilles gravitationnelles et naviguant dans le vide sidéral.",
+    first_release_date: 1357000000,
+    total_rating: 86,
+    total_rating_count: 15200,
+    rating: 86,
+    aggregated_rating: 85,
+    category: 0,
+    cover: {
+      id: 480,
+      image_id: 'co_spacewar',
+      url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/480/library_600x900_2x.jpg'
+    },
+    artworks: [
+      {
+        id: 4801,
+        image_id: 'ar_spacewar',
+        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/480/library_hero.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 4802,
+        image_id: 'sc_spacewar_1',
+        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/480/header.jpg'
+      }
+    ],
+    genres: [
+      { id: 5, name: 'Shooter', slug: 'shooter' },
+      { id: 33, name: 'Arcade', slug: 'arcade' },
+      { id: 18, name: 'Science-Fiction', slug: 'sci-fi' }
+    ],
+    platforms: [
+      { id: 6, name: 'PC (Linux & Windows)', abbreviation: 'PC' }
+    ],
+    themes: [
+      { id: 18, name: 'Science-Fiction', slug: 'sci-fi' },
+      { id: 1, name: 'Action', slug: 'action' }
+    ],
+    game_modes: [
+      { id: 2, name: 'Multijoueur', slug: 'multiplayer' }
+    ],
+    involved_companies: [
+      {
+        id: 103,
+        developer: true,
+        publisher: true,
+        company: { id: 1003, name: 'Valve' }
+      }
+    ],
+    websites: [
+      { id: 1031, category: 1, url: 'https://store.steampowered.com/app/480/' }
+    ]
+  },
+  {
     id: 115278,
     name: 'Hollow Knight: Silksong',
     slug: 'hollow-knight-silksong',
@@ -1193,7 +1376,11 @@ class IgdbService {
     const slugMatch = apicalypseQuery.match(/where\s+slug\s*=\s*"([^"]+)"/i)
     if (slugMatch) {
       const slug = slugMatch[1].toLowerCase()
-      const found = MOCK_IGDB_CATALOG.find((g) => g.slug.toLowerCase() === slug)
+      const found = MOCK_IGDB_CATALOG.find((g) => {
+        const s1 = g.slug.toLowerCase().replace(/[^a-z0-9]/g, '')
+        const s2 = slug.replace(/[^a-z0-9]/g, '')
+        return g.slug.toLowerCase() === slug || s1 === s2
+      })
       return (found ? [found] : []) as unknown as T
     }
 
