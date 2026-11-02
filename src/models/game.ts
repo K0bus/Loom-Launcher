@@ -46,6 +46,7 @@ export interface Game {
   genre: string[]
   playtimeMinutes: number
   lastPlayed?: string
+  lastPlayedTimestamp?: number
   installed: boolean
   installPath?: string
   sizeGb: number

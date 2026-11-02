@@ -103,6 +103,7 @@ export function mapSteamGameToLoomGame(sGame: RealSteamGame): Game {
     genre: ['Steam'],
     playtimeMinutes: sGame.playtimeMinutes,
     lastPlayed: formattedDate,
+    lastPlayedTimestamp: sGame.lastPlayedTimestamp,
     installed: isInstalled,
     installPath: sGame.installDir
       ? `/home/k0bus/.local/share/Steam/steamapps/common/${sGame.installDir}`

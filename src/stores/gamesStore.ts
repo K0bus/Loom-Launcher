@@ -14,13 +14,27 @@ export const useGamesStore = defineStore('games', () => {
       const saved = localStorage.getItem(STORAGE_KEY_LIBRARY)
       if (saved) {
         const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // If games don't have lastPlayedTimestamp, refresh from steamService
+          if (parsed.some((g) => g.platform === 'steam' && g.lastPlayedTimestamp === undefined)) {
+            const fresh = steamService.getLoomLibraryGames()
+            try {
+              localStorage.setItem(STORAGE_KEY_LIBRARY, JSON.stringify(fresh))
+            } catch {}
+            return fresh
+          }
+          return parsed
+        }
       }
     } catch (e) {
       console.warn('[gamesStore] Failed to load persisted library:', e)
     }
     // Fallback: automatically load real detected local Steam library (294 real games)
-    return steamService.getLoomLibraryGames()
+    const fresh = steamService.getLoomLibraryGames()
+    try {
+      localStorage.setItem(STORAGE_KEY_LIBRARY, JSON.stringify(fresh))
+    } catch {}
+    return fresh
   }
 
   function saveLibrary() {
@@ -84,7 +98,10 @@ export const useGamesStore = defineStore('games', () => {
   })
 
   const recentGames = computed(() => {
-    return [...games.value].sort((a, b) => b.playtimeMinutes - a.playtimeMinutes).slice(0, 8)
+    return [...games.value]
+      .filter((g) => (g.lastPlayedTimestamp || 0) > 0)
+      .sort((a, b) => (b.lastPlayedTimestamp || 0) - (a.lastPlayedTimestamp || 0))
+      .slice(0, 8)
   })
 
   const installedGames = computed(() => {
@@ -388,17 +405,20 @@ export const useGamesStore = defineStore('games', () => {
     }).sort((a, b) => {
       let result = 0
       if (filters.sortBy === 'title') {
-        result = a.title.localeCompare(b.title)
+        const order = filters.sortOrder === 'desc' ? -1 : 1
+        return a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }) * order
       } else if (filters.sortBy === 'playtime') {
-        result = b.playtimeMinutes - a.playtimeMinutes
+        result = (b.playtimeMinutes || 0) - (a.playtimeMinutes || 0)
       } else if (filters.sortBy === 'size') {
-        result = b.sizeGb - a.sizeGb
+        result = (b.sizeGb || 0) - (a.sizeGb || 0)
       } else {
-        // installed first, then playtime
-        if (a.installed !== b.installed) {
-          result = a.installed ? -1 : 1
+        // 'lastPlayed' : tri par date réelle de dernier lancement (lastPlayedTimestamp)
+        const aTime = a.lastPlayedTimestamp || 0
+        const bTime = b.lastPlayedTimestamp || 0
+        if (aTime !== bTime) {
+          result = bTime - aTime
         } else {
-          result = b.playtimeMinutes - a.playtimeMinutes
+          result = (b.playtimeMinutes || 0) - (a.playtimeMinutes || 0)
         }
       }
       return filters.sortOrder === 'desc' ? result : -result
