@@ -44,18 +44,50 @@ class IpcBridge {
     await new Promise((resolve) => setTimeout(resolve, 150))
 
     switch (command) {
-      case 'launch_game':
-        return {
-          success: true,
-          pid: Math.floor(1000 + Math.random() * 9000),
-          message: `Lancement du jeu (${args.gameId}) via ${args.runner || 'runner par défaut'}`
-        } as T
+      case 'launch_game': {
+        const gameId = String(args.gameId || '')
+        const appid = gameId.replace(/^steam-/, '')
+        try {
+          const resp = await fetch('/api/steam/launch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ appid, gameId })
+          })
+          const data = await resp.json()
+          return data as T
+        } catch (e) {
+          if (typeof window !== 'undefined' && appid) {
+            window.location.href = `steam://rungameid/${appid}`
+          }
+          return { success: true } as T
+        }
+      }
 
-      case 'stop_game':
-        return {
-          success: true,
-          message: `Jeu (${args.gameId}) arrêté`
-        } as T
+      case 'stop_game': {
+        const gameId = String(args.gameId || '')
+        const appid = gameId.replace(/^steam-/, '')
+        try {
+          const resp = await fetch('/api/steam/stop', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ appid, gameId })
+          })
+          const data = await resp.json()
+          return data as T
+        } catch {
+          return { success: true } as T
+        }
+      }
+
+      case 'get_running_games': {
+        try {
+          const resp = await fetch('/api/steam/status')
+          const data = await resp.json()
+          return data as T
+        } catch {
+          return { success: true, runningAppId: null, pids: [] } as T
+        }
+      }
 
       case 'get_system_stats':
         return {

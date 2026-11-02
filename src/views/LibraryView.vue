@@ -33,14 +33,22 @@ const isHeroRunning = computed(() => {
   return heroGame.value ? gamesStore.runningGameId === heroGame.value.id : false
 })
 
+const isHeroStarting = computed(() => {
+  return heroGame.value ? gamesStore.launchingGameId === heroGame.value.id : false
+})
+
 async function handlePlayHero() {
   if (!heroGame.value) return
   if (!isHeroRunning.value) {
     await gamesStore.launchGame(heroGame.value.id)
-    toast.show(`Lancement de ${heroGame.value.title}...`, 'success')
+    if (heroGame.value.installed) {
+      toast.show(`Transmission de l'ordre de lancement à Steam pour ${heroGame.value.title}...`, 'info')
+    } else {
+      toast.show(`Transmission de l'ordre d'installation à Steam pour ${heroGame.value.title}...`, 'info')
+    }
   } else {
     await gamesStore.stopGame(heroGame.value.id)
-    toast.show('Session arrêtée.', 'info')
+    toast.show('Demande d\'arrêt transmise.', 'info')
   }
 }
 
@@ -225,13 +233,31 @@ function scrollToCatalog() {
               @click="handlePlayHero"
               :class="[
                 'flex items-center gap-3 px-8 py-3.5 rounded-xl font-bold text-base tracking-wide active:scale-95 transition-all duration-150',
-                !isHeroRunning
-                  ? 'btn-gold'
-                  : 'bg-rose-600 hover:bg-rose-500 text-white shadow-[0_0_28px_rgba(225,29,72,0.4)]'
+                isHeroRunning
+                  ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-[0_0_28px_rgba(225,29,72,0.4)]'
+                  : isHeroStarting
+                    ? 'bg-amber-500 text-zinc-950 shadow-[0_0_28px_rgba(245,158,11,0.4)]'
+                    : heroGame.installed
+                      ? 'btn-gold shadow-lg'
+                      : 'bg-[#1a9fff] hover:bg-[#158ce0] text-white shadow-[0_0_28px_rgba(26,159,255,0.4)]'
               ]"
             >
-              <i :class="!isHeroRunning ? 'ph-fill ph-play text-xl' : 'ph-fill ph-stop text-xl'"></i>
-              <span>{{ !isHeroRunning ? 'JOUER' : 'ARRÊTER' }}</span>
+              <i v-if="isHeroRunning" class="ph-fill ph-stop text-xl"></i>
+              <i v-else-if="isHeroStarting" class="ph ph-spinner animate-spin text-xl"></i>
+              <i v-else-if="heroGame.installed" class="ph-fill ph-play text-xl"></i>
+              <i v-else class="ph-bold ph-download-simple text-xl"></i>
+
+              <span>
+                {{
+                  isHeroRunning
+                    ? 'ARRÊTER'
+                    : isHeroStarting
+                      ? 'DÉMARRAGE STEAM...'
+                      : heroGame.installed
+                        ? 'JOUER'
+                        : 'INSTALLER'
+                }}
+              </span>
             </button>
 
             <!-- Métriques groupées : Nombre d'heures & Avancement des Succès -->

@@ -67,15 +67,20 @@ function toggleSteam() {
 
 // Play / Stop game state
 const isRunning = computed(() => game.value && gamesStore.runningGameId === game.value.id)
+const isStarting = computed(() => game.value && gamesStore.launchingGameId === game.value.id)
 
 async function handlePlay() {
   if (!game.value) return
   if (!isRunning.value) {
     await gamesStore.launchGame(game.value.id)
-    toast.show(`Lancement de ${game.value.title}...`, 'success')
+    if (game.value.installed) {
+      toast.show(`Transmission de l'ordre de lancement à Steam pour ${game.value.title}...`, 'info')
+    } else {
+      toast.show(`Transmission de l'ordre d'installation à Steam pour ${game.value.title}...`, 'info')
+    }
   } else {
     await gamesStore.stopGame(game.value.id)
-    toast.show('Processus de jeu terminé. Synchronisation cloud en cours...', 'info')
+    toast.show('Demande d\'arrêt transmise à Steam...', 'info')
   }
 }
 
@@ -257,13 +262,29 @@ const achievementPercent = computed(() => {
               'flex items-center gap-2.5 px-7 py-3 rounded-xl font-bold text-sm tracking-wide active:scale-95 transition-all duration-150',
               isRunning
                 ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-[0_0_24px_rgba(225,29,72,0.35)]'
-                : game.installed
-                  ? 'btn-gold shadow-lg'
-                  : 'bg-[#1a9fff] hover:bg-[#158ce0] text-white shadow-[0_0_24px_rgba(26,159,255,0.35)]'
+                : isStarting
+                  ? 'bg-amber-500 text-zinc-950 shadow-[0_0_24px_rgba(245,158,11,0.35)]'
+                  : game.installed
+                    ? 'btn-gold shadow-lg'
+                    : 'bg-[#1a9fff] hover:bg-[#158ce0] text-white shadow-[0_0_24px_rgba(26,159,255,0.35)]'
             ]"
           >
-            <i :class="isRunning ? 'ph-fill ph-stop text-lg' : (game.installed ? 'ph-fill ph-play text-lg' : 'ph-bold ph-download-simple text-lg')"></i>
-            <span>{{ !isRunning ? (game.installed ? 'Lancer' : 'Installer via Steam') : 'Arrêter' }}</span>
+            <i v-if="isRunning" class="ph-fill ph-stop text-lg"></i>
+            <i v-else-if="isStarting" class="ph ph-spinner animate-spin text-lg"></i>
+            <i v-else-if="game.installed" class="ph-fill ph-play text-lg"></i>
+            <i v-else class="ph-bold ph-download-simple text-lg"></i>
+
+            <span>
+              {{
+                isRunning
+                  ? 'Arrêter'
+                  : isStarting
+                    ? 'Démarrage Steam...'
+                    : game.installed
+                      ? 'Lancer'
+                      : 'Installer via Steam'
+              }}
+            </span>
           </button>
 
           <!-- Runner / Config Cog Button -->

@@ -38,9 +38,45 @@ export const useGamesStore = defineStore('games', () => {
 
   const runningGameId = ref<string | null>(null)
   const isLaunching = ref(false)
+  const launchingGameId = ref<string | null>(null)
 
   // Current active game for details
   const activeGame = ref<Game | null>(null)
+
+  /**
+   * Synchronise l'état réel des processus Steam
+   * Ne met JAMAIS un état factice : interroge Steam via IPC/API
+   */
+  async function checkRunningGames(): Promise<void> {
+    try {
+      const res = await ipc.invoke<{ success: boolean; runningAppId: string | null; pids?: number[] }>('get_running_games')
+      if (res && res.runningAppId) {
+        const fullId = `steam-${res.runningAppId}`
+        runningGameId.value = fullId
+        launchingGameId.value = null
+        const game = getGameById(fullId)
+        if (game) {
+          game.lastPlayed = 'En cours d\'exécution'
+        }
+      } else {
+        if (runningGameId.value) {
+          const prev = getGameById(runningGameId.value)
+          if (prev) {
+            prev.lastPlayed = 'À l\'instant'
+          }
+          runningGameId.value = null
+        }
+      }
+    } catch (e) {
+      console.warn('[gamesStore] Failed to poll running games state:', e)
+    }
+  }
+
+  // Polling automatique de l'état réel de Steam
+  if (typeof window !== 'undefined') {
+    checkRunningGames()
+    setInterval(checkRunningGames, 2000)
+  }
 
   // Getters
   const heroGame = computed<Game | null>(() => {
@@ -258,6 +294,7 @@ export const useGamesStore = defineStore('games', () => {
     }
 
     isLaunching.value = true
+    launchingGameId.value = id
     try {
       await ipc.invoke('launch_game', {
         gameId: id,
@@ -265,22 +302,31 @@ export const useGamesStore = defineStore('games', () => {
         gamemode: game.config.gamemode,
         mangohud: game.config.mangohud
       })
-      runningGameId.value = id
-      game.lastPlayed = 'En cours d\'exécution'
+
+      // Check real Steam process state after slight delays
+      setTimeout(checkRunningGames, 1200)
+      setTimeout(checkRunningGames, 3000)
+      setTimeout(checkRunningGames, 6000)
+
+      // Timeout safety: if after 15s no process detected, clear starting indicator
+      setTimeout(() => {
+        if (launchingGameId.value === id && runningGameId.value !== id) {
+          launchingGameId.value = null
+        }
+      }, 15000)
     } catch (err) {
-      console.error('Failed to launch game:', err)
+      console.error('Failed to launch game via Steam:', err)
+      launchingGameId.value = null
     } finally {
       isLaunching.value = false
     }
   }
 
   async function stopGame(id: string) {
-    if (runningGameId.value !== id) return
     try {
       await ipc.invoke('stop_game', { gameId: id })
-      runningGameId.value = null
-      const game = getGameById(id)
-      if (game) game.lastPlayed = 'À l\'instant'
+      setTimeout(checkRunningGames, 800)
+      setTimeout(checkRunningGames, 2000)
     } catch (err) {
       console.error('Failed to stop game:', err)
     }
@@ -362,6 +408,8 @@ export const useGamesStore = defineStore('games', () => {
   return {
     games,
     runningGameId,
+    launchingGameId,
+    checkRunningGames,
     isLaunching,
     isScanningLibrary,
     lastScannedAt,

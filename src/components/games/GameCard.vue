@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Play, Download, Star, Settings2, HardDrive } from 'lucide-vue-next'
+import { computed } from 'vue'
+import { Play, Square, Download, Star, Settings2, HardDrive } from 'lucide-vue-next'
 import type { Game } from '@/models/game'
 import { useGamesStore } from '@/stores/gamesStore'
 import { PlatformIcon } from '@/components/icons/platforms'
@@ -18,7 +19,8 @@ const emit = defineEmits<{
 
 const gamesStore = useGamesStore()
 
-const isRunning = props.game.id === gamesStore.runningGameId
+const isRunning = computed(() => props.game.id === gamesStore.runningGameId)
+const isStarting = computed(() => props.game.id === gamesStore.launchingGameId)
 
 const platformBadgeColor = {
   steam: 'sky',
@@ -92,11 +94,31 @@ const platformBadgeColor = {
         </button>
       </div>
 
-      <!-- Center Hover Quick Action Button (Play if installed, Install if not) -->
+      <!-- Center Hover Quick Action Button (Play if installed, Install if not, Stop if running) -->
       <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <!-- Stop Button if Running -->
+        <button
+          v-if="isRunning"
+          type="button"
+          @click.stop="gamesStore.stopGame(game.id)"
+          class="p-4 rounded-full bg-rose-600 text-white shadow-xl shadow-rose-600/40 hover:bg-rose-500 hover:scale-110 active:scale-95 transition-all"
+          title="Arrêter le jeu"
+        >
+          <Square class="w-6 h-6 fill-current" />
+        </button>
+
+        <!-- Starting indicator if Steam is launching -->
+        <div
+          v-else-if="isStarting"
+          class="flex items-center gap-2 px-4 py-2.5 rounded-full bg-amber-500 text-zinc-950 font-bold text-xs shadow-xl shadow-amber-500/40"
+        >
+          <span class="w-3.5 h-3.5 rounded-full border-2 border-zinc-950 border-t-transparent animate-spin" />
+          <span>Lancement Steam...</span>
+        </div>
+
         <!-- Play Button for Installed -->
         <button
-          v-if="game.installed"
+          v-else-if="game.installed"
           type="button"
           @click.stop="gamesStore.launchGame(game.id)"
           class="p-4 rounded-full bg-amber-500 text-zinc-950 shadow-xl shadow-amber-500/40 hover:bg-amber-400 hover:scale-110 active:scale-95 transition-all"
@@ -118,13 +140,21 @@ const platformBadgeColor = {
         </button>
       </div>
 
-      <!-- Running Status Indicator -->
+      <!-- Real Status Indicators in Corner -->
       <div
         v-if="isRunning"
-        class="absolute bottom-3 left-3 px-2 py-1 rounded-md bg-amber-500/90 text-zinc-950 text-[10px] font-bold font-mono uppercase tracking-wider flex items-center gap-1.5 shadow-md"
+        class="absolute bottom-3 left-3 px-2 py-1 rounded-md bg-emerald-500 text-zinc-950 text-[10px] font-bold font-mono uppercase tracking-wider flex items-center gap-1.5 shadow-md"
       >
         <span class="w-1.5 h-1.5 rounded-full bg-zinc-950 animate-ping" />
-        En cours
+        En jeu (Steam)
+      </div>
+
+      <div
+        v-else-if="isStarting"
+        class="absolute bottom-3 left-3 px-2 py-1 rounded-md bg-amber-500 text-zinc-950 text-[10px] font-bold font-mono uppercase tracking-wider flex items-center gap-1.5 shadow-md"
+      >
+        <span class="w-2 h-2 rounded-full border-2 border-zinc-950 border-t-transparent animate-spin" />
+        Lancement...
       </div>
     </div>
 
