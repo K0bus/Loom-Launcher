@@ -79,32 +79,10 @@ async function closeWindow() {
     data-tauri-drag-region
     class="relative z-30 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4 backdrop-blur-md bg-zinc-950/60 border-b border-zinc-800/60 select-none flex-shrink-0"
   >
-    <!-- Left: Window controls + Back/Forward + Navigation Pills -->
+    <!-- Left: Back/Forward Navigation + Clean Menu Pills (Bibliothèque, Fiche Jeu, Studio) -->
     <div class="flex items-center gap-3">
-      <!-- Mac/Desktop traffic lights -->
-      <div class="flex items-center gap-1.5 mr-2">
-        <button
-          type="button"
-          @click="closeWindow"
-          class="w-3 h-3 rounded-full bg-rose-500/80 hover:bg-rose-500 transition-colors cursor-pointer"
-          title="Fermer"
-        />
-        <button
-          type="button"
-          @click="minimizeWindow"
-          class="w-3 h-3 rounded-full bg-amber-500/80 hover:bg-amber-500 transition-colors cursor-pointer"
-          title="Réduire"
-        />
-        <button
-          type="button"
-          @click="toggleMaximizeWindow"
-          class="w-3 h-3 rounded-full bg-emerald-500/80 hover:bg-emerald-500 transition-colors cursor-pointer"
-          title="Agrandir"
-        />
-      </div>
-
       <!-- History navigation -->
-      <div class="flex items-center text-zinc-400">
+      <div class="flex items-center text-zinc-400 mr-1">
         <button
           type="button"
           @click="goBack"
@@ -123,7 +101,7 @@ async function closeWindow() {
         </button>
       </div>
 
-      <!-- Section Switcher Pills -->
+      <!-- Section Switcher Pills (Épuré : Bibliothèque, Fiche Jeu, Studio) -->
       <nav class="flex items-center gap-1 bg-zinc-900/80 p-1 rounded-full border border-zinc-800/80">
         <button
           type="button"
@@ -156,39 +134,13 @@ async function closeWindow() {
           type="button"
           @click="router.push('/minecraft')"
           :class="[
-            'px-3 py-1 rounded-full text-xs font-medium transition flex items-center gap-1.5',
+            'px-3.5 py-1 rounded-full text-xs font-medium transition flex items-center gap-1.5',
             route.path === '/minecraft'
               ? 'bg-amber-500 text-zinc-950 font-bold shadow-sm'
               : 'text-amber-400/90 hover:text-amber-300'
           ]"
         >
           <i class="ph-fill ph-cube text-xs"></i> Studio
-        </button>
-
-        <button
-          type="button"
-          @click="router.push('/accounts')"
-          :class="[
-            'px-3 py-1 rounded-full text-xs font-medium transition flex items-center gap-1',
-            route.path === '/accounts'
-              ? 'bg-zinc-100 text-zinc-900 shadow-sm font-semibold'
-              : 'text-zinc-400 hover:text-zinc-200'
-          ]"
-        >
-          Comptes
-        </button>
-
-        <button
-          type="button"
-          @click="router.push('/settings')"
-          :class="[
-            'px-3 py-1 rounded-full text-xs font-medium transition flex items-center gap-1',
-            route.path === '/settings'
-              ? 'bg-zinc-100 text-zinc-900 shadow-sm font-semibold'
-              : 'text-zinc-400 hover:text-zinc-200'
-          ]"
-        >
-          Paramètres
         </button>
       </nav>
     </div>
@@ -211,8 +163,8 @@ async function closeWindow() {
       </div>
     </div>
 
-    <!-- Right: Downloads + Alerts + User Profile -->
-    <div class="flex items-center gap-2.5">
+    <!-- Right: Downloads + Alerts + Paramètres (Écrou) + Profil (Compte) + Contrôles Fenêtre (Linux/Windows) -->
+    <div class="flex items-center gap-2">
       <!-- Active Running Game Indicator if any -->
       <div
         v-if="gamesStore.runningGameId"
@@ -243,15 +195,72 @@ async function closeWindow() {
         <i class="ph ph-bell text-base"></i>
       </button>
 
-      <!-- User profile pill -->
+      <!-- Écrou / Settings en haut à droite -->
+      <button
+        type="button"
+        @click="router.push('/settings')"
+        :class="[
+          'p-2 rounded-full transition text-base',
+          route.path === '/settings'
+            ? 'text-amber-400 bg-zinc-900 border border-amber-500/40 shadow-sm'
+            : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/80'
+        ]"
+        title="Paramètres de l'application"
+      >
+        <i class="ph ph-gear"></i>
+      </button>
+
+      <!-- User profile pill (Hub de Comptes déjà accessible ici) -->
       <div
         @click="router.push('/accounts')"
-        class="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-zinc-900/80 border border-zinc-800/80 hover:border-zinc-700 transition cursor-pointer"
+        :class="[
+          'flex items-center gap-2 pl-1 pr-3 py-1 rounded-full transition cursor-pointer border',
+          route.path === '/accounts'
+            ? 'bg-zinc-900 border-amber-500/50 shadow-sm'
+            : 'bg-zinc-900/80 border-zinc-800/80 hover:border-zinc-700'
+        ]"
+        title="Mon Compte & Services liés"
       >
         <div class="w-6 h-6 rounded-full bg-amber-500/20 text-amber-300 font-semibold text-xs flex items-center justify-center border border-amber-500/40">
           K
         </div>
         <span class="text-xs font-medium text-zinc-300">k0bus</span>
+      </div>
+
+      <!-- Séparateur vertical -->
+      <div class="h-4 w-px bg-zinc-800 mx-1 hidden sm:block" />
+
+      <!-- Contrôles de Fenêtre Bureau (Linux / Windows à droite) -->
+      <div class="flex items-center gap-1">
+        <!-- Réduire (Minimize) -->
+        <button
+          type="button"
+          @click="minimizeWindow"
+          class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-zinc-800/80 text-zinc-400 hover:text-zinc-100 transition-colors"
+          title="Réduire la fenêtre"
+        >
+          <i class="ph ph-minus text-xs"></i>
+        </button>
+
+        <!-- Agrandir / Restaurer (Maximize) -->
+        <button
+          type="button"
+          @click="toggleMaximizeWindow"
+          class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-zinc-800/80 text-zinc-400 hover:text-zinc-100 transition-colors"
+          title="Agrandir / Restaurer"
+        >
+          <i class="ph ph-square text-xs"></i>
+        </button>
+
+        <!-- Fermer (Close) -->
+        <button
+          type="button"
+          @click="closeWindow"
+          class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-rose-600/90 text-zinc-400 hover:text-white transition-colors"
+          title="Fermer l'application"
+        >
+          <i class="ph ph-x text-xs"></i>
+        </button>
       </div>
     </div>
   </header>
