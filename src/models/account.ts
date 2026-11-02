@@ -1,4 +1,4 @@
-export type AccountPlatform = 'steam' | 'epic' | 'gog' | 'microsoft'
+export type AccountPlatform = 'steam' | 'epic' | 'gog' | 'microsoft' | 'xbox' | 'battlenet'
 
 export interface ConnectedAccount {
   id: string

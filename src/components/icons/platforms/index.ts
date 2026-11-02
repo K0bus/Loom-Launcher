@@ -1,0 +1,6 @@
+export { default as SteamIcon } from './SteamIcon.vue'
+export { default as EpicIcon } from './EpicIcon.vue'
+export { default as XboxIcon } from './XboxIcon.vue'
+export { default as GogIcon } from './GogIcon.vue'
+export { default as BattleNetIcon } from './BattleNetIcon.vue'
+export { default as PlatformIcon } from './PlatformIcon.vue'

@@ -8,43 +8,51 @@ export const useAccountsStore = defineStore('accounts', () => {
     {
       id: 'acc-steam',
       platform: 'steam',
-      username: 'k0bus_arch',
-      displayName: 'K0bus',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=250&auto=format&fit=crop',
-      connected: true,
-      connectedAt: '12 Janvier 2026',
-      gamesCount: 142,
-      authType: 'oauth'
-    },
-    {
-      id: 'acc-microsoft',
-      platform: 'microsoft',
-      username: 'kobus_live@outlook.com',
-      displayName: 'K0bus_Gamer (Xbox)',
-      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=250&auto=format&fit=crop',
-      connected: true,
-      connectedAt: '04 Février 2026',
-      gamesCount: 1, // Minecraft Java & Bedrock
-      authType: 'device_code'
-    },
-    {
-      id: 'acc-gog',
-      platform: 'gog',
-      username: 'k0bus_galaxy',
-      displayName: 'K0bus Galaxy',
-      avatarUrl: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?q=80&w=250&auto=format&fit=crop',
+      username: '',
+      displayName: 'Steam',
+      avatarUrl: '',
       connected: false,
-      gamesCount: 18,
+      gamesCount: 0,
       authType: 'oauth'
     },
     {
       id: 'acc-epic',
       platform: 'epic',
-      username: 'k0bus_unreal',
-      displayName: 'K0bus Epic',
-      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=250&auto=format&fit=crop',
+      username: '',
+      displayName: 'Epic Games',
+      avatarUrl: '',
       connected: false,
-      gamesCount: 45,
+      gamesCount: 0,
+      authType: 'oauth'
+    },
+    {
+      id: 'acc-xbox',
+      platform: 'xbox',
+      username: '',
+      displayName: 'Xbox / Microsoft',
+      avatarUrl: '',
+      connected: false,
+      gamesCount: 0,
+      authType: 'device_code'
+    },
+    {
+      id: 'acc-gog',
+      platform: 'gog',
+      username: '',
+      displayName: 'GOG Galaxy',
+      avatarUrl: '',
+      connected: false,
+      gamesCount: 0,
+      authType: 'oauth'
+    },
+    {
+      id: 'acc-battlenet',
+      platform: 'battlenet',
+      username: '',
+      displayName: 'Battle.net',
+      avatarUrl: '',
+      connected: false,
+      gamesCount: 0,
       authType: 'oauth'
     }
   ])
@@ -91,7 +99,7 @@ export const useAccountsStore = defineStore('accounts', () => {
       })
 
       if (res.authenticated) {
-        const msAcc = getAccount('microsoft')
+        const msAcc = getAccount('xbox') || getAccount('microsoft')
         if (msAcc) {
           msAcc.connected = true
           msAcc.displayName = `${res.gamertag} (Xbox)`
@@ -112,10 +120,9 @@ export const useAccountsStore = defineStore('accounts', () => {
     if (acc.connected) {
       acc.connected = false
     } else {
-      if (platform === 'microsoft') {
+      if (platform === 'microsoft' || platform === 'xbox') {
         startMicrosoftDeviceCodeFlow()
       } else {
-        // Direct mock login for Steam, Epic, GOG
         acc.connected = true
         acc.connectedAt = 'À l\'instant'
       }

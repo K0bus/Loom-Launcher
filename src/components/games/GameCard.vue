@@ -2,6 +2,7 @@
 import { Play, Star, Settings2 } from 'lucide-vue-next'
 import type { Game } from '@/models/game'
 import { useGamesStore } from '@/stores/gamesStore'
+import { PlatformIcon } from '@/components/icons/platforms'
 import UiBadge from '@/components/ui/UiBadge.vue'
 
 interface Props {
@@ -50,8 +51,10 @@ const platformBadgeColor = {
         <UiBadge
           :variant="platformBadgeColor[game.platform]"
           size="xs"
+          class="flex items-center gap-1.5"
         >
-          {{ game.platform }}
+          <PlatformIcon :platform="game.platform" class-name="w-3 h-3" />
+          <span class="capitalize">{{ game.platform }}</span>
         </UiBadge>
 
         <button

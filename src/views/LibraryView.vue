@@ -11,6 +11,7 @@ import GameRunnerModal from '@/components/games/GameRunnerModal.vue'
 import IgdbSearchModal from '@/components/igdb/IgdbSearchModal.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiBadge from '@/components/ui/UiBadge.vue'
+import { SteamIcon } from '@/components/icons/platforms'
 
 const router = useRouter()
 const route = useRoute()
@@ -309,8 +310,8 @@ function scrollToCatalog() {
           class="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 hover:border-amber-500/60 hover:bg-zinc-900/90 transition-all duration-200 cursor-pointer group flex flex-col justify-between space-y-4"
         >
           <div class="flex items-start justify-between">
-            <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 text-2xl group-hover:scale-105 transition-transform">
-              <i class="ph-bold ph-steam-logo"></i>
+            <div class="w-12 h-12 rounded-xl bg-[#1a9fff]/10 border border-[#1a9fff]/30 flex items-center justify-center text-[#1a9fff] group-hover:scale-105 transition-transform">
+              <SteamIcon className="w-6 h-6" :colored="true" />
             </div>
             <span class="text-[11px] font-mono px-2.5 py-1 rounded-full bg-zinc-800 text-amber-300 border border-zinc-700">
               Prochaine étape
