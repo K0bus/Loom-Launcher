@@ -51,3 +51,31 @@
 button, input, a, [role="button"], select, textarea {
   -webkit-app-region: no-drag;
 }
+
+/* Solid gold buttons & selected tags for crystal-clear contrast */
+.btn-gold {
+  background-color: #f59e0b !important;
+  color: #09090b !important;
+  box-shadow: 0 0 24px rgba(245, 158, 11, 0.4) !important;
+}
+
+.btn-gold:hover {
+  background-color: #fbbf24 !important;
+  box-shadow: 0 0 32px rgba(245, 158, 11, 0.55) !important;
+}
+
+.btn-gold i {
+  color: #09090b !important;
+}
+
+.tag-selected {
+  background-color: #f59e0b !important;
+  color: #09090b !important;
+  border-color: #fbbf24 !important;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.4) !important;
+  font-weight: 700 !important;
+}
+
+.tag-selected i, .tag-selected span {
+  color: #09090b !important;
+}

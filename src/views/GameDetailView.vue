@@ -182,8 +182,8 @@ const achievementPercent = computed(() => {
             :class="[
               'flex items-center gap-2.5 px-7 py-3 rounded-xl font-bold text-sm tracking-wide active:scale-95 transition-all duration-150',
               !isRunning
-                ? 'bg-brand-gold text-zinc-950 shadow-[0_0_24px_rgba(245,158,11,0.35)] hover:bg-brand-gold-hover hover:shadow-[0_0_32px_rgba(245,158,11,0.5)]'
-                : 'bg-rose-600 text-white shadow-[0_0_24px_rgba(225,29,72,0.35)] hover:bg-rose-500'
+                ? 'btn-gold'
+                : 'bg-rose-600 hover:bg-rose-500 text-white shadow-[0_0_24px_rgba(225,29,72,0.35)]'
             ]"
           >
             <i :class="!isRunning ? 'ph-fill ph-play text-lg' : 'ph-fill ph-stop text-lg'"></i>

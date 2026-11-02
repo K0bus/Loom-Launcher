@@ -206,8 +206,8 @@ function scrollToCatalog() {
               :class="[
                 'flex items-center gap-3 px-8 py-3.5 rounded-xl font-bold text-base tracking-wide active:scale-95 transition-all duration-150',
                 !isHeroRunning
-                  ? 'bg-brand-gold text-zinc-950 shadow-[0_0_28px_rgba(245,158,11,0.4)] hover:bg-brand-gold-hover hover:shadow-[0_0_36px_rgba(245,158,11,0.6)]'
-                  : 'bg-rose-600 text-white shadow-[0_0_28px_rgba(225,29,72,0.4)] hover:bg-rose-500'
+                  ? 'btn-gold'
+                  : 'bg-rose-600 hover:bg-rose-500 text-white shadow-[0_0_28px_rgba(225,29,72,0.4)]'
               ]"
             >
               <i :class="!isHeroRunning ? 'ph-fill ph-play text-xl' : 'ph-fill ph-stop text-xl'"></i>
@@ -320,7 +320,7 @@ function scrollToCatalog() {
               <button
                 type="button"
                 @click.stop="gamesStore.launchGame(game.id)"
-                class="absolute bottom-3 right-3 p-2.5 rounded-full bg-brand-gold text-zinc-950 shadow-lg opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all hover:bg-brand-gold-hover hover:scale-110 active:scale-95"
+                class="absolute bottom-3 right-3 p-2.5 rounded-full btn-gold shadow-lg opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all hover:scale-110 active:scale-95"
                 title="Lancer immédiatement"
               >
                 <i class="ph-fill ph-play text-sm"></i>
@@ -398,8 +398,8 @@ function scrollToCatalog() {
             :class="[
               'px-3.5 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1.5 border select-none',
               selectedTag === tag.id
-                ? 'bg-brand-gold text-zinc-950 font-bold border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
-                : 'bg-zinc-900/70 text-zinc-400 border-zinc-800/80 hover:text-zinc-200 hover:border-zinc-700'
+                ? 'tag-selected'
+                : 'bg-zinc-900/80 text-zinc-300 border-zinc-800 hover:text-white hover:border-zinc-700'
             ]"
           >
             <i :class="['ph', tag.icon, 'text-xs']"></i>

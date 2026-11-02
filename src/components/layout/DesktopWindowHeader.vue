@@ -109,7 +109,7 @@ async function closeWindow() {
           :class="[
             'px-4 py-1 rounded-full text-xs font-semibold transition',
             route.path === '/library'
-              ? 'bg-zinc-100 text-zinc-900 shadow-sm'
+              ? 'bg-amber-500 text-zinc-950 font-bold shadow-sm'
               : 'text-zinc-400 hover:text-zinc-200'
           ]"
         >
@@ -122,7 +122,7 @@ async function closeWindow() {
           :class="[
             'px-3.5 py-1 rounded-full text-xs font-medium transition flex items-center gap-1',
             route.path.startsWith('/games')
-              ? 'bg-zinc-100 text-zinc-900 shadow-sm font-semibold'
+              ? 'bg-amber-500 text-zinc-950 font-bold shadow-sm'
               : 'text-zinc-400 hover:text-zinc-200'
           ]"
         >
