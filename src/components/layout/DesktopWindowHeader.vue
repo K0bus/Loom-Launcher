@@ -154,7 +154,7 @@ async function closeWindow() {
           v-model="searchQuery"
           @keydown.enter="handleSearchEnter"
           type="text"
-          placeholder="Rechercher parmi vos 65 jeux..."
+          :placeholder="gamesStore.games.length > 0 ? `Rechercher parmi vos ${gamesStore.games.length} jeux...` : 'Rechercher un jeu (Ctrl+K)...'"
           class="w-full bg-zinc-900/70 border border-zinc-800/80 rounded-full pl-9 pr-14 py-1.5 text-xs text-zinc-200 placeholder-zinc-400 focus:outline-none focus:border-zinc-600 focus:bg-zinc-900 transition"
         />
         <kbd class="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-mono text-zinc-400 bg-zinc-800/90 border border-zinc-700/60 rounded">

@@ -1,18 +1,22 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { ConnectedAccount, AccountPlatform } from '@/models/account'
+import { steamService } from '@/services/steamService'
 import { ipc } from '@/services/ipc'
 
 export const useAccountsStore = defineStore('accounts', () => {
+  const realSteam = steamService.getDetectedAccount()
+
   const accounts = ref<ConnectedAccount[]>([
     {
       id: 'acc-steam',
       platform: 'steam',
-      username: '',
-      displayName: 'Steam',
+      username: realSteam.accountName,
+      displayName: realSteam.personaName,
       avatarUrl: '',
-      connected: false,
-      gamesCount: 0,
+      connected: realSteam.detected,
+      connectedAt: 'Détecté sur ~/.local/share/Steam',
+      gamesCount: realSteam.installedGames.length,
       authType: 'oauth'
     },
     {
