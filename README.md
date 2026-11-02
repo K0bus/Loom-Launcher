@@ -13,10 +13,14 @@ Construit avec **Tauri v2**, **Vue 3 (Composition API / `<script setup>`)**, **T
 - **Accents :** Teintes dorées et ambres (`text-amber-400`, `bg-amber-500`, halos `shadow-amber-500/20`).
 - **Typographie :** *Inter* pour l'interface fluide et *JetBrains Mono* pour les métriques techniques & logs.
 
-### 🧭 Navigation Globale & Shell
-- **Sidebar latérale fixe :** Logo Loom stylisé, onglets (*Dashboard*, *Bibliothèque*, *Minecraft Studio*, *Comptes*, *Paramètres*).
-- **Moniteur système en direct :** Débit réseau en temps réel, indicateur de charge CPU, état du runtime Tauri v2 et alertes.
-- **Header supérieur :** Recherche fuzzy globale (`Ctrl+K`), suivi du jeu actif avec arrêt immédiat et indicateurs de runners actifs (*GameMode*, *Proton GE 9-20*).
+### 🧭 Shell Bureau Natif (Desktop App Layout)
+- **Top Bar Flottante intégrée (Titlebar Tauri v2) :**
+  - Contrôles de fenêtre (traffic lights macOS / Linux : Fermer, Réduire, Agrandir avec appels natifs `@tauri-apps/api/window` et zone de drag `data-tauri-drag-region`).
+  - Navigation dans l'historique (Précédent / Suivant).
+  - Pilules de bascule de section : **Bibliothèque**, **Fiche Jeu**, **Studio Minecraft** (avec icône cube), **Comptes**, **Paramètres**.
+  - Recherche instantanée fuzzy centrale avec raccourci clavier bureau `<kbd>⌘K</kbd>` / `<kbd>Ctrl+K</kbd>`.
+  - Accès direct au gestionnaire de téléchargements, notifications et profil utilisateur compact.
+- **Système de Toast Notification Bureau :** Notifier flottant en bas à droite pour le retour d'état instantané (démarrage/arrêt de Steam, lancement du jeu, synchronisation cloud, sauvegarde des runners).
 
 ### 🏠 Dashboard (Accueil)
 1. **Hero Cinématique (21:9) :** Affichage grand format du dernier jeu joué avec fond assombri en dégradé, temps de jeu total, succès débloqués et gros bouton d'action doré `JOUER MAINTENANT`.
