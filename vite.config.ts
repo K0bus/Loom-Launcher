@@ -3,7 +3,51 @@ import vue from '@vitejs/plugin-vue'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
+import https from 'https'
 import { exec } from 'child_process'
+
+function httpsGet(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    https.get(url, (res) => {
+      let data = ''
+      res.on('data', (chunk) => (data += chunk))
+      res.on('end', () => resolve(data))
+    }).on('error', reject)
+  })
+}
+
+function parseSteamAchievementsXml(xml: string) {
+  const achievements: any[] = []
+  const achRegex = /<achievement closed="(\d+)">([\s\S]*?)<\/achievement>/g
+  let match: RegExpExecArray | null
+  while ((match = achRegex.exec(xml)) !== null) {
+    const closed = match[1] === '1'
+    const inner = match[2]
+    const nameMatch = inner.match(/<name><!\[CDATA\[(.*?)\]\]><\/name>/)
+    const apiMatch = inner.match(/<apiname><!\[CDATA\[(.*?)\]\]><\/apiname>/)
+    const descMatch = inner.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/)
+    const iconClosedMatch = inner.match(/<iconClosed><!\[CDATA\[(.*?)\]\]><\/iconClosed>/)
+    const iconOpenMatch = inner.match(/<iconOpen><!\[CDATA\[(.*?)\]\]><\/iconOpen>/)
+    const unlockMatch = inner.match(/<unlockTimestamp>(\d+)<\/unlockTimestamp>/)
+
+    const id = apiMatch ? apiMatch[1] : (nameMatch ? nameMatch[1] : '')
+    const iconClosed = iconClosedMatch ? iconClosedMatch[1] : ''
+    const iconOpen = iconOpenMatch ? iconOpenMatch[1] : iconClosed
+
+    achievements.push({
+      id,
+      name: nameMatch ? nameMatch[1] : id,
+      description: descMatch ? descMatch[1] : '',
+      unlocked: closed,
+      unlockedAt: unlockMatch && closed ? new Date(parseInt(unlockMatch[1], 10) * 1000).toISOString() : undefined,
+      unlockTimestamp: unlockMatch && closed ? parseInt(unlockMatch[1], 10) : undefined,
+      icon: closed ? iconClosed : iconOpen,
+      iconLocked: iconOpen,
+      rarityPercentage: 0
+    })
+  }
+  return achievements
+}
 
 function getRunningSteamState(): { runningAppId: string | null; pids: number[] } {
   const logPath = path.join(os.homedir(), '.local/share/Steam/logs/gameprocess_log.txt')
@@ -93,6 +137,79 @@ function steamProcessPlugin(): Plugin {
         if (req.method === 'GET' && req.url === '/api/steam/status') {
           const state = getRunningSteamState()
           res.end(JSON.stringify({ success: true, ...state }))
+          return
+        }
+
+        // 2. GET /api/steam/achievements/summaries
+        if (req.method === 'GET' && req.url?.startsWith('/api/steam/achievements/summaries')) {
+          const filePath = path.join(
+            os.homedir(),
+            '.local/share/Steam/userdata/125342250/config/librarycache/achievement_progress.json'
+          )
+          if (fs.existsSync(filePath)) {
+            try {
+              const data = JSON.parse(fs.readFileSync(filePath, 'utf8'))
+              const map: Record<string, any> = {}
+              if (Array.isArray(data.mapCache)) {
+                for (const [aid, info] of data.mapCache) {
+                  map[String(aid)] = info
+                }
+              }
+              res.end(JSON.stringify({ success: true, summaries: map }))
+              return
+            } catch (e: any) {
+              res.statusCode = 500
+              res.end(JSON.stringify({ success: false, error: e.message }))
+              return
+            }
+          }
+          res.end(JSON.stringify({ success: true, summaries: {} }))
+          return
+        }
+
+        // 3. GET /api/steam/achievements?appid=...
+        if (req.method === 'GET' && req.url?.startsWith('/api/steam/achievements')) {
+          const urlObj = new URL(req.url, 'http://localhost')
+          const appid = (urlObj.searchParams.get('appid') || '').replace(/^steam-/, '')
+          if (!appid) {
+            res.statusCode = 400
+            res.end(JSON.stringify({ success: false, error: 'AppID manquant' }))
+            return
+          }
+
+          ;(async () => {
+            try {
+              const xmlUrl = `https://steamcommunity.com/profiles/76561198085607978/stats/${appid}/?xml=1`
+              const xml = await httpsGet(xmlUrl)
+              const achievements = parseSteamAchievementsXml(xml)
+
+              // Optional: Enrich with global rarity percentages
+              try {
+                const rarityUrl = `https://api.steampowered.com/ISteamUserStats/GetGlobalAchievementPercentagesForApp/v0002/?gameid=${appid}`
+                const rarityRaw = await httpsGet(rarityUrl)
+                const rarityJson = JSON.parse(rarityRaw)
+                if (rarityJson?.achievementpercentages?.achievements) {
+                  const rarities = new Map<string, number>()
+                  for (const a of rarityJson.achievementpercentages.achievements) {
+                    rarities.set(String(a.name).toLowerCase(), parseFloat(a.percent))
+                  }
+                  for (const ach of achievements) {
+                    const r = rarities.get(ach.id.toLowerCase()) ?? rarities.get(ach.name.toLowerCase())
+                    if (r !== undefined) {
+                      ach.rarityPercentage = r
+                    }
+                  }
+                }
+              } catch (e) {
+                // Ignore rarity network failure
+              }
+
+              res.end(JSON.stringify({ success: true, appid, achievements }))
+            } catch (err: any) {
+              res.statusCode = 500
+              res.end(JSON.stringify({ success: false, error: err.message }))
+            }
+          })()
           return
         }
 

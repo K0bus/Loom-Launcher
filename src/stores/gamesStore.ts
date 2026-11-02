@@ -1,9 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Game, GameFilter, RunnerType, GameConfig } from '@/models/game'
+import type { Game, GameFilter, RunnerType, GameConfig, Achievement } from '@/models/game'
 import { mapIGDBGameToLoomGame } from '@/models/igdb'
 import { MOCK_IGDB_CATALOG, igdbService } from '@/services/igdbService'
 import { steamService } from '@/services/steamService'
+import { achievementService } from '@/services/achievementService'
 import { ipc } from '@/services/ipc'
 
 export const useGamesStore = defineStore('games', () => {
@@ -86,10 +87,11 @@ export const useGamesStore = defineStore('games', () => {
     }
   }
 
-  // Polling automatique de l'état réel de Steam
+  // Polling automatique de l'état réel de Steam et chargement des succès
   if (typeof window !== 'undefined') {
     checkRunningGames()
     setInterval(checkRunningGames, 2000)
+    syncAchievementSummaries()
   }
 
   // Getters
@@ -278,11 +280,52 @@ export const useGamesStore = defineStore('games', () => {
     return false
   }
 
+  async function syncAchievementSummaries(): Promise<void> {
+    try {
+      const summaries = await achievementService.loadAllSummaries()
+      let hasChanges = false
+      for (const game of games.value) {
+        const appid = game.id.replace('steam-', '')
+        const summary = summaries.get(game.id) || summaries.get(appid)
+        if (summary) {
+          game.totalAchievementsCount = summary.totalCount
+          game.unlockedAchievementsCount = summary.unlockedCount
+          hasChanges = true
+        }
+      }
+      if (hasChanges) {
+        saveLibrary()
+      }
+    } catch (e) {
+      console.warn('[gamesStore] Failed to sync achievement summaries:', e)
+    }
+  }
+
+  async function loadGameAchievements(gameIdOrSlug: string): Promise<Achievement[]> {
+    const game = getGameBySlug(gameIdOrSlug) || getGameById(gameIdOrSlug)
+    if (!game) return []
+
+    try {
+      const achievements = await achievementService.getAchievementsForGame(game)
+      if (achievements && achievements.length > 0) {
+        game.achievements = achievements
+        game.totalAchievementsCount = achievements.length
+        game.unlockedAchievementsCount = achievements.filter((a) => a.unlocked).length
+        saveLibrary()
+      }
+      return achievements
+    } catch (e) {
+      console.warn(`[gamesStore] Failed to load achievements for ${gameIdOrSlug}:`, e)
+      return game.achievements || []
+    }
+  }
+
   async function fetchLibrary(): Promise<void> {
     isScanningLibrary.value = true
     try {
       const realGames = steamService.getLoomLibraryGames()
       games.value = realGames
+      await syncAchievementSummaries()
       saveLibrary()
       lastScannedAt.value = new Date()
     } finally {
@@ -447,6 +490,8 @@ export const useGamesStore = defineStore('games', () => {
     getGameBySlug,
     fetchAndRegisterGame,
     fetchLibrary,
+    syncAchievementSummaries,
+    loadGameAchievements,
     installGame,
     launchGame,
     stopGame,

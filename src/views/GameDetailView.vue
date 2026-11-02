@@ -7,6 +7,7 @@ import type { Game, RunnerType } from '@/models/game'
 import UiModal from '@/components/ui/UiModal.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import IgdbSearchModal from '@/components/igdb/IgdbSearchModal.vue'
+import AchievementsModal from '@/components/games/AchievementsModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -15,6 +16,8 @@ const toast = useToastStore()
 
 const igdbModalOpen = ref(false)
 const buyModalOpen = ref(false)
+const achievementsModalOpen = ref(false)
+const isLoadingAchievements = ref(false)
 const selectedScreenshot = ref<string | null>(null)
 const isLoadingGame = ref(false)
 
@@ -36,14 +39,26 @@ async function loadGameDetails() {
   }
 }
 
-onMounted(() => {
-  loadGameDetails()
+async function loadAchievements() {
+  if (!game.value) return
+  isLoadingAchievements.value = true
+  try {
+    await gamesStore.loadGameAchievements(game.value.id)
+  } finally {
+    isLoadingAchievements.value = false
+  }
+}
+
+onMounted(async () => {
+  await loadGameDetails()
+  loadAchievements()
 })
 
 watch(
   () => gameSlug.value,
-  () => {
-    loadGameDetails()
+  async () => {
+    await loadGameDetails()
+    loadAchievements()
   }
 )
 
@@ -128,13 +143,15 @@ function openMinecraftStudio() {
 
 // Achievements calculation (real data only)
 const unlockedCount = computed(() => {
-  if (!game.value || !game.value.achievements) return 0
-  return game.value.achievements.filter((a) => a.unlocked).length
+  if (!game.value) return 0
+  const realUnlocked = game.value.achievements?.filter((a) => a.unlocked).length || 0
+  if (realUnlocked > 0) return realUnlocked
+  return game.value.unlockedAchievementsCount || 0
 })
 
 const totalAchievements = computed(() => {
-  if (!game.value || !game.value.achievements) return 0
-  return game.value.totalAchievementsCount || game.value.achievements.length || 0
+  if (!game.value) return 0
+  return game.value.totalAchievementsCount || game.value.achievements?.length || 0
 })
 
 const achievementPercent = computed(() => {
@@ -554,11 +571,15 @@ const achievementPercent = computed(() => {
           <div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800/60 space-y-5">
             <div class="flex items-center justify-between">
               <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <i class="ph ph-trophy text-amber-400"></i>
                 Succès
               </h3>
-              <span v-if="totalAchievements > 0" class="text-xs text-zinc-400 font-mono">
-                {{ unlockedCount }}/{{ totalAchievements }}
-              </span>
+              <div class="flex items-center gap-2">
+                <span v-if="isLoadingAchievements" class="w-3.5 h-3.5 rounded-full border-2 border-amber-500 border-t-transparent animate-spin" />
+                <span v-if="totalAchievements > 0" class="text-xs text-zinc-400 font-mono">
+                  {{ unlockedCount }}/{{ totalAchievements }}
+                </span>
+              </div>
             </div>
 
             <!-- Progress display if achievements exist -->
@@ -597,24 +618,48 @@ const achievementPercent = computed(() => {
                 </div>
               </div>
 
-              <!-- Recent achievements badge list -->
-              <div v-if="unlockedCount > 0" class="space-y-2">
-                <span class="text-[11px] uppercase tracking-wider text-zinc-400 font-semibold">Derniers débloqués</span>
+              <!-- Recent achievements badge list preview -->
+              <div v-if="game.achievements && game.achievements.length > 0" class="space-y-2">
+                <span class="text-[11px] uppercase tracking-wider text-zinc-400 font-semibold block">
+                  Aperçu des succès
+                </span>
 
                 <div
                   v-for="ach in game.achievements.filter(a => a.unlocked).slice(0, 3)"
                   :key="ach.id"
                   class="flex items-center gap-3 p-2.5 rounded-lg bg-zinc-800/30 hover:bg-zinc-800/50 transition border border-zinc-800/40"
                 >
-                  <div class="w-9 h-9 rounded bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-300 text-lg">
-                    {{ ach.icon }}
+                  <div class="w-9 h-9 rounded overflow-hidden bg-zinc-950 border border-zinc-800 flex-shrink-0 flex items-center justify-center">
+                    <img
+                      v-if="ach.icon && (ach.icon.startsWith('http') || ach.icon.startsWith('/'))"
+                      :src="ach.icon"
+                      :alt="ach.name"
+                      class="w-full h-full object-cover"
+                    />
+                    <i v-else class="ph ph-trophy text-amber-300"></i>
                   </div>
                   <div class="flex-1 min-w-0">
-                    <p class="text-xs font-semibold text-zinc-200 truncate">{{ ach.name }}</p>
+                    <div class="flex items-center justify-between gap-1">
+                      <p class="text-xs font-semibold text-zinc-200 truncate">{{ ach.name }}</p>
+                      <span v-if="ach.rarityPercentage" class="text-[10px] text-amber-400/90 font-mono">{{ ach.rarityPercentage.toFixed(1) }}%</span>
+                    </div>
                     <p class="text-[10px] text-zinc-400 truncate">{{ ach.description }}</p>
                   </div>
                 </div>
               </div>
+
+              <!-- Button to Open Full Modal -->
+              <UiButton
+                variant="secondary"
+                size="sm"
+                class="w-full mt-2"
+                @click="achievementsModalOpen = true"
+              >
+                <template #prefix>
+                  <i class="ph ph-list-dashes text-sm text-amber-400"></i>
+                </template>
+                Voir tous les succès ({{ totalAchievements }})
+              </UiButton>
             </div>
 
             <!-- Honest Empty State for achievements -->
@@ -622,8 +667,8 @@ const achievementPercent = computed(() => {
               <div class="w-10 h-10 rounded-full bg-zinc-800/80 mx-auto flex items-center justify-center text-zinc-500">
                 <i class="ph ph-trophy text-lg"></i>
               </div>
-              <p class="text-xs text-zinc-400 font-medium">Aucun succès répertorié sur IGDB</p>
-              <p class="text-[11px] text-zinc-500">Les succès officiels seront synchronisés dès la connexion à Steam.</p>
+              <p class="text-xs text-zinc-400 font-medium">Aucun succès répertorié</p>
+              <p class="text-[11px] text-zinc-500">Ce titre ne comporte aucun succès officiel sur cette plateforme.</p>
             </div>
           </div>
 
@@ -837,6 +882,15 @@ const achievementPercent = computed(() => {
         </div>
       </div>
     </UiModal>
+
+    <!-- Modal complète des Succès -->
+    <AchievementsModal
+      :open="achievementsModalOpen"
+      :game="game"
+      :achievements="game.achievements || []"
+      :loading="isLoadingAchievements"
+      @close="achievementsModalOpen = false"
+    />
   </div>
 
   <!-- Loading or Not Found State -->

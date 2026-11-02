@@ -6,8 +6,11 @@ export interface Achievement {
   description: string
   unlocked: boolean
   unlockedAt?: string
+  unlockTimestamp?: number
   icon: string
+  iconLocked?: string
   rarityPercentage: number
+  hidden?: boolean
 }
 
 export interface GameNews {
@@ -61,6 +64,7 @@ export interface Game {
   isFavorite?: boolean
   subtitle?: string
   totalAchievementsCount?: number
+  unlockedAchievementsCount?: number
   cloudSynced?: boolean
   igdbId?: number
   rating?: number

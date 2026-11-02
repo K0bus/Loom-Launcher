@@ -54,13 +54,15 @@ async function handlePlayHero() {
 
 // Avancement réel des succès du Hero
 const heroUnlockedAchievements = computed(() => {
-  if (!heroGame.value || !heroGame.value.achievements) return 0
-  return heroGame.value.achievements.filter((a) => a.unlocked).length
+  if (!heroGame.value) return 0
+  const realUnlocked = heroGame.value.achievements?.filter((a) => a.unlocked).length || 0
+  if (realUnlocked > 0) return realUnlocked
+  return heroGame.value.unlockedAchievementsCount || 0
 })
 
 const heroTotalAchievements = computed(() => {
-  if (!heroGame.value || !heroGame.value.achievements) return 0
-  return heroGame.value.totalAchievementsCount || heroGame.value.achievements.length || 0
+  if (!heroGame.value) return 0
+  return heroGame.value.totalAchievementsCount || heroGame.value.achievements?.length || 0
 })
 
 const heroAchievementPercent = computed(() => {
