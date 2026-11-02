@@ -13,6 +13,7 @@ import { useMinecraftStore } from '@/stores/minecraftStore'
 import InstanceWizardModal from '@/components/minecraft/InstanceWizardModal.vue'
 import ModpackCard from '@/components/minecraft/ModpackCard.vue'
 import InstanceModsTab from '@/components/minecraft/InstanceModsTab.vue'
+import InstanceServersTab from '@/components/minecraft/InstanceServersTab.vue'
 import InstanceLogsTab from '@/components/minecraft/InstanceLogsTab.vue'
 import InstanceGeneralTab from '@/components/minecraft/InstanceGeneralTab.vue'
 import UiButton from '@/components/ui/UiButton.vue'
@@ -27,14 +28,15 @@ const subNav = ref<'instances' | 'catalog'>('instances')
 // Wizard state
 const wizardOpen = ref(false)
 
-// Active instance tabs: "mods" | "general" | "logs"
+// Active instance tabs: "mods" | "servers" | "general" | "logs"
 const instanceTab = ref('mods')
 
-const instanceTabs = [
-  { id: 'mods', label: 'Gestion des Mods' },
+const instanceTabs = computed(() => [
+  { id: 'mods', label: 'Gestion des Mods', badge: activeInst.value?.mods?.length || 0 },
+  { id: 'servers', label: 'Serveurs Multijoueur', badge: activeInst.value?.servers?.length || 0 },
   { id: 'general', label: 'Mondes & Shaders' },
   { id: 'logs', label: 'Console & Logs en Direct' }
-]
+])
 
 // Catalog search & filter
 const catalogQuery = ref('')
@@ -255,6 +257,11 @@ const isInstanceRunning = computed(() => activeInst.value?.status === 'running')
         <div class="pt-2">
           <InstanceModsTab
             v-if="instanceTab === 'mods'"
+            :instance="activeInst"
+          />
+
+          <InstanceServersTab
+            v-else-if="instanceTab === 'servers'"
             :instance="activeInst"
           />
 

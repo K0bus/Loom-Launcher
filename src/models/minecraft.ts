@@ -47,6 +47,19 @@ export interface LogEntry {
   message: string
 }
 
+export interface MinecraftServer {
+  id: string
+  name: string
+  ip: string
+  motd?: string
+  iconUrl?: string
+  pingMs: number
+  playersOnline: number
+  playersMax: number
+  status: 'online' | 'offline' | 'unreachable'
+  version?: string
+}
+
 export interface MinecraftInstance {
   id: string
   name: string
@@ -62,6 +75,7 @@ export interface MinecraftInstance {
   customResolution?: { width: number; height: number }
   mods: MinecraftMod[]
   worlds: MinecraftWorld[]
+  servers: MinecraftServer[]
   resourcePacks: ResourcePack[]
   shaderPacks: ShaderPack[]
   logs: LogEntry[]

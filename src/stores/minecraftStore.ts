@@ -106,6 +106,43 @@ export const useMinecraftStore = defineStore('minecraft', () => {
           gameMode: 'creative'
         }
       ],
+      servers: [
+        {
+          id: 'srv-atm9-official',
+          name: 'ATM9 Official Public Server',
+          ip: 'atm9.allthemods.net',
+          motd: 'All The Mods 9 — To the Skies [v1.20.1] • Quests & Economy',
+          iconUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=120&auto=format&fit=crop',
+          pingMs: 22,
+          playersOnline: 142,
+          playersMax: 250,
+          status: 'online',
+          version: 'NeoForge 1.20.1'
+        },
+        {
+          id: 'srv-k0bus-realm',
+          name: 'K0bus Modded Realm (Privé)',
+          ip: 'play.k0bus-realm.fr:25565',
+          motd: 'Serveur Survie ATM9 entre amis • Sauvegarde auto 6h',
+          iconUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=120&auto=format&fit=crop',
+          pingMs: 14,
+          playersOnline: 5,
+          playersMax: 20,
+          status: 'online',
+          version: 'NeoForge 1.20.1'
+        },
+        {
+          id: 'srv-eu-community',
+          name: 'EU Tech-Magic Network',
+          ip: 'eu.techmagic-mc.com',
+          motd: 'Maintenance programmée ce soir à 23h • Chunkloaded',
+          pingMs: 46,
+          playersOnline: 28,
+          playersMax: 80,
+          status: 'online',
+          version: '1.20.1'
+        }
+      ],
       resourcePacks: [
         {
           id: 'rp-1',
@@ -188,6 +225,43 @@ export const useMinecraftStore = defineStore('minecraft', () => {
           lastPlayed: 'Il y a 3 jours',
           sizeMb: 95.0,
           gameMode: 'hardcore'
+        }
+      ],
+      servers: [
+        {
+          id: 'srv-vanilla-smp',
+          name: 'SMP Vanilla 1.21.4 Pur',
+          ip: 'smp.vanilla-friends.eu',
+          motd: 'Survie multijoueur 1.21.4 sans reset • Whitelist active',
+          iconUrl: 'https://images.unsplash.com/photo-1627856013091-fed6e4e30025?q=80&w=120&auto=format&fit=crop',
+          pingMs: 18,
+          playersOnline: 12,
+          playersMax: 30,
+          status: 'online',
+          version: 'Fabric 1.21.4'
+        },
+        {
+          id: 'srv-hypixel',
+          name: 'Hypixel Network',
+          ip: 'mc.hypixel.net',
+          motd: 'Hypixel Network [1.8-1.21] • BedWars, SkyBlock & More',
+          iconUrl: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=120&auto=format&fit=crop',
+          pingMs: 34,
+          playersOnline: 48320,
+          playersMax: 100000,
+          status: 'online',
+          version: '1.21.4'
+        },
+        {
+          id: 'srv-local-test',
+          name: 'Serveur Local Développeur',
+          ip: '127.0.0.1:25565',
+          motd: 'Serveur local de test (hors ligne)',
+          pingMs: 0,
+          playersOnline: 0,
+          playersMax: 10,
+          status: 'offline',
+          version: 'Local'
         }
       ],
       resourcePacks: [],
@@ -334,6 +408,7 @@ export const useMinecraftStore = defineStore('minecraft', () => {
       status: 'idle',
       mods: [],
       worlds: [],
+      servers: [],
       resourcePacks: [],
       shaderPacks: [],
       logs: [
