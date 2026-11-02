@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useGamesStore } from '@/stores/gamesStore'
+import { useIgdbStore } from '@/stores/igdbStore'
 import { useToastStore } from '@/stores/toastStore'
 import type { Game, GameFilter } from '@/models/game'
 import GameCard from '@/components/games/GameCard.vue'
@@ -14,6 +15,7 @@ import UiBadge from '@/components/ui/UiBadge.vue'
 const router = useRouter()
 const route = useRoute()
 const gamesStore = useGamesStore()
+const igdbStore = useIgdbStore()
 const toast = useToastStore()
 
 const filterModalOpen = ref(false)
@@ -111,12 +113,19 @@ function selectQuickTag(tagId: string) {
 }
 
 const filteredGames = computed(() => {
-  let list = gamesStore.filterGames(filters.value)
+  let list = gamesStore.filterGames(filters.value).filter((g) => g.inLibrary !== false)
   if (selectedTag.value === 'favorites') {
     list = list.filter((g) => g.isFavorite)
   }
   return list
 })
+
+function openIgdbWithSearch(query?: string) {
+  igdbModalOpen.value = true
+  if (query && query.trim()) {
+    igdbStore.search(query.trim())
+  }
+}
 
 function openGameDetail(game: Game) {
   router.push(`/games/${game.id}`)
@@ -388,16 +397,16 @@ function scrollToCatalog() {
               </span>
             </UiButton>
 
-            <!-- IGDB Explorer Button -->
+            <!-- Découvrir Hors Bibliothèque (IGDB) Button -->
             <UiButton
               variant="primary"
               size="md"
-              @click="igdbModalOpen = true"
+              @click="openIgdbWithSearch('')"
             >
               <template #prefix>
-                <i class="ph-fill ph-compass text-base"></i>
+                <i class="ph-bold ph-globe-hemisphere-west text-base"></i>
               </template>
-              Explorer IGDB
+              Découvrir hors bibliothèque
             </UiButton>
           </div>
         </div>
@@ -455,13 +464,30 @@ function scrollToCatalog() {
           <p class="text-zinc-500 text-xs">
             Essayez de modifier votre terme de recherche ou de réinitialiser les filtres appliqués.
           </p>
-          <UiButton
-            variant="outline"
-            size="sm"
-            @click="resetFilters"
-          >
-            Réinitialiser tous les filtres
-          </UiButton>
+
+          <!-- Prompt to search on IGDB when not in local library -->
+          <div v-if="filters.search" class="pt-2">
+            <UiButton
+              variant="primary"
+              size="sm"
+              @click="openIgdbWithSearch(filters.search)"
+            >
+              <template #prefix>
+                <i class="ph-bold ph-magnifying-glass-plus text-base"></i>
+              </template>
+              Rechercher "{{ filters.search }}" hors bibliothèque sur IGDB
+            </UiButton>
+          </div>
+
+          <div class="pt-1">
+            <UiButton
+              variant="outline"
+              size="sm"
+              @click="resetFilters"
+            >
+              Réinitialiser tous les filtres
+            </UiButton>
+          </div>
         </div>
       </section>
     </div>

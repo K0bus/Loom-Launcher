@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useIgdbStore, type IGDBTab } from '@/stores/igdbStore'
 import { useGamesStore } from '@/stores/gamesStore'
 import type { IGDBGame } from '@/models/igdb'
-import { getIGDBCoverUrl, getIGDBArtworkUrl, getIGDBScreenshotUrl } from '@/models/igdb'
+import { getIGDBCoverUrl, getIGDBArtworkUrl, getIGDBScreenshotUrl, mapIGDBGameToLoomGame } from '@/models/igdb'
 import UiModal from '@/components/ui/UiModal.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiBadge from '@/components/ui/UiBadge.vue'
+
+const router = useRouter()
 
 interface Props {
   open: boolean
@@ -62,6 +65,16 @@ function handleSyncWithTarget(game: IGDBGame) {
   emit('close')
 }
 
+function openFullscreenPage(game: IGDBGame) {
+  const isOwned = isAlreadyInLibrary(game)
+  const mapped = mapIGDBGameToLoomGame(game, {
+    inLibrary: isOwned
+  })
+  gamesStore.registerDiscoveredGame(mapped)
+  emit('close')
+  router.push(`/games/igdb-${game.id}`)
+}
+
 onMounted(() => {
   if (igdbStore.searchResults.length === 0) {
     igdbStore.loadCatalog('popular')
@@ -81,8 +94,8 @@ watch(
 <template>
   <UiModal
     :open="open"
-    title="Explorateur de Jeux & API IGDB"
-    subtitle="Recherchez parmi des dizaines de milliers de titres via l'API v4 d'IGDB"
+    title="Rechercher un jeu hors bibliothèque (IGDB)"
+    subtitle="Explorez le catalogue mondial pour découvrir, prévisualiser et ajouter des jeux à Loom"
     max-width="3xl"
     @close="emit('close')"
   >
@@ -191,13 +204,18 @@ watch(
             @click="selectGame(game)"
           >
             <!-- 3:4 Poster Image -->
-            <div class="relative aspect-[3/4] bg-zinc-950 overflow-hidden">
+            <div class="relative aspect-[3/4] bg-zinc-950 overflow-hidden flex items-center justify-center">
               <img
-                :src="getIGDBCoverUrl(game.cover?.image_id, 'cover_big') || 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?q=80&w=600&auto=format&fit=crop'"
+                :src="getIGDBCoverUrl(game.cover?.image_id, 'cover_big')"
                 :alt="game.name"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 loading="lazy"
+                @error="(e: any) => { e.target.style.display = 'none'; if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex' }"
               />
+              <div class="hidden absolute inset-0 bg-zinc-950 flex-col items-center justify-center p-3 text-center border-b border-zinc-800">
+                <i class="ph-fill ph-game-controller text-2xl text-amber-400 mb-1"></i>
+                <span class="text-[10px] font-bold text-zinc-300 line-clamp-2">{{ game.name }}</span>
+              </div>
 
               <!-- Rating Badge -->
               <div
@@ -232,31 +250,42 @@ watch(
                 </p>
               </div>
 
-              <!-- Quick Action Button -->
-              <div class="pt-1">
+              <!-- Card Actions: Voir la fiche + Importer / Sync -->
+              <div class="pt-1 flex items-center gap-1.5">
+                <!-- Voir la page du jeu -->
+                <button
+                  type="button"
+                  @click.stop="openFullscreenPage(game)"
+                  class="p-1.5 rounded-lg bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-amber-400 transition-colors flex-shrink-0"
+                  title="Voir la page du jeu en plein écran"
+                >
+                  <i class="ph-bold ph-arrow-up-right text-sm"></i>
+                </button>
+
+                <!-- Quick Action Button -->
                 <button
                   v-if="targetSyncGameId"
                   type="button"
                   @click.stop="handleSyncWithTarget(game)"
-                  class="w-full py-1.5 rounded-lg text-xs font-bold btn-gold flex items-center justify-center gap-1"
+                  class="flex-1 py-1.5 rounded-lg text-xs font-bold btn-gold flex items-center justify-center gap-1"
                 >
                   <i class="ph-fill ph-arrows-clockwise text-xs"></i>
-                  Synchroniser
+                  Sync
                 </button>
                 <button
                   v-else-if="!isAlreadyInLibrary(game)"
                   type="button"
                   @click.stop="handleImport(game)"
-                  class="w-full py-1.5 rounded-lg text-xs font-bold btn-gold flex items-center justify-center gap-1"
+                  class="flex-1 py-1.5 rounded-lg text-xs font-bold btn-gold flex items-center justify-center gap-1"
                 >
                   <i class="ph-fill ph-plus-circle text-xs"></i>
                   Importer
                 </button>
                 <div
                   v-else
-                  class="w-full py-1.5 rounded-lg text-xs font-medium text-center bg-zinc-800/60 text-zinc-400 border border-zinc-700/40"
+                  class="flex-1 py-1.5 rounded-lg text-[11px] font-medium text-center bg-zinc-800/60 text-zinc-400 border border-zinc-700/40"
                 >
-                  Installé / Ajouté
+                  Possédé
                 </div>
               </div>
             </div>
@@ -337,8 +366,20 @@ watch(
               </div>
             </div>
 
-            <!-- Action CTA -->
+            <!-- Action CTAs -->
             <div class="flex items-center gap-3">
+              <!-- Voir la page du jeu en plein écran -->
+              <UiButton
+                variant="secondary"
+                size="md"
+                @click="openFullscreenPage(selectedGame)"
+              >
+                <template #prefix>
+                  <i class="ph-bold ph-arrows-out-simple text-base text-amber-400"></i>
+                </template>
+                Voir la page du jeu
+              </UiButton>
+
               <UiButton
                 v-if="targetSyncGameId"
                 variant="primary"
@@ -348,7 +389,7 @@ watch(
                 <template #prefix>
                   <i class="ph-fill ph-arrows-clockwise text-base"></i>
                 </template>
-                Synchroniser avec ce jeu
+                Synchroniser
               </UiButton>
 
               <UiButton
@@ -365,7 +406,7 @@ watch(
 
               <UiBadge v-else variant="emerald" size="sm">
                 <i class="ph-fill ph-check-circle mr-1"></i>
-                Déjà dans la bibliothèque
+                En bibliothèque
               </UiBadge>
             </div>
           </div>

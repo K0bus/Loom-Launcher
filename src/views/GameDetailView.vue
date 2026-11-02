@@ -14,11 +14,19 @@ const gamesStore = useGamesStore()
 const toast = useToastStore()
 
 const igdbModalOpen = ref(false)
+const buyModalOpen = ref(false)
 
 const gameId = computed(() => (route.params.id as string) || 'hollow-knight-silksong')
 const game = computed<Game | undefined>(() => {
   return gamesStore.getGameById(gameId.value) || gamesStore.getGameById('hollow-knight-silksong') || gamesStore.games[0]
 })
+
+function handleAddToLibrary() {
+  if (!game.value) return
+  game.value.inLibrary = true
+  gamesStore.addToLibrary(game.value.id)
+  toast.show(`${game.value.title} ajouté à votre bibliothèque Loom !`, 'success')
+}
 
 // Steam status simulation
 const isSteamRunning = ref(false)
@@ -178,8 +186,31 @@ const achievementPercent = computed(() => {
 
         <!-- Play CTA + Runner Settings + Metrics pill bar -->
         <div class="flex flex-wrap items-center gap-3">
-          <!-- Big Gold PLAY Button -->
+          <!-- Fallback : Bouton Acheter le Jeu si hors bibliothèque -->
           <button
+            v-if="game.inLibrary === false"
+            type="button"
+            @click="buyModalOpen = true"
+            class="flex items-center gap-2.5 px-7 py-3 rounded-xl font-bold text-sm tracking-wide active:scale-95 transition-all duration-150 btn-gold shadow-lg"
+          >
+            <i class="ph-bold ph-shopping-bag-open text-lg"></i>
+            <span>Acheter le Jeu</span>
+          </button>
+
+          <!-- Bouton secondaire : Ajouter à la bibliothèque -->
+          <button
+            v-if="game.inLibrary === false"
+            type="button"
+            @click="handleAddToLibrary"
+            class="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-xs bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700/80 text-zinc-200 hover:text-amber-400 transition"
+          >
+            <i class="ph-bold ph-plus-circle text-base text-amber-400"></i>
+            <span>Ajouter à la Bibliothèque</span>
+          </button>
+
+          <!-- Bouton Normal JOUER / STOP si déjà en bibliothèque -->
+          <button
+            v-else
             type="button"
             @click="handlePlay"
             :class="[
@@ -190,7 +221,7 @@ const achievementPercent = computed(() => {
             ]"
           >
             <i :class="!isRunning ? 'ph-fill ph-play text-lg' : 'ph-fill ph-stop text-lg'"></i>
-            <span>{{ !isRunning ? 'Play' : 'Stop' }}</span>
+            <span>{{ !isRunning ? (game.installed ? 'Lancer' : 'Installer') : 'Arrêter' }}</span>
           </button>
 
           <!-- Runner / Config Cog Button -->
@@ -588,5 +619,66 @@ const achievementPercent = computed(() => {
       :target-sync-game-id="game?.id"
       @close="igdbModalOpen = false"
     />
+
+    <!-- MODALE : OÙ ACHETER CE JEU -->
+    <UiModal
+      :open="buyModalOpen"
+      title="Acheter ou Obtenir le Jeu"
+      :subtitle="`Choisissez votre boutique officielle pour acquérir ${game.title}`"
+      max-width="md"
+      @close="buyModalOpen = false"
+    >
+      <div class="space-y-4 py-2">
+        <p class="text-xs text-zinc-400 leading-relaxed">
+          Ce jeu ne fait pas encore partie de votre bibliothèque locale. Procurez-vous la licence officielle sur l'une des plateformes ci-dessous :
+        </p>
+
+        <!-- Store Links List -->
+        <div class="space-y-2.5">
+          <a
+            v-for="(store, idx) in (game.storeLinks || [])"
+            :key="idx"
+            :href="store.url"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex items-center justify-between p-3.5 rounded-xl bg-zinc-950/80 border border-zinc-800 hover:border-amber-500/50 hover:bg-zinc-900 transition-all group"
+          >
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
+                <i :class="store.icon || 'ph-fill ph-shopping-bag'" class="text-xl"></i>
+              </div>
+              <div>
+                <h4 class="font-bold text-xs text-zinc-100 group-hover:text-amber-400 transition-colors">
+                  {{ store.store }}
+                </h4>
+                <p class="text-[11px] text-zinc-500">
+                  Version officielle compatible PC & Linux
+                </p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1.5 text-xs text-amber-400 font-semibold group-hover:translate-x-1 transition-transform">
+              <span>Visiter</span>
+              <i class="ph ph-arrow-square-out text-sm"></i>
+            </div>
+          </a>
+        </div>
+
+        <!-- Déjà possédé ? -->
+        <div class="pt-3 border-t border-zinc-800/80 flex items-center justify-between">
+          <span class="text-xs text-zinc-400">Vous possédez déjà ce jeu ?</span>
+          <UiButton
+            variant="secondary"
+            size="sm"
+            @click="handleAddToLibrary(); buyModalOpen = false"
+          >
+            <template #prefix>
+              <i class="ph-bold ph-plus text-xs"></i>
+            </template>
+            L'ajouter à Loom
+          </UiButton>
+        </div>
+      </div>
+    </UiModal>
   </div>
 </template>

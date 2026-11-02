@@ -69,6 +69,8 @@ export interface Game {
   gameModes?: string[]
   websites?: Array<{ category: string; url: string }>
   videos?: Array<{ name: string; videoId: string }>
+  inLibrary?: boolean
+  storeLinks?: Array<{ store: string; url: string; price?: string; icon?: string }>
 }
 
 export interface GameFilter {

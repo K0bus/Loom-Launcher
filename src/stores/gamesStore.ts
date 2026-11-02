@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Game, GameFilter, RunnerType, GameConfig } from '@/models/game'
+import { mapIGDBGameToLoomGame } from '@/models/igdb'
+import { MOCK_IGDB_CATALOG } from '@/services/igdbService'
 import { ipc } from '@/services/ipc'
 
 export const useGamesStore = defineStore('games', () => {
@@ -414,9 +416,63 @@ export const useGamesStore = defineStore('games', () => {
     return list.slice(0, 3)
   })
 
+  const discoveredGames = ref<Map<string, Game>>(new Map())
+
   // Actions
   function getGameById(id: string): Game | undefined {
-    return games.value.find((g) => g.id === id)
+    // 1. Search in user's library
+    const inLib = games.value.find((g) => g.id === id || g.slug === id)
+    if (inLib) {
+      if (inLib.inLibrary === undefined) inLib.inLibrary = true
+      return inLib
+    }
+
+    // 2. Search in discovered cache
+    if (discoveredGames.value.has(id)) {
+      return discoveredGames.value.get(id)
+    }
+
+    // 3. If ID starts with 'igdb-'
+    if (id.startsWith('igdb-')) {
+      const numericId = parseInt(id.replace('igdb-', ''), 10)
+      const foundInCatalog = MOCK_IGDB_CATALOG.find((g) => g.id === numericId)
+      if (foundInCatalog) {
+        const mapped = mapIGDBGameToLoomGame(foundInCatalog, { inLibrary: false })
+        discoveredGames.value.set(id, mapped)
+        return mapped
+      }
+    }
+
+    // 4. Also check if ID matches any slug in MOCK_IGDB_CATALOG
+    const foundBySlug = MOCK_IGDB_CATALOG.find((g) => g.slug === id)
+    if (foundBySlug) {
+      const mapped = mapIGDBGameToLoomGame(foundBySlug, { inLibrary: false })
+      discoveredGames.value.set(mapped.id, mapped)
+      discoveredGames.value.set(id, mapped)
+      return mapped
+    }
+
+    return undefined
+  }
+
+  function registerDiscoveredGame(game: Game) {
+    discoveredGames.value.set(game.id, game)
+  }
+
+  function addToLibrary(gameId: string): Game | undefined {
+    const existing = games.value.find((g) => g.id === gameId)
+    if (existing) {
+      existing.inLibrary = true
+      return existing
+    }
+
+    const discovered = discoveredGames.value.get(gameId) || getGameById(gameId)
+    if (discovered) {
+      discovered.inLibrary = true
+      games.value.unshift(discovered)
+      return discovered
+    }
+    return undefined
   }
 
   async function launchGame(id: string) {
@@ -529,6 +585,9 @@ export const useGamesStore = defineStore('games', () => {
     updateGameRunner,
     updateGameConfig,
     toggleFavorite,
-    filterGames
+    filterGames,
+    discoveredGames,
+    registerDiscoveredGame,
+    addToLibrary
   }
 })

@@ -201,6 +201,37 @@ export function mapIGDBGameToLoomGame(igdb: IGDBGame, defaults?: Partial<Game>):
 
   const rating = igdb.total_rating ? Math.round(igdb.total_rating) : undefined
 
+  const steamWebsite = igdb.websites?.find((w) => w.category === 13 || w.url.includes('steampowered.com'))
+  const gogWebsite = igdb.websites?.find((w) => w.category === 17 || w.url.includes('gog.com'))
+  const epicWebsite = igdb.websites?.find((w) => w.category === 16 || w.url.includes('epicgames.com'))
+  const officialWebsite = igdb.websites?.find((w) => w.category === 1)
+
+  const storeLinks: Array<{ store: string; url: string; price?: string; icon?: string }> = [
+    {
+      store: 'Steam Store',
+      url: steamWebsite?.url || `https://store.steampowered.com/search/?term=${encodeURIComponent(igdb.name)}`,
+      icon: 'ph-fill ph-steam-logo'
+    },
+    {
+      store: 'GOG.com (DRM-Free)',
+      url: gogWebsite?.url || `https://www.gog.com/en/games?query=${encodeURIComponent(igdb.name)}`,
+      icon: 'ph-fill ph-shopping-bag'
+    },
+    {
+      store: 'Epic Games Store',
+      url: epicWebsite?.url || `https://store.epicgames.com/fr/browse?q=${encodeURIComponent(igdb.name)}`,
+      icon: 'ph-fill ph-storefront'
+    }
+  ]
+
+  if (officialWebsite) {
+    storeLinks.push({
+      store: 'Site Officiel du Studio',
+      url: officialWebsite.url,
+      icon: 'ph-fill ph-globe'
+    })
+  }
+
   return {
     id: defaults?.id || `igdb-${igdb.id}`,
     title: igdb.name,
@@ -252,6 +283,8 @@ export function mapIGDBGameToLoomGame(igdb: IGDBGame, defaults?: Partial<Game>):
     themes: igdb.themes?.map((t) => t.name) || [],
     gameModes: igdb.game_modes?.map((m) => m.name) || [],
     websites,
-    videos
+    videos,
+    inLibrary: defaults?.inLibrary ?? false,
+    storeLinks: defaults?.storeLinks || storeLinks
   }
 }
