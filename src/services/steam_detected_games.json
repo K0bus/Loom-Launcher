@@ -1,0 +1,2942 @@
+[
+  {
+    "appid": "4000",
+    "name": "Garry's Mod",
+    "slug": "garry-s-mod",
+    "installed": true,
+    "playtimeMinutes": 48903,
+    "lastPlayedTimestamp": 1790521977,
+    "sizeGb": 6.8,
+    "installDir": "GarrysMod"
+  },
+  {
+    "appid": "594650",
+    "name": "Hunt: Showdown 1896",
+    "slug": "hunt-showdown-1896",
+    "installed": true,
+    "playtimeMinutes": 22645,
+    "lastPlayedTimestamp": 1793653015,
+    "sizeGb": 94.1,
+    "installDir": "Hunt Showdown 1896"
+  },
+  {
+    "appid": "739630",
+    "name": "Phasmophobia",
+    "slug": "phasmophobia",
+    "installed": true,
+    "playtimeMinutes": 13399,
+    "lastPlayedTimestamp": 1793489888,
+    "sizeGb": 41.6,
+    "installDir": "Phasmophobia"
+  },
+  {
+    "appid": "892970",
+    "name": "Valheim",
+    "slug": "valheim",
+    "installed": true,
+    "playtimeMinutes": 10743,
+    "lastPlayedTimestamp": 1791128063,
+    "sizeGb": 3.9,
+    "installDir": "Valheim"
+  },
+  {
+    "appid": "1203620",
+    "name": "Enshrouded",
+    "slug": "enshrouded",
+    "installed": true,
+    "playtimeMinutes": 7163,
+    "lastPlayedTimestamp": 1792433337,
+    "sizeGb": 48.3,
+    "installDir": "Enshrouded"
+  },
+  {
+    "appid": "4126040",
+    "name": "Aniimo",
+    "slug": "aniimo",
+    "installed": true,
+    "playtimeMinutes": 2388,
+    "lastPlayedTimestamp": 1791149837,
+    "sizeGb": 34.9,
+    "installDir": "Aniimo"
+  },
+  {
+    "appid": "108600",
+    "name": "Project Zomboid",
+    "slug": "project-zomboid",
+    "installed": true,
+    "playtimeMinutes": 1518,
+    "lastPlayedTimestamp": 1787783551,
+    "sizeGb": 9.7,
+    "installDir": "ProjectZomboid"
+  },
+  {
+    "appid": "1817800",
+    "name": "Oddsparks: An Automation Adventure",
+    "slug": "oddsparks-an-automation-adventure",
+    "installed": true,
+    "playtimeMinutes": 1492,
+    "lastPlayedTimestamp": 1793569000,
+    "sizeGb": 6.3,
+    "installDir": "Oddsparks"
+  },
+  {
+    "appid": "2315050",
+    "name": "We Were Here Tomorrow",
+    "slug": "we-were-here-tomorrow",
+    "installed": true,
+    "playtimeMinutes": 1143,
+    "lastPlayedTimestamp": 1793479957,
+    "sizeGb": 19.9,
+    "installDir": "We Were Here Tomorrow"
+  },
+  {
+    "appid": "1169040",
+    "name": "Necesse",
+    "slug": "necesse",
+    "installed": true,
+    "playtimeMinutes": 676,
+    "lastPlayedTimestamp": 1788564576,
+    "sizeGb": 0.5,
+    "installDir": "Necesse"
+  },
+  {
+    "appid": "2708450",
+    "name": "Oh Deer",
+    "slug": "oh-deer",
+    "installed": true,
+    "playtimeMinutes": 41,
+    "lastPlayedTimestamp": 1791054824,
+    "sizeGb": 2.1,
+    "installDir": "Oh Deer"
+  },
+  {
+    "appid": "739630",
+    "name": "Phasmophobia",
+    "slug": "phasmophobia",
+    "installed": true,
+    "playtimeMinutes": 0,
+    "lastPlayedTimestamp": 0,
+    "sizeGb": 41.6,
+    "installDir": "Phasmophobia"
+  },
+  {
+    "appid": "892970",
+    "name": "Valheim",
+    "slug": "valheim",
+    "installed": true,
+    "playtimeMinutes": 0,
+    "lastPlayedTimestamp": 0,
+    "sizeGb": 3.9,
+    "installDir": "Valheim"
+  },
+  {
+    "appid": "4000",
+    "name": "Garry's Mod",
+    "slug": "garry-s-mod",
+    "installed": true,
+    "playtimeMinutes": 0,
+    "lastPlayedTimestamp": 0,
+    "sizeGb": 6.8,
+    "installDir": "GarrysMod"
+  },
+  {
+    "appid": "2708450",
+    "name": "Oh Deer",
+    "slug": "oh-deer",
+    "installed": true,
+    "playtimeMinutes": 0,
+    "lastPlayedTimestamp": 0,
+    "sizeGb": 2.1,
+    "installDir": "Oh Deer"
+  },
+  {
+    "appid": "252490",
+    "name": "Rust",
+    "slug": "rust",
+    "installed": false,
+    "playtimeMinutes": 95639,
+    "lastPlayedTimestamp": 1786131805,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "252950",
+    "name": "Rocket League",
+    "slug": "rocket-league",
+    "installed": false,
+    "playtimeMinutes": 76874,
+    "lastPlayedTimestamp": 1716299013,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "346110",
+    "name": "ARK: Survival Evolved",
+    "slug": "ark-survival-evolved",
+    "installed": false,
+    "playtimeMinutes": 40251,
+    "lastPlayedTimestamp": 1788113241,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "526870",
+    "name": "Satisfactory",
+    "slug": "satisfactory",
+    "installed": false,
+    "playtimeMinutes": 27030,
+    "lastPlayedTimestamp": 1773705063,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "382310",
+    "name": "Eco",
+    "slug": "eco",
+    "installed": false,
+    "playtimeMinutes": 23555,
+    "lastPlayedTimestamp": 1761481779,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1172620",
+    "name": "Sea of Thieves",
+    "slug": "sea-of-thieves",
+    "installed": false,
+    "playtimeMinutes": 19080,
+    "lastPlayedTimestamp": 1745268415,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "105600",
+    "name": "Terraria",
+    "slug": "terraria",
+    "installed": false,
+    "playtimeMinutes": 17162,
+    "lastPlayedTimestamp": 1774736971,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1604030",
+    "name": "V Rising",
+    "slug": "v-rising",
+    "installed": false,
+    "playtimeMinutes": 16762,
+    "lastPlayedTimestamp": 1747574161,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "505040",
+    "name": "FORTIFY",
+    "slug": "fortify",
+    "installed": false,
+    "playtimeMinutes": 14063,
+    "lastPlayedTimestamp": 1702048956,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1623730",
+    "name": "Palworld",
+    "slug": "palworld",
+    "installed": false,
+    "playtimeMinutes": 9486,
+    "lastPlayedTimestamp": 1785679619,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "344760",
+    "name": "Reign Of Kings",
+    "slug": "reign-of-kings",
+    "installed": false,
+    "playtimeMinutes": 9319,
+    "lastPlayedTimestamp": 1509840216,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "22330",
+    "name": "The Elder Scrolls IV: Oblivion Game of the Year Edition (2009)",
+    "slug": "the-elder-scrolls-iv-oblivion-game-of-the-year-edition-2009",
+    "installed": false,
+    "playtimeMinutes": 8958,
+    "lastPlayedTimestamp": 1716075091,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "582010",
+    "name": "Monster Hunter: World",
+    "slug": "monster-hunter-world",
+    "installed": false,
+    "playtimeMinutes": 7989,
+    "lastPlayedTimestamp": 1665248249,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1281930",
+    "name": "tModLoader",
+    "slug": "tmodloader",
+    "installed": false,
+    "playtimeMinutes": 6568,
+    "lastPlayedTimestamp": 1774736971,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1063730",
+    "name": "New World: Aeternum",
+    "slug": "new-world-aeternum",
+    "installed": false,
+    "playtimeMinutes": 6301,
+    "lastPlayedTimestamp": 1637615346,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "413150",
+    "name": "Stardew Valley",
+    "slug": "stardew-valley",
+    "installed": false,
+    "playtimeMinutes": 6162,
+    "lastPlayedTimestamp": 1777207886,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1129580",
+    "name": "Medieval Dynasty",
+    "slug": "medieval-dynasty",
+    "installed": false,
+    "playtimeMinutes": 6157,
+    "lastPlayedTimestamp": 1762700179,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "377160",
+    "name": "Fallout 4",
+    "slug": "fallout-4",
+    "installed": false,
+    "playtimeMinutes": 6132,
+    "lastPlayedTimestamp": 1771370924,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "271590",
+    "name": "Grand Theft Auto V Legacy",
+    "slug": "grand-theft-auto-v-legacy",
+    "installed": false,
+    "playtimeMinutes": 6099,
+    "lastPlayedTimestamp": 1664826215,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "275850",
+    "name": "No Man's Sky",
+    "slug": "no-man-s-sky",
+    "installed": false,
+    "playtimeMinutes": 5533,
+    "lastPlayedTimestamp": 1760905649,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1091500",
+    "name": "Cyberpunk 2077",
+    "slug": "cyberpunk-2077",
+    "installed": false,
+    "playtimeMinutes": 4953,
+    "lastPlayedTimestamp": 1766882241,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "306130",
+    "name": "The Elder Scrolls Online",
+    "slug": "the-elder-scrolls-online",
+    "installed": false,
+    "playtimeMinutes": 4940,
+    "lastPlayedTimestamp": 1614277712,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "431960",
+    "name": "Wallpaper Engine",
+    "slug": "wallpaper-engine",
+    "installed": false,
+    "playtimeMinutes": 4904,
+    "lastPlayedTimestamp": 1624791841,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "10190",
+    "name": "Call of Duty: Modern Warfare 2 (2009) - Multiplayer",
+    "slug": "call-of-duty-modern-warfare-2-2009-multiplayer",
+    "installed": false,
+    "playtimeMinutes": 4462,
+    "lastPlayedTimestamp": 1502298825,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "431730",
+    "name": "Aseprite",
+    "slug": "aseprite",
+    "installed": false,
+    "playtimeMinutes": 4225,
+    "lastPlayedTimestamp": 1781430512,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "304930",
+    "name": "Unturned",
+    "slug": "unturned",
+    "installed": false,
+    "playtimeMinutes": 4221,
+    "lastPlayedTimestamp": 1588531700,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "251570",
+    "name": "7 Days to Die",
+    "slug": "7-days-to-die",
+    "installed": false,
+    "playtimeMinutes": 3463,
+    "lastPlayedTimestamp": 1787610801,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "359320",
+    "name": "Elite Dangerous",
+    "slug": "elite-dangerous",
+    "installed": false,
+    "playtimeMinutes": 3415,
+    "lastPlayedTimestamp": 1690497612,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1716740",
+    "name": "Starfield",
+    "slug": "starfield",
+    "installed": false,
+    "playtimeMinutes": 3124,
+    "lastPlayedTimestamp": 1777221586,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "304050",
+    "name": "Trove",
+    "slug": "trove",
+    "installed": false,
+    "playtimeMinutes": 3088,
+    "lastPlayedTimestamp": 1541540831,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1222670",
+    "name": "The Sims\u2122 4",
+    "slug": "the-sims-4",
+    "installed": false,
+    "playtimeMinutes": 3075,
+    "lastPlayedTimestamp": 1769983024,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "2073620",
+    "name": "Arena Breakout: Infinite",
+    "slug": "arena-breakout-infinite",
+    "installed": false,
+    "playtimeMinutes": 2975,
+    "lastPlayedTimestamp": 1760787319,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "242760",
+    "name": "The Forest",
+    "slug": "the-forest",
+    "installed": false,
+    "playtimeMinutes": 2921,
+    "lastPlayedTimestamp": 1668378305,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "534380",
+    "name": "Dying Light 2: Reloaded Edition",
+    "slug": "dying-light-2-reloaded-edition",
+    "installed": false,
+    "playtimeMinutes": 2898,
+    "lastPlayedTimestamp": 1645891514,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "489830",
+    "name": "The Elder Scrolls V: Skyrim Special Edition",
+    "slug": "the-elder-scrolls-v-skyrim-special-edition",
+    "installed": false,
+    "playtimeMinutes": 2780,
+    "lastPlayedTimestamp": 1783294739,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "397540",
+    "name": "Borderlands 3",
+    "slug": "borderlands-3",
+    "installed": false,
+    "playtimeMinutes": 2774,
+    "lastPlayedTimestamp": 1681077381,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "3187030",
+    "name": "Satisfactory Modeler",
+    "slug": "satisfactory-modeler",
+    "installed": false,
+    "playtimeMinutes": 2711,
+    "lastPlayedTimestamp": 1773613930,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1366800",
+    "name": "Crosshair X",
+    "slug": "crosshair-x",
+    "installed": false,
+    "playtimeMinutes": 2703,
+    "lastPlayedTimestamp": 1701391243,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "2623190",
+    "name": "The Elder Scrolls IV: Oblivion Remastered",
+    "slug": "the-elder-scrolls-iv-oblivion-remastered",
+    "installed": false,
+    "playtimeMinutes": 2363,
+    "lastPlayedTimestamp": 1786320989,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "552520",
+    "name": "Far Cry 5",
+    "slug": "far-cry-5",
+    "installed": false,
+    "playtimeMinutes": 2360,
+    "lastPlayedTimestamp": 1620410327,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1488310",
+    "name": "Renown",
+    "slug": "renown",
+    "installed": false,
+    "playtimeMinutes": 2360,
+    "lastPlayedTimestamp": 1759081679,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "427520",
+    "name": "Factorio",
+    "slug": "factorio",
+    "installed": false,
+    "playtimeMinutes": 2357,
+    "lastPlayedTimestamp": 1775497707,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "49520",
+    "name": "Borderlands 2",
+    "slug": "borderlands-2",
+    "installed": false,
+    "playtimeMinutes": 2351,
+    "lastPlayedTimestamp": 1597873227,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "433850",
+    "name": "Z1 Battle Royale",
+    "slug": "z1-battle-royale",
+    "installed": false,
+    "playtimeMinutes": 2318,
+    "lastPlayedTimestamp": 1496841162,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1898300",
+    "name": "ASKA",
+    "slug": "aska",
+    "installed": false,
+    "playtimeMinutes": 2316,
+    "lastPlayedTimestamp": 1743260838,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "648800",
+    "name": "Raft",
+    "slug": "raft",
+    "installed": false,
+    "playtimeMinutes": 2149,
+    "lastPlayedTimestamp": 1767493287,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "239140",
+    "name": "Dying Light",
+    "slug": "dying-light",
+    "installed": false,
+    "playtimeMinutes": 2087,
+    "lastPlayedTimestamp": 1643928629,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "107410",
+    "name": "Arma 3",
+    "slug": "arma-3",
+    "installed": false,
+    "playtimeMinutes": 2066,
+    "lastPlayedTimestamp": 1614817131,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "211820",
+    "name": "Starbound",
+    "slug": "starbound",
+    "installed": false,
+    "playtimeMinutes": 2034,
+    "lastPlayedTimestamp": 1577056856,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1808500",
+    "name": "ARC Raiders",
+    "slug": "arc-raiders",
+    "installed": false,
+    "playtimeMinutes": 2031,
+    "lastPlayedTimestamp": 1771794277,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "990080",
+    "name": "Hogwarts Legacy",
+    "slug": "hogwarts-legacy",
+    "installed": false,
+    "playtimeMinutes": 2015,
+    "lastPlayedTimestamp": 1679872869,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "205100",
+    "name": "Dishonored",
+    "slug": "dishonored",
+    "installed": false,
+    "playtimeMinutes": 2014,
+    "lastPlayedTimestamp": 1735493204,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "761890",
+    "name": "Albion Online",
+    "slug": "albion-online",
+    "installed": false,
+    "playtimeMinutes": 1963,
+    "lastPlayedTimestamp": 1716241732,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "553850",
+    "name": "HELLDIVERS\u2122 2",
+    "slug": "helldivers-2",
+    "installed": false,
+    "playtimeMinutes": 1825,
+    "lastPlayedTimestamp": 1786281075,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "812140",
+    "name": "Assassin's Creed Odyssey",
+    "slug": "assassin-s-creed-odyssey",
+    "installed": false,
+    "playtimeMinutes": 1807,
+    "lastPlayedTimestamp": 1703807046,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "55230",
+    "name": "Saints Row: The Third",
+    "slug": "saints-row-the-third",
+    "installed": false,
+    "playtimeMinutes": 1792,
+    "lastPlayedTimestamp": 1471213840,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "3008130",
+    "name": "Dying Light: The Beast",
+    "slug": "dying-light-the-beast",
+    "installed": false,
+    "playtimeMinutes": 1790,
+    "lastPlayedTimestamp": 1758570947,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1621690",
+    "name": "Core Keeper",
+    "slug": "core-keeper",
+    "installed": false,
+    "playtimeMinutes": 1617,
+    "lastPlayedTimestamp": 1765323619,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "230410",
+    "name": "Warframe",
+    "slug": "warframe",
+    "installed": false,
+    "playtimeMinutes": 1616,
+    "lastPlayedTimestamp": 1685657414,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "2709570",
+    "name": "Supermarket Together",
+    "slug": "supermarket-together",
+    "installed": false,
+    "playtimeMinutes": 1603,
+    "lastPlayedTimestamp": 1785672224,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "2073850",
+    "name": "THE FINALS",
+    "slug": "the-finals",
+    "installed": false,
+    "playtimeMinutes": 1574,
+    "lastPlayedTimestamp": 1702937692,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "113400",
+    "name": "APB Reloaded",
+    "slug": "apb-reloaded",
+    "installed": false,
+    "playtimeMinutes": 1518,
+    "lastPlayedTimestamp": 1458229036,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1272080",
+    "name": "PAYDAY 3",
+    "slug": "payday-3",
+    "installed": false,
+    "playtimeMinutes": 1339,
+    "lastPlayedTimestamp": 1696693875,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1431300",
+    "name": "Sand",
+    "slug": "sand",
+    "installed": false,
+    "playtimeMinutes": 1332,
+    "lastPlayedTimestamp": 1783100302,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1335830",
+    "name": "Len's Island",
+    "slug": "len-s-island",
+    "installed": false,
+    "playtimeMinutes": 1329,
+    "lastPlayedTimestamp": 1752311803,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "637670",
+    "name": "Secret of Mana",
+    "slug": "secret-of-mana",
+    "installed": false,
+    "playtimeMinutes": 1316,
+    "lastPlayedTimestamp": 1704632399,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "289070",
+    "name": "Sid Meier's Civilization VI",
+    "slug": "sid-meier-s-civilization-vi",
+    "installed": false,
+    "playtimeMinutes": 1310,
+    "lastPlayedTimestamp": 1674781167,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "620",
+    "name": "Portal 2",
+    "slug": "portal-2",
+    "installed": false,
+    "playtimeMinutes": 1214,
+    "lastPlayedTimestamp": 1688470417,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "220",
+    "name": "Half-Life 2",
+    "slug": "half-life-2",
+    "installed": false,
+    "playtimeMinutes": 1176,
+    "lastPlayedTimestamp": 1637372982,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "529180",
+    "name": "Dark and Light",
+    "slug": "dark-and-light",
+    "installed": false,
+    "playtimeMinutes": 1170,
+    "lastPlayedTimestamp": 1523382986,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "552500",
+    "name": "Warhammer: Vermintide 2",
+    "slug": "warhammer-vermintide-2",
+    "installed": false,
+    "playtimeMinutes": 1115,
+    "lastPlayedTimestamp": 1668366645,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1097840",
+    "name": "Gears 5",
+    "slug": "gears-5",
+    "installed": false,
+    "playtimeMinutes": 1101,
+    "lastPlayedTimestamp": 1576711175,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "374040",
+    "name": "Portal Knights",
+    "slug": "portal-knights",
+    "installed": false,
+    "playtimeMinutes": 1077,
+    "lastPlayedTimestamp": 1740079885,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1149460",
+    "name": "Icarus",
+    "slug": "icarus",
+    "installed": false,
+    "playtimeMinutes": 1046,
+    "lastPlayedTimestamp": 1640445427,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "730",
+    "name": "Counter-Strike 2",
+    "slug": "counter-strike-2",
+    "installed": false,
+    "playtimeMinutes": 1027,
+    "lastPlayedTimestamp": 1697217873,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "322330",
+    "name": "Don't Starve Together",
+    "slug": "don-t-starve-together",
+    "installed": false,
+    "playtimeMinutes": 973,
+    "lastPlayedTimestamp": 1588790595,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1341290",
+    "name": "We Were Here Forever",
+    "slug": "we-were-here-forever",
+    "installed": false,
+    "playtimeMinutes": 910,
+    "lastPlayedTimestamp": 1738785663,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1222140",
+    "name": "Detroit: Become Human",
+    "slug": "detroit-become-human",
+    "installed": false,
+    "playtimeMinutes": 909,
+    "lastPlayedTimestamp": 1660521845,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1040200",
+    "name": "Crime Scene Cleaner",
+    "slug": "crime-scene-cleaner",
+    "installed": false,
+    "playtimeMinutes": 907,
+    "lastPlayedTimestamp": 1762131863,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "2001120",
+    "name": "Split Fiction",
+    "slug": "split-fiction",
+    "installed": false,
+    "playtimeMinutes": 900,
+    "lastPlayedTimestamp": 1747252183,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "109600",
+    "name": "Neverwinter",
+    "slug": "neverwinter",
+    "installed": false,
+    "playtimeMinutes": 891,
+    "lastPlayedTimestamp": 1409576324,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1457320",
+    "name": "Techtonica",
+    "slug": "techtonica",
+    "installed": false,
+    "playtimeMinutes": 737,
+    "lastPlayedTimestamp": 1720901275,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1677110",
+    "name": "Lightyear Frontier",
+    "slug": "lightyear-frontier",
+    "installed": false,
+    "playtimeMinutes": 717,
+    "lastPlayedTimestamp": 1774712623,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "440",
+    "name": "Team Fortress 2",
+    "slug": "team-fortress-2",
+    "installed": false,
+    "playtimeMinutes": 692,
+    "lastPlayedTimestamp": 1688332083,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1858650",
+    "name": "In Sink",
+    "slug": "in-sink",
+    "installed": false,
+    "playtimeMinutes": 670,
+    "lastPlayedTimestamp": 1742322937,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "2080690",
+    "name": "Sunkenland",
+    "slug": "sunkenland",
+    "installed": false,
+    "playtimeMinutes": 643,
+    "lastPlayedTimestamp": 1718653552,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "945360",
+    "name": "Among Us",
+    "slug": "among-us",
+    "installed": false,
+    "playtimeMinutes": 597,
+    "lastPlayedTimestamp": 1790374562,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "234630",
+    "name": "Project CARS",
+    "slug": "project-cars",
+    "installed": false,
+    "playtimeMinutes": 589,
+    "lastPlayedTimestamp": 1485188164,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "233860",
+    "name": "Kenshi",
+    "slug": "kenshi",
+    "installed": false,
+    "playtimeMinutes": 568,
+    "lastPlayedTimestamp": 1785616715,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "403640",
+    "name": "Dishonored 2",
+    "slug": "dishonored-2",
+    "installed": false,
+    "playtimeMinutes": 556,
+    "lastPlayedTimestamp": 1577314875,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "24740",
+    "name": "Burnout Paradise: The Ultimate Box",
+    "slug": "burnout-paradise-the-ultimate-box",
+    "installed": false,
+    "playtimeMinutes": 549,
+    "lastPlayedTimestamp": 1420484211,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "322500",
+    "name": "SUPERHOT",
+    "slug": "superhot",
+    "installed": false,
+    "playtimeMinutes": 544,
+    "lastPlayedTimestamp": 1742749764,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "224540",
+    "name": "Ace of Spades",
+    "slug": "ace-of-spades",
+    "installed": false,
+    "playtimeMinutes": 541,
+    "lastPlayedTimestamp": 1473439388,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "475550",
+    "name": "Beholder",
+    "slug": "beholder",
+    "installed": false,
+    "playtimeMinutes": 541,
+    "lastPlayedTimestamp": 1680214365,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "2694490",
+    "name": "Path of Exile 2",
+    "slug": "path-of-exile-2",
+    "installed": false,
+    "playtimeMinutes": 527,
+    "lastPlayedTimestamp": 1767563304,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1240210",
+    "name": "There Is No Game: Wrong Dimension",
+    "slug": "there-is-no-game-wrong-dimension",
+    "installed": false,
+    "playtimeMinutes": 507,
+    "lastPlayedTimestamp": 1772499942,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "865360",
+    "name": "We Were Here Together",
+    "slug": "we-were-here-together",
+    "installed": false,
+    "playtimeMinutes": 488,
+    "lastPlayedTimestamp": 1738544524,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "65800",
+    "name": "Dungeon Defenders",
+    "slug": "dungeon-defenders",
+    "installed": false,
+    "playtimeMinutes": 487,
+    "lastPlayedTimestamp": 1418419083,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "7940",
+    "name": "Call of Duty 4: Modern Warfare (2007)",
+    "slug": "call-of-duty-4-modern-warfare-2007",
+    "installed": false,
+    "playtimeMinutes": 478,
+    "lastPlayedTimestamp": 1521331650,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "782330",
+    "name": "DOOM Eternal",
+    "slug": "doom-eternal",
+    "installed": false,
+    "playtimeMinutes": 454,
+    "lastPlayedTimestamp": 1692299742,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "218620",
+    "name": "PAYDAY 2",
+    "slug": "payday-2",
+    "installed": false,
+    "playtimeMinutes": 447,
+    "lastPlayedTimestamp": 1601862082,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "359550",
+    "name": "Tom Clancy's Rainbow Six Siege",
+    "slug": "tom-clancy-s-rainbow-six-siege",
+    "installed": false,
+    "playtimeMinutes": 444,
+    "lastPlayedTimestamp": 1752085126,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "8930",
+    "name": "Sid Meier's Civilization V",
+    "slug": "sid-meier-s-civilization-v",
+    "installed": false,
+    "playtimeMinutes": 422,
+    "lastPlayedTimestamp": 1441550145,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "208480",
+    "name": "Assassin's Creed\u00ae III",
+    "slug": "assassin-s-creed-iii",
+    "installed": false,
+    "playtimeMinutes": 395,
+    "lastPlayedTimestamp": 1512757457,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1359090",
+    "name": "Zero Hour",
+    "slug": "zero-hour",
+    "installed": false,
+    "playtimeMinutes": 385,
+    "lastPlayedTimestamp": 1622671218,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "314660",
+    "name": "Oddworld: New 'n' Tasty",
+    "slug": "oddworld-new-n-tasty",
+    "installed": false,
+    "playtimeMinutes": 383,
+    "lastPlayedTimestamp": 1705013061,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "493900",
+    "name": "Dungeons 3",
+    "slug": "dungeons-3",
+    "installed": false,
+    "playtimeMinutes": 383,
+    "lastPlayedTimestamp": 1777323436,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1363080",
+    "name": "Manor Lords",
+    "slug": "manor-lords",
+    "installed": false,
+    "playtimeMinutes": 382,
+    "lastPlayedTimestamp": 1758064370,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "12210",
+    "name": "Grand Theft Auto IV: The Complete Edition",
+    "slug": "grand-theft-auto-iv-the-complete-edition",
+    "installed": false,
+    "playtimeMinutes": 378,
+    "lastPlayedTimestamp": 1455145131,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1432860",
+    "name": "Sun Haven",
+    "slug": "sun-haven",
+    "installed": false,
+    "playtimeMinutes": 373,
+    "lastPlayedTimestamp": 1767405140,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "242700",
+    "name": "Injustice: Gods Among Us Ultimate Edition",
+    "slug": "injustice-gods-among-us-ultimate-edition",
+    "installed": false,
+    "playtimeMinutes": 371,
+    "lastPlayedTimestamp": 1466534381,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1928980",
+    "name": "Nightingale",
+    "slug": "nightingale",
+    "installed": false,
+    "playtimeMinutes": 364,
+    "lastPlayedTimestamp": 1716559690,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "24960",
+    "name": "Battlefield: Bad Company\u2122 2",
+    "slug": "battlefield-bad-company-2",
+    "installed": false,
+    "playtimeMinutes": 361,
+    "lastPlayedTimestamp": 1406284755,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "447040",
+    "name": "Watch_Dogs 2",
+    "slug": "watch-dogs-2",
+    "installed": false,
+    "playtimeMinutes": 350,
+    "lastPlayedTimestamp": 1527941996,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "292030",
+    "name": "The Witcher 3: Wild Hunt \u2014 Remastered",
+    "slug": "the-witcher-3-wild-hunt-remastered",
+    "installed": false,
+    "playtimeMinutes": 347,
+    "lastPlayedTimestamp": 1791037377,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "614570",
+    "name": "Dishonored\u00ae: Death of the Outsider\u2122 ",
+    "slug": "dishonored-death-of-the-outsider",
+    "installed": false,
+    "playtimeMinutes": 345,
+    "lastPlayedTimestamp": 1525739093,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "391220",
+    "name": "Rise of the Tomb Raider",
+    "slug": "rise-of-the-tomb-raider",
+    "installed": false,
+    "playtimeMinutes": 336,
+    "lastPlayedTimestamp": 1460651497,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "9480",
+    "name": "Saints Row 2",
+    "slug": "saints-row-2",
+    "installed": false,
+    "playtimeMinutes": 331,
+    "lastPlayedTimestamp": 1466532914,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "495420",
+    "name": "State of Decay 2",
+    "slug": "state-of-decay-2",
+    "installed": false,
+    "playtimeMinutes": 315,
+    "lastPlayedTimestamp": 1655678917,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "17390",
+    "name": "Spore",
+    "slug": "spore",
+    "installed": false,
+    "playtimeMinutes": 308,
+    "lastPlayedTimestamp": 1627853351,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "868270",
+    "name": "The Cycle: Frontier",
+    "slug": "the-cycle-frontier",
+    "installed": false,
+    "playtimeMinutes": 299,
+    "lastPlayedTimestamp": 1654898663,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "939510",
+    "name": "Pandemic Express - Zombie Escape",
+    "slug": "pandemic-express-zombie-escape",
+    "installed": false,
+    "playtimeMinutes": 285,
+    "lastPlayedTimestamp": 1584449642,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "3124540",
+    "name": "Far Far West",
+    "slug": "far-far-west",
+    "installed": false,
+    "playtimeMinutes": 277,
+    "lastPlayedTimestamp": 1784747186,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "268850",
+    "name": "EVGA Precision X1",
+    "slug": "evga-precision-x1",
+    "installed": false,
+    "playtimeMinutes": 270,
+    "lastPlayedTimestamp": 1790530944,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "280790",
+    "name": "Creativerse",
+    "slug": "creativerse",
+    "installed": false,
+    "playtimeMinutes": 263,
+    "lastPlayedTimestamp": 1458436706,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "3669570",
+    "name": "Alchemy Factory",
+    "slug": "alchemy-factory",
+    "installed": false,
+    "playtimeMinutes": 261,
+    "lastPlayedTimestamp": 1770553569,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "282070",
+    "name": "This War of Mine",
+    "slug": "this-war-of-mine",
+    "installed": false,
+    "playtimeMinutes": 253,
+    "lastPlayedTimestamp": 1516547034,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "409710",
+    "name": "BioShock Remastered",
+    "slug": "bioshock-remastered",
+    "installed": false,
+    "playtimeMinutes": 252,
+    "lastPlayedTimestamp": 1559508260,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "582500",
+    "name": "We Were Here",
+    "slug": "we-were-here",
+    "installed": false,
+    "playtimeMinutes": 250,
+    "lastPlayedTimestamp": 1787498137,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "677160",
+    "name": "We Were Here Too",
+    "slug": "we-were-here-too",
+    "installed": false,
+    "playtimeMinutes": 245,
+    "lastPlayedTimestamp": 1787513712,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "2707930",
+    "name": "Palia",
+    "slug": "palia",
+    "installed": false,
+    "playtimeMinutes": 237,
+    "lastPlayedTimestamp": 1752526470,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "223470",
+    "name": "POSTAL 2",
+    "slug": "postal-2",
+    "installed": false,
+    "playtimeMinutes": 225,
+    "lastPlayedTimestamp": 1422392983,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "728880",
+    "name": "Overcooked! 2",
+    "slug": "overcooked-2",
+    "installed": false,
+    "playtimeMinutes": 219,
+    "lastPlayedTimestamp": 1704840400,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1252330",
+    "name": "DEATHLOOP",
+    "slug": "deathloop",
+    "installed": false,
+    "playtimeMinutes": 209,
+    "lastPlayedTimestamp": 1671992605,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1963370",
+    "name": "No One Survived",
+    "slug": "no-one-survived",
+    "installed": false,
+    "playtimeMinutes": 208,
+    "lastPlayedTimestamp": 1678660752,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "4704690",
+    "name": "MECCHA CHAMELEON",
+    "slug": "meccha-chameleon",
+    "installed": false,
+    "playtimeMinutes": 208,
+    "lastPlayedTimestamp": 1790530922,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1422450",
+    "name": "Deadlock",
+    "slug": "deadlock",
+    "installed": false,
+    "playtimeMinutes": 207,
+    "lastPlayedTimestamp": 1785966430,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "250900",
+    "name": "The Binding of Isaac: Rebirth",
+    "slug": "the-binding-of-isaac-rebirth",
+    "installed": false,
+    "playtimeMinutes": 206,
+    "lastPlayedTimestamp": 1664742386,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "221910",
+    "name": "The Stanley Parable",
+    "slug": "the-stanley-parable",
+    "installed": false,
+    "playtimeMinutes": 201,
+    "lastPlayedTimestamp": 1689289136,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "219640",
+    "name": "Chivalry: Medieval Warfare",
+    "slug": "chivalry-medieval-warfare",
+    "installed": false,
+    "playtimeMinutes": 197,
+    "lastPlayedTimestamp": 1485963710,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "582660",
+    "name": "Black Desert",
+    "slug": "black-desert",
+    "installed": false,
+    "playtimeMinutes": 197,
+    "lastPlayedTimestamp": 1513087179,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1751350",
+    "name": "Wild Indigo Ranch",
+    "slug": "wild-indigo-ranch",
+    "installed": false,
+    "playtimeMinutes": 193,
+    "lastPlayedTimestamp": 1702817295,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "366320",
+    "name": "Seasons after Fall",
+    "slug": "seasons-after-fall",
+    "installed": false,
+    "playtimeMinutes": 188,
+    "lastPlayedTimestamp": 1508015304,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "223850",
+    "name": "3DMark",
+    "slug": "3dmark",
+    "installed": false,
+    "playtimeMinutes": 187,
+    "lastPlayedTimestamp": 1759339593,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1205550",
+    "name": "New World Public Test Realm",
+    "slug": "new-world-public-test-realm",
+    "installed": false,
+    "playtimeMinutes": 187,
+    "lastPlayedTimestamp": 1627852423,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "480",
+    "name": "Spacewar",
+    "slug": "spacewar",
+    "installed": false,
+    "playtimeMinutes": 186,
+    "lastPlayedTimestamp": 1790371809,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "241540",
+    "name": "State of Decay",
+    "slug": "state-of-decay",
+    "installed": false,
+    "playtimeMinutes": 183,
+    "lastPlayedTimestamp": 1455146184,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "611500",
+    "name": "Quake Champions",
+    "slug": "quake-champions",
+    "installed": false,
+    "playtimeMinutes": 175,
+    "lastPlayedTimestamp": 1516285053,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "240720",
+    "name": "Getting Over It with Bennett Foddy",
+    "slug": "getting-over-it-with-bennett-foddy",
+    "installed": false,
+    "playtimeMinutes": 170,
+    "lastPlayedTimestamp": 1681075437,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "301520",
+    "name": "Robocraft",
+    "slug": "robocraft",
+    "installed": false,
+    "playtimeMinutes": 170,
+    "lastPlayedTimestamp": 1443728989,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "371660",
+    "name": "Far Cry Primal",
+    "slug": "far-cry-primal",
+    "installed": false,
+    "playtimeMinutes": 162,
+    "lastPlayedTimestamp": 1480446313,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "2399830",
+    "name": "ARK: Survival Ascended",
+    "slug": "ark-survival-ascended",
+    "installed": false,
+    "playtimeMinutes": 160,
+    "lastPlayedTimestamp": 1783178288,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "3527290",
+    "name": "PEAK",
+    "slug": "peak",
+    "installed": false,
+    "playtimeMinutes": 148,
+    "lastPlayedTimestamp": 1755306265,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1174180",
+    "name": "Red Dead Redemption 2",
+    "slug": "red-dead-redemption-2",
+    "installed": false,
+    "playtimeMinutes": 146,
+    "lastPlayedTimestamp": 1643483104,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "787860",
+    "name": "Farming Simulator 19",
+    "slug": "farming-simulator-19",
+    "installed": false,
+    "playtimeMinutes": 140,
+    "lastPlayedTimestamp": 1543183556,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "400",
+    "name": "Portal",
+    "slug": "portal",
+    "installed": false,
+    "playtimeMinutes": 138,
+    "lastPlayedTimestamp": 1750599486,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "550",
+    "name": "Left 4 Dead 2",
+    "slug": "left-4-dead-2",
+    "installed": false,
+    "playtimeMinutes": 138,
+    "lastPlayedTimestamp": 1514853278,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "39190",
+    "name": "Dungeon Siege",
+    "slug": "dungeon-siege",
+    "installed": false,
+    "playtimeMinutes": 136,
+    "lastPlayedTimestamp": 1703427542,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "108800",
+    "name": "Crysis 2 Maximum Edition",
+    "slug": "crysis-2-maximum-edition",
+    "installed": false,
+    "playtimeMinutes": 129,
+    "lastPlayedTimestamp": 1385824843,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "231140",
+    "name": "Cities XL Platinum",
+    "slug": "cities-xl-platinum",
+    "installed": false,
+    "playtimeMinutes": 126,
+    "lastPlayedTimestamp": 1404702831,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "327030",
+    "name": "Worms W.M.D",
+    "slug": "worms-w-m-d",
+    "installed": false,
+    "playtimeMinutes": 126,
+    "lastPlayedTimestamp": 1528569361,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1008080",
+    "name": "SYNCED",
+    "slug": "synced",
+    "installed": false,
+    "playtimeMinutes": 125,
+    "lastPlayedTimestamp": 1694730294,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1593030",
+    "name": "Terra Nil",
+    "slug": "terra-nil",
+    "installed": false,
+    "playtimeMinutes": 124,
+    "lastPlayedTimestamp": 1730469614,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "2448970",
+    "name": "Dungeonborne",
+    "slug": "dungeonborne",
+    "installed": false,
+    "playtimeMinutes": 124,
+    "lastPlayedTimestamp": 1721852877,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1062090",
+    "name": "Timberborn",
+    "slug": "timberborn",
+    "installed": false,
+    "playtimeMinutes": 122,
+    "lastPlayedTimestamp": 1773957690,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "211400",
+    "name": "Deadlight",
+    "slug": "deadlight",
+    "installed": false,
+    "playtimeMinutes": 119,
+    "lastPlayedTimestamp": 1471209496,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "72850",
+    "name": "The Elder Scrolls V: Skyrim",
+    "slug": "the-elder-scrolls-v-skyrim",
+    "installed": false,
+    "playtimeMinutes": 117,
+    "lastPlayedTimestamp": 1492201336,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "2296990",
+    "name": "We Were Here Expeditions: The FriendShip",
+    "slug": "we-were-here-expeditions-the-friendship",
+    "installed": false,
+    "playtimeMinutes": 116,
+    "lastPlayedTimestamp": 1787505148,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "214850",
+    "name": "GameMaker: Studio",
+    "slug": "gamemaker-studio",
+    "installed": false,
+    "playtimeMinutes": 115,
+    "lastPlayedTimestamp": 1474240235,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "219740",
+    "name": "Don't Starve",
+    "slug": "don-t-starve",
+    "installed": false,
+    "playtimeMinutes": 113,
+    "lastPlayedTimestamp": 1421015408,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "641320",
+    "name": "Cooking Simulator",
+    "slug": "cooking-simulator",
+    "installed": false,
+    "playtimeMinutes": 111,
+    "lastPlayedTimestamp": 1605580476,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1295660",
+    "name": "Sid Meier's Civilization VII",
+    "slug": "sid-meier-s-civilization-vii",
+    "installed": false,
+    "playtimeMinutes": 107,
+    "lastPlayedTimestamp": 1788621414,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "42690",
+    "name": "Call of Duty\u00ae: Modern Warfare\u00ae 3 (2011) - Multiplayer",
+    "slug": "call-of-duty-modern-warfare-3-2011-multiplayer",
+    "installed": false,
+    "playtimeMinutes": 103,
+    "lastPlayedTimestamp": 1600899648,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "343100",
+    "name": "Overture",
+    "slug": "overture",
+    "installed": false,
+    "playtimeMinutes": 103,
+    "lastPlayedTimestamp": 1439337012,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "239820",
+    "name": "Game Dev Tycoon",
+    "slug": "game-dev-tycoon",
+    "installed": false,
+    "playtimeMinutes": 101,
+    "lastPlayedTimestamp": 1509572316,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "35720",
+    "name": "Trine 2",
+    "slug": "trine-2",
+    "installed": false,
+    "playtimeMinutes": 100,
+    "lastPlayedTimestamp": 1507983366,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "47830",
+    "name": "Medal of Honor(TM) Multiplayer",
+    "slug": "medal-of-honor-tm-multiplayer",
+    "installed": false,
+    "playtimeMinutes": 98,
+    "lastPlayedTimestamp": 1385254575,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "2094320",
+    "name": "Escape First Alchemist",
+    "slug": "escape-first-alchemist",
+    "installed": false,
+    "playtimeMinutes": 96,
+    "lastPlayedTimestamp": 1776522179,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "102700",
+    "name": "A.V.A. Alliance of Valiant Arms\u2122",
+    "slug": "a-v-a-alliance-of-valiant-arms",
+    "installed": false,
+    "playtimeMinutes": 95,
+    "lastPlayedTimestamp": 1445982719,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1172470",
+    "name": "Apex Legends",
+    "slug": "apex-legends",
+    "installed": false,
+    "playtimeMinutes": 88,
+    "lastPlayedTimestamp": 1611797607,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "228320",
+    "name": "A Valley Without Wind 2",
+    "slug": "a-valley-without-wind-2",
+    "installed": false,
+    "playtimeMinutes": 87,
+    "lastPlayedTimestamp": 1385861108,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "226700",
+    "name": "Infestation: The New Beginning",
+    "slug": "infestation-the-new-beginning",
+    "installed": false,
+    "playtimeMinutes": 86,
+    "lastPlayedTimestamp": 1458227617,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1210320",
+    "name": "Potion Craft: Alchemist Simulator",
+    "slug": "potion-craft-alchemist-simulator",
+    "installed": false,
+    "playtimeMinutes": 86,
+    "lastPlayedTimestamp": 1632790696,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "40800",
+    "name": "Super Meat Boy",
+    "slug": "super-meat-boy",
+    "installed": false,
+    "playtimeMinutes": 83,
+    "lastPlayedTimestamp": 1513115066,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "493520",
+    "name": "GTFO",
+    "slug": "gtfo",
+    "installed": false,
+    "playtimeMinutes": 82,
+    "lastPlayedTimestamp": 1701473304,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "247240",
+    "name": "Volgarr the Viking",
+    "slug": "volgarr-the-viking",
+    "installed": false,
+    "playtimeMinutes": 78,
+    "lastPlayedTimestamp": 1433589688,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "824000",
+    "name": "Hokko Life",
+    "slug": "hokko-life",
+    "installed": false,
+    "playtimeMinutes": 76,
+    "lastPlayedTimestamp": 1665093581,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "493340",
+    "name": "Planet Coaster",
+    "slug": "planet-coaster",
+    "installed": false,
+    "playtimeMinutes": 74,
+    "lastPlayedTimestamp": 1540761271,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1517290",
+    "name": "Battlefield\u2122 2042",
+    "slug": "battlefield-2042",
+    "installed": false,
+    "playtimeMinutes": 68,
+    "lastPlayedTimestamp": 1711205096,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "239030",
+    "name": "Papers, Please",
+    "slug": "papers-please",
+    "installed": false,
+    "playtimeMinutes": 66,
+    "lastPlayedTimestamp": 1621620047,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "290080",
+    "name": "Life is Feudal: Your Own",
+    "slug": "life-is-feudal-your-own",
+    "installed": false,
+    "playtimeMinutes": 66,
+    "lastPlayedTimestamp": 1499275885,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "243470",
+    "name": "Watch_Dogs",
+    "slug": "watch-dogs",
+    "installed": false,
+    "playtimeMinutes": 62,
+    "lastPlayedTimestamp": 1480442146,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "2807960",
+    "name": "Battlefield\u2122 6",
+    "slug": "battlefield-6",
+    "installed": false,
+    "playtimeMinutes": 57,
+    "lastPlayedTimestamp": 1761684946,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "385710",
+    "name": "INK",
+    "slug": "ink",
+    "installed": false,
+    "playtimeMinutes": 56,
+    "lastPlayedTimestamp": 1479068400,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "332500",
+    "name": "GRAV",
+    "slug": "grav",
+    "installed": false,
+    "playtimeMinutes": 55,
+    "lastPlayedTimestamp": 1465176877,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "440900",
+    "name": "Conan Exiles Enhanced",
+    "slug": "conan-exiles-enhanced",
+    "installed": false,
+    "playtimeMinutes": 55,
+    "lastPlayedTimestamp": 1531774871,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "239220",
+    "name": "The Mighty Quest For Epic Loot",
+    "slug": "the-mighty-quest-for-epic-loot",
+    "installed": false,
+    "playtimeMinutes": 54,
+    "lastPlayedTimestamp": 1407896318,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "391540",
+    "name": "Undertale",
+    "slug": "undertale",
+    "installed": false,
+    "playtimeMinutes": 50,
+    "lastPlayedTimestamp": 1509586457,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "48000",
+    "name": "LIMBO",
+    "slug": "limbo",
+    "installed": false,
+    "playtimeMinutes": 49,
+    "lastPlayedTimestamp": 1470419451,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "298630",
+    "name": "The Escapists",
+    "slug": "the-escapists",
+    "installed": false,
+    "playtimeMinutes": 49,
+    "lastPlayedTimestamp": 1492204420,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "460930",
+    "name": "Tom Clancy's Ghost Recon\u00ae Wildlands",
+    "slug": "tom-clancy-s-ghost-recon-wildlands",
+    "installed": false,
+    "playtimeMinutes": 48,
+    "lastPlayedTimestamp": 1547232376,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "578080",
+    "name": "PUBG: BATTLEGROUNDS",
+    "slug": "pubg-battlegrounds",
+    "installed": false,
+    "playtimeMinutes": 48,
+    "lastPlayedTimestamp": 1506683613,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "206420",
+    "name": "Saints Row IV",
+    "slug": "saints-row-iv",
+    "installed": false,
+    "playtimeMinutes": 45,
+    "lastPlayedTimestamp": 1786713545,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "233630",
+    "name": "Ascend: Hand of Kul",
+    "slug": "ascend-hand-of-kul",
+    "installed": false,
+    "playtimeMinutes": 44,
+    "lastPlayedTimestamp": 1439762561,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "499520",
+    "name": "The Turing Test",
+    "slug": "the-turing-test",
+    "installed": false,
+    "playtimeMinutes": 44,
+    "lastPlayedTimestamp": 1614991899,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "233610",
+    "name": "Distance",
+    "slug": "distance",
+    "installed": false,
+    "playtimeMinutes": 43,
+    "lastPlayedTimestamp": 1706831086,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1041720",
+    "name": "Kingdoms of Amalur: Re-Reckoning",
+    "slug": "kingdoms-of-amalur-re-reckoning",
+    "installed": false,
+    "playtimeMinutes": 42,
+    "lastPlayedTimestamp": 1661090596,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "423230",
+    "name": "Furi",
+    "slug": "furi",
+    "installed": false,
+    "playtimeMinutes": 39,
+    "lastPlayedTimestamp": 1507977222,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1196590",
+    "name": "Resident Evil Village",
+    "slug": "resident-evil-village",
+    "installed": false,
+    "playtimeMinutes": 39,
+    "lastPlayedTimestamp": 1624746167,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1222370",
+    "name": "Necromunda: Hired Gun",
+    "slug": "necromunda-hired-gun",
+    "installed": false,
+    "playtimeMinutes": 39,
+    "lastPlayedTimestamp": 1663001670,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1245620",
+    "name": "ELDEN RING",
+    "slug": "elden-ring",
+    "installed": false,
+    "playtimeMinutes": 39,
+    "lastPlayedTimestamp": 1647713395,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "362890",
+    "name": "Black Mesa",
+    "slug": "black-mesa",
+    "installed": false,
+    "playtimeMinutes": 37,
+    "lastPlayedTimestamp": 1636847483,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "17410",
+    "name": "Mirror's Edge",
+    "slug": "mirror-s-edge",
+    "installed": false,
+    "playtimeMinutes": 36,
+    "lastPlayedTimestamp": 1377170819,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "225140",
+    "name": "Duke Nukem 3D: Megaton Edition",
+    "slug": "duke-nukem-3d-megaton-edition",
+    "installed": false,
+    "playtimeMinutes": 34,
+    "lastPlayedTimestamp": 1421450512,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "289650",
+    "name": "Assassin's Creed Unity",
+    "slug": "assassin-s-creed-unity",
+    "installed": false,
+    "playtimeMinutes": 34,
+    "lastPlayedTimestamp": 1703802604,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "242800",
+    "name": "Day One: Garry's Incident",
+    "slug": "day-one-garry-s-incident",
+    "installed": false,
+    "playtimeMinutes": 33,
+    "lastPlayedTimestamp": 1419583836,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "295110",
+    "name": "Just Survive",
+    "slug": "just-survive",
+    "installed": false,
+    "playtimeMinutes": 33,
+    "lastPlayedTimestamp": 1457703852,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "204080",
+    "name": "The Showdown Effect",
+    "slug": "the-showdown-effect",
+    "installed": false,
+    "playtimeMinutes": 32,
+    "lastPlayedTimestamp": 1383095816,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "2507950",
+    "name": "Delta Force",
+    "slug": "delta-force",
+    "installed": false,
+    "playtimeMinutes": 32,
+    "lastPlayedTimestamp": 1737293245,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "247950",
+    "name": "Sacred 3",
+    "slug": "sacred-3",
+    "installed": false,
+    "playtimeMinutes": 31,
+    "lastPlayedTimestamp": 1761333374,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "363970",
+    "name": "Clicker Heroes",
+    "slug": "clicker-heroes",
+    "installed": false,
+    "playtimeMinutes": 31,
+    "lastPlayedTimestamp": 1671405976,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "690040",
+    "name": "SUPERHOT: MIND CONTROL DELETE",
+    "slug": "superhot-mind-control-delete",
+    "installed": false,
+    "playtimeMinutes": 28,
+    "lastPlayedTimestamp": 1616955779,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1137460",
+    "name": "ALTF4",
+    "slug": "altf4",
+    "installed": false,
+    "playtimeMinutes": 27,
+    "lastPlayedTimestamp": 1629237728,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "2500",
+    "name": "Shadowgrounds",
+    "slug": "shadowgrounds",
+    "installed": false,
+    "playtimeMinutes": 25,
+    "lastPlayedTimestamp": 1403446182,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "714010",
+    "name": "Aimlabs",
+    "slug": "aimlabs",
+    "installed": false,
+    "playtimeMinutes": 24,
+    "lastPlayedTimestamp": 1693075096,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "22320",
+    "name": "The Elder Scrolls III: Morrowind",
+    "slug": "the-elder-scrolls-iii-morrowind",
+    "installed": false,
+    "playtimeMinutes": 23,
+    "lastPlayedTimestamp": 1477082831,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "24800",
+    "name": "Command & Conquer\u2122 Red Alert\u2122 3 - Uprising",
+    "slug": "command-conquer-red-alert-3-uprising",
+    "installed": false,
+    "playtimeMinutes": 23,
+    "lastPlayedTimestamp": 1379718991,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "238960",
+    "name": "Path of Exile",
+    "slug": "path-of-exile",
+    "installed": false,
+    "playtimeMinutes": 23,
+    "lastPlayedTimestamp": 1705445490,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "521890",
+    "name": "Hello Neighbor",
+    "slug": "hello-neighbor",
+    "installed": false,
+    "playtimeMinutes": 23,
+    "lastPlayedTimestamp": 1675378962,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1085660",
+    "name": "Destiny 2",
+    "slug": "destiny-2",
+    "installed": false,
+    "playtimeMinutes": 23,
+    "lastPlayedTimestamp": 1571085643,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "976730",
+    "name": "Halo: The Master Chief Collection",
+    "slug": "halo-the-master-chief-collection",
+    "installed": false,
+    "playtimeMinutes": 22,
+    "lastPlayedTimestamp": 1640285863,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "39500",
+    "name": "Gothic 3 Classic",
+    "slug": "gothic-3-classic",
+    "installed": false,
+    "playtimeMinutes": 21,
+    "lastPlayedTimestamp": 1706832010,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "299740",
+    "name": "Miscreated",
+    "slug": "miscreated",
+    "installed": false,
+    "playtimeMinutes": 21,
+    "lastPlayedTimestamp": 1501246068,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "203630",
+    "name": "Warlock - Master of the Arcane",
+    "slug": "warlock-master-of-the-arcane",
+    "installed": false,
+    "playtimeMinutes": 20,
+    "lastPlayedTimestamp": 1377911845,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "236110",
+    "name": "Dungeon Defenders II",
+    "slug": "dungeon-defenders-ii",
+    "installed": false,
+    "playtimeMinutes": 20,
+    "lastPlayedTimestamp": 1454889920,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "262280",
+    "name": "Dungeons 2",
+    "slug": "dungeons-2",
+    "installed": false,
+    "playtimeMinutes": 20,
+    "lastPlayedTimestamp": 1777330476,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "379430",
+    "name": "Kingdom Come: Deliverance",
+    "slug": "kingdom-come-deliverance",
+    "installed": false,
+    "playtimeMinutes": 20,
+    "lastPlayedTimestamp": 1689101051,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "42160",
+    "name": "War of the Roses",
+    "slug": "war-of-the-roses",
+    "installed": false,
+    "playtimeMinutes": 19,
+    "lastPlayedTimestamp": 1377913424,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "307880",
+    "name": "Savage Lands",
+    "slug": "savage-lands",
+    "installed": false,
+    "playtimeMinutes": 19,
+    "lastPlayedTimestamp": 1471388642,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "748940",
+    "name": "Rise of Legions",
+    "slug": "rise-of-legions",
+    "installed": false,
+    "playtimeMinutes": 19,
+    "lastPlayedTimestamp": 1551539827,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "40420",
+    "name": "Tidalis",
+    "slug": "tidalis",
+    "installed": false,
+    "playtimeMinutes": 18,
+    "lastPlayedTimestamp": 1378506328,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "960420",
+    "name": "Hello Neighbor: Hide and Seek",
+    "slug": "hello-neighbor-hide-and-seek",
+    "installed": false,
+    "playtimeMinutes": 18,
+    "lastPlayedTimestamp": 1675377497,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "570",
+    "name": "Dota 2",
+    "slug": "dota-2",
+    "installed": false,
+    "playtimeMinutes": 16,
+    "lastPlayedTimestamp": 1369581655,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "238010",
+    "name": "Deus Ex: Human Revolution - Director's Cut",
+    "slug": "deus-ex-human-revolution-director-s-cut",
+    "installed": false,
+    "playtimeMinutes": 16,
+    "lastPlayedTimestamp": 1496684751,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "15700",
+    "name": "Oddworld: Abe's Oddysee",
+    "slug": "oddworld-abe-s-oddysee",
+    "installed": false,
+    "playtimeMinutes": 15,
+    "lastPlayedTimestamp": 1705011155,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "218130",
+    "name": "Dungeonland",
+    "slug": "dungeonland",
+    "installed": false,
+    "playtimeMinutes": 15,
+    "lastPlayedTimestamp": 1377914477,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "311260",
+    "name": "The Guild 3",
+    "slug": "the-guild-3",
+    "installed": false,
+    "playtimeMinutes": 15,
+    "lastPlayedTimestamp": 1656801478,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "548430",
+    "name": "Deep Rock Galactic",
+    "slug": "deep-rock-galactic",
+    "installed": false,
+    "playtimeMinutes": 15,
+    "lastPlayedTimestamp": 1662936600,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "327890",
+    "name": "I Am Bread",
+    "slug": "i-am-bread",
+    "installed": false,
+    "playtimeMinutes": 14,
+    "lastPlayedTimestamp": 1461341464,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "333930",
+    "name": "Dirty Bomb",
+    "slug": "dirty-bomb",
+    "installed": false,
+    "playtimeMinutes": 14,
+    "lastPlayedTimestamp": 1453512798,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "209330",
+    "name": "A Valley Without Wind",
+    "slug": "a-valley-without-wind",
+    "installed": false,
+    "playtimeMinutes": 13,
+    "lastPlayedTimestamp": 1378509817,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1840",
+    "name": "Source Filmmaker",
+    "slug": "source-filmmaker",
+    "installed": false,
+    "playtimeMinutes": 11,
+    "lastPlayedTimestamp": 1367478000,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "33230",
+    "name": "Assassin's Creed II",
+    "slug": "assassin-s-creed-ii",
+    "installed": false,
+    "playtimeMinutes": 11,
+    "lastPlayedTimestamp": 1506530135,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "265930",
+    "name": "Goat Simulator",
+    "slug": "goat-simulator",
+    "installed": false,
+    "playtimeMinutes": 11,
+    "lastPlayedTimestamp": 1664215845,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "58520",
+    "name": "Blood Bowl: Legendary Edition",
+    "slug": "blood-bowl-legendary-edition",
+    "installed": false,
+    "playtimeMinutes": 10,
+    "lastPlayedTimestamp": 1393989228,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "238320",
+    "name": "Outlast",
+    "slug": "outlast",
+    "installed": false,
+    "playtimeMinutes": 10,
+    "lastPlayedTimestamp": 1612455596,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "367500",
+    "name": "Dragon's Dogma: Dark Arisen",
+    "slug": "dragon-s-dogma-dark-arisen",
+    "installed": false,
+    "playtimeMinutes": 10,
+    "lastPlayedTimestamp": 1482544181,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "237870",
+    "name": "Planet Explorers",
+    "slug": "planet-explorers",
+    "installed": false,
+    "playtimeMinutes": 8,
+    "lastPlayedTimestamp": 1406206640,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "263540",
+    "name": "Villagers and Heroes",
+    "slug": "villagers-and-heroes",
+    "installed": false,
+    "playtimeMinutes": 8,
+    "lastPlayedTimestamp": 1438229100,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "293500",
+    "name": "Amazing World",
+    "slug": "amazing-world",
+    "installed": false,
+    "playtimeMinutes": 8,
+    "lastPlayedTimestamp": 1435270469,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "555570",
+    "name": "Infestation: The New Z",
+    "slug": "infestation-the-new-z",
+    "installed": false,
+    "playtimeMinutes": 8,
+    "lastPlayedTimestamp": 1485264158,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "219780",
+    "name": "Divinity II: Developer's Cut",
+    "slug": "divinity-ii-developer-s-cut",
+    "installed": false,
+    "playtimeMinutes": 7,
+    "lastPlayedTimestamp": 1385256164,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "881100",
+    "name": "Noita",
+    "slug": "noita",
+    "installed": false,
+    "playtimeMinutes": 7,
+    "lastPlayedTimestamp": 1635009457,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "233840",
+    "name": "Worms Clan Wars",
+    "slug": "worms-clan-wars",
+    "installed": false,
+    "playtimeMinutes": 6,
+    "lastPlayedTimestamp": 1495833229,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "200510",
+    "name": "XCOM: Enemy Unknown",
+    "slug": "xcom-enemy-unknown",
+    "installed": false,
+    "playtimeMinutes": 4,
+    "lastPlayedTimestamp": 1453913701,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "218230",
+    "name": "PlanetSide 2",
+    "slug": "planetside-2",
+    "installed": false,
+    "playtimeMinutes": 4,
+    "lastPlayedTimestamp": 1394124380,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "317470",
+    "name": "Cubic Castles",
+    "slug": "cubic-castles",
+    "installed": false,
+    "playtimeMinutes": 4,
+    "lastPlayedTimestamp": 1438230171,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "1581770",
+    "name": "SpellForce: Conquest of Eo",
+    "slug": "spellforce-conquest-of-eo",
+    "installed": false,
+    "playtimeMinutes": 3,
+    "lastPlayedTimestamp": 1678726397,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "39550",
+    "name": "SpellForce 2 - Anniversary Edition",
+    "slug": "spellforce-2-anniversary-edition",
+    "installed": false,
+    "playtimeMinutes": 2,
+    "lastPlayedTimestamp": 1678726715,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "257400",
+    "name": "Fuse",
+    "slug": "fuse",
+    "installed": false,
+    "playtimeMinutes": 2,
+    "lastPlayedTimestamp": 1510626224,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "2343650",
+    "name": "Waven",
+    "slug": "waven",
+    "installed": false,
+    "playtimeMinutes": 2,
+    "lastPlayedTimestamp": 1693070179,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "17470",
+    "name": "Dead Space (2008)",
+    "slug": "dead-space-2008",
+    "installed": false,
+    "playtimeMinutes": 1,
+    "lastPlayedTimestamp": 1377175308,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "218470",
+    "name": "RaiderZ",
+    "slug": "raiderz",
+    "installed": false,
+    "playtimeMinutes": 1,
+    "lastPlayedTimestamp": 1439377906,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "290140",
+    "name": "Echo of Soul",
+    "slug": "echo-of-soul",
+    "installed": false,
+    "playtimeMinutes": 1,
+    "lastPlayedTimestamp": 1435798066,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "298110",
+    "name": "Far Cry 4",
+    "slug": "far-cry-4",
+    "installed": false,
+    "playtimeMinutes": 1,
+    "lastPlayedTimestamp": 1499164967,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "335330",
+    "name": "Brick-Force",
+    "slug": "brick-force",
+    "installed": false,
+    "playtimeMinutes": 1,
+    "lastPlayedTimestamp": 1438228284,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "364360",
+    "name": "Total War: WARHAMMER",
+    "slug": "total-war-warhammer",
+    "installed": false,
+    "playtimeMinutes": 1,
+    "lastPlayedTimestamp": 1486634740,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "367540",
+    "name": "Starbound - Unstable",
+    "slug": "starbound-unstable",
+    "installed": false,
+    "playtimeMinutes": 1,
+    "lastPlayedTimestamp": 1470240195,
+    "sizeGb": 0.0,
+    "installDir": ""
+  },
+  {
+    "appid": "2670630",
+    "name": "Supermarket Simulator",
+    "slug": "supermarket-simulator",
+    "installed": false,
+    "playtimeMinutes": 1,
+    "lastPlayedTimestamp": 1747504342,
+    "sizeGb": 0.0,
+    "installDir": ""
+  }
+]

@@ -78,6 +78,7 @@ export interface GameFilter {
   platform?: string
   genre?: string
   runner?: string
+  status?: 'all' | 'installed' | 'uninstalled'
   sortBy: 'lastPlayed' | 'playtime' | 'title' | 'size'
   sortOrder: 'asc' | 'desc'
 }

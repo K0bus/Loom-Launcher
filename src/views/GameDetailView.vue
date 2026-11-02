@@ -255,13 +255,15 @@ const achievementPercent = computed(() => {
             @click="handlePlay"
             :class="[
               'flex items-center gap-2.5 px-7 py-3 rounded-xl font-bold text-sm tracking-wide active:scale-95 transition-all duration-150',
-              !isRunning
-                ? 'btn-gold'
-                : 'bg-rose-600 hover:bg-rose-500 text-white shadow-[0_0_24px_rgba(225,29,72,0.35)]'
+              isRunning
+                ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-[0_0_24px_rgba(225,29,72,0.35)]'
+                : game.installed
+                  ? 'btn-gold shadow-lg'
+                  : 'bg-[#1a9fff] hover:bg-[#158ce0] text-white shadow-[0_0_24px_rgba(26,159,255,0.35)]'
             ]"
           >
-            <i :class="!isRunning ? 'ph-fill ph-play text-lg' : 'ph-fill ph-stop text-lg'"></i>
-            <span>{{ !isRunning ? (game.installed ? 'Lancer' : 'Installer') : 'Arrêter' }}</span>
+            <i :class="isRunning ? 'ph-fill ph-stop text-lg' : (game.installed ? 'ph-fill ph-play text-lg' : 'ph-bold ph-download-simple text-lg')"></i>
+            <span>{{ !isRunning ? (game.installed ? 'Lancer' : 'Installer via Steam') : 'Arrêter' }}</span>
           </button>
 
           <!-- Runner / Config Cog Button -->

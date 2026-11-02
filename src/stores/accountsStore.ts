@@ -16,7 +16,7 @@ export const useAccountsStore = defineStore('accounts', () => {
       avatarUrl: '',
       connected: realSteam.detected,
       connectedAt: 'Détecté sur ~/.local/share/Steam',
-      gamesCount: realSteam.installedGames.length,
+      gamesCount: realSteam.totalGamesCount,
       authType: 'oauth'
     },
     {

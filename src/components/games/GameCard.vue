@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Play, Star, Settings2 } from 'lucide-vue-next'
+import { Play, Download, Star, Settings2, HardDrive } from 'lucide-vue-next'
 import type { Game } from '@/models/game'
 import { useGamesStore } from '@/stores/gamesStore'
 import { PlatformIcon } from '@/components/icons/platforms'
@@ -39,7 +39,10 @@ const platformBadgeColor = {
       <img
         :src="game.coverUrl"
         :alt="game.title"
-        class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+        :class="[
+          'w-full h-full object-cover transition-all duration-500 group-hover:scale-105',
+          !game.installed ? 'opacity-85 grayscale-[15%] group-hover:grayscale-0 group-hover:opacity-100' : 'opacity-100'
+        ]"
         loading="lazy"
       />
 
@@ -48,14 +51,33 @@ const platformBadgeColor = {
 
       <!-- Top Badges -->
       <div class="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
-        <UiBadge
-          :variant="platformBadgeColor[game.platform]"
-          size="xs"
-          class="flex items-center gap-1.5"
-        >
-          <PlatformIcon :platform="game.platform" class-name="w-3 h-3" />
-          <span class="capitalize">{{ game.platform }}</span>
-        </UiBadge>
+        <div class="flex items-center gap-1.5 pointer-events-auto">
+          <UiBadge
+            :variant="platformBadgeColor[game.platform]"
+            size="xs"
+            class="flex items-center gap-1.5"
+          >
+            <PlatformIcon :platform="game.platform" class-name="w-3 h-3" />
+            <span class="capitalize">{{ game.platform }}</span>
+          </UiBadge>
+
+          <!-- Installed status pill -->
+          <span
+            v-if="game.installed"
+            class="px-1.5 py-0.5 rounded-md text-[9px] font-bold font-mono uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shadow-sm backdrop-blur-md"
+            title="Installé sur votre machine"
+          >
+            <HardDrive class="w-2.5 h-2.5" />
+            Installé
+          </span>
+          <span
+            v-else
+            class="px-1.5 py-0.5 rounded-md text-[9px] font-medium font-mono uppercase bg-zinc-900/80 text-zinc-400 border border-zinc-700/60 backdrop-blur-md"
+            title="Dans votre bibliothèque Steam (non installé)"
+          >
+            Bibliothèque
+          </span>
+        </div>
 
         <button
           type="button"
@@ -70,15 +92,29 @@ const platformBadgeColor = {
         </button>
       </div>
 
-      <!-- Center Hover Quick Play Button -->
+      <!-- Center Hover Quick Action Button (Play if installed, Install if not) -->
       <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <!-- Play Button for Installed -->
         <button
+          v-if="game.installed"
           type="button"
           @click.stop="gamesStore.launchGame(game.id)"
           class="p-4 rounded-full bg-amber-500 text-zinc-950 shadow-xl shadow-amber-500/40 hover:bg-amber-400 hover:scale-110 active:scale-95 transition-all"
           title="Lancer immédiatement"
         >
           <Play class="w-6 h-6 fill-current translate-x-0.5" />
+        </button>
+
+        <!-- Install Button for Uninstalled -->
+        <button
+          v-else
+          type="button"
+          @click.stop="gamesStore.installGame(game.id)"
+          class="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#1a9fff] hover:bg-[#158ce0] text-white font-bold text-xs shadow-xl shadow-[#1a9fff]/40 hover:scale-105 active:scale-95 transition-all"
+          title="Installer via Steam"
+        >
+          <Download class="w-4 h-4" />
+          <span>Installer</span>
         </button>
       </div>
 
@@ -99,9 +135,12 @@ const platformBadgeColor = {
           {{ game.title }}
         </h4>
         <div class="flex items-center gap-1.5 mt-1 text-[11px] text-zinc-400">
-          <span>{{ (game.playtimeMinutes / 60).toFixed(1) }} h jouées</span>
+          <span v-if="game.playtimeMinutes > 0">{{ (game.playtimeMinutes / 60).toFixed(1) }} h</span>
+          <span v-else class="text-zinc-500">Non joué</span>
           <span>•</span>
-          <span class="text-zinc-500 font-mono">{{ game.config.runner }}</span>
+          <span v-if="game.installed && game.sizeGb > 0" class="text-zinc-400 font-mono">{{ game.sizeGb }} Go</span>
+          <span v-else-if="!game.installed" class="text-amber-400/80 font-mono">À télécharger</span>
+          <span v-else class="text-zinc-500 font-mono">{{ game.config.runner }}</span>
         </div>
       </div>
 

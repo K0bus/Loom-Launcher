@@ -69,20 +69,17 @@ const recentPlayedGames = computed(() => {
 const initialSearch = (route.query.q as string) || ''
 const selectedTag = ref<string>('all')
 
-const quickTags = [
-  { id: 'all', label: 'Tous', icon: 'ph-squares-four' },
+const quickTags = computed(() => [
+  { id: 'all', label: `Tous (${gamesStore.totalCount})`, icon: 'ph-squares-four' },
+  { id: 'installed', label: `Installés (${gamesStore.installedCount})`, icon: 'ph-hard-drive' },
+  { id: 'uninstalled', label: `Non installés (${gamesStore.uninstalledCount})`, icon: 'ph-cloud-arrow-down' },
   { id: 'favorites', label: 'Favoris ⭐', icon: 'ph-star' },
-  { id: 'Metroidvania', label: 'Metroidvania', icon: 'ph-sword' },
-  { id: 'Action RPG', label: 'Action RPG', icon: 'ph-shield' },
-  { id: 'Sandbox', label: 'Sandbox / Mods', icon: 'ph-cube' },
-  { id: 'Souls-like', label: 'Souls-like', icon: 'ph-skull' },
-  { id: 'proton-ge', label: 'Proton-GE', icon: 'ph-cpu' },
-  { id: 'native', label: 'Linux Natif', icon: 'ph-terminal' },
   { id: 'steam', label: 'Steam', icon: 'ph-game-controller' }
-]
+])
 
 const filters = ref<GameFilter>({
   search: initialSearch,
+  status: 'all',
   platform: 'all',
   genre: 'all',
   runner: 'all',
@@ -94,21 +91,30 @@ function selectQuickTag(tagId: string) {
   selectedTag.value = tagId
 
   if (tagId === 'all') {
+    filters.value.status = 'all'
+    filters.value.genre = 'all'
+    filters.value.platform = 'all'
+    filters.value.runner = 'all'
+  } else if (tagId === 'installed') {
+    filters.value.status = 'installed'
+    filters.value.genre = 'all'
+    filters.value.platform = 'all'
+    filters.value.runner = 'all'
+  } else if (tagId === 'uninstalled') {
+    filters.value.status = 'uninstalled'
     filters.value.genre = 'all'
     filters.value.platform = 'all'
     filters.value.runner = 'all'
   } else if (tagId === 'favorites') {
-    // handled in filteredGames
-  } else if (tagId === 'proton-ge' || tagId === 'native') {
-    filters.value.runner = tagId
-    filters.value.genre = 'all'
-    filters.value.platform = 'all'
+    filters.value.status = 'all'
   } else if (tagId === 'steam') {
     filters.value.platform = tagId
+    filters.value.status = 'all'
     filters.value.genre = 'all'
     filters.value.runner = 'all'
   } else {
     filters.value.genre = tagId
+    filters.value.status = 'all'
     filters.value.platform = 'all'
     filters.value.runner = 'all'
   }
@@ -156,6 +162,7 @@ function resetFilters() {
   selectedTag.value = 'all'
   filters.value = {
     search: '',
+    status: 'all',
     platform: 'all',
     genre: 'all',
     runner: 'all',
@@ -455,10 +462,19 @@ function scrollToCatalog() {
           <div>
             <h2 class="text-xl font-black text-zinc-100 tracking-tight font-display flex items-center gap-2.5">
               <i class="ph-fill ph-game-controller text-amber-400 text-2xl"></i>
-              Catalogue Complet des Jeux
+              Bibliothèque de Jeux
             </h2>
-            <p class="text-xs text-zinc-400 mt-0.5">
-              {{ filteredGames.length }} titres affichés • Lancement natif Linux & Proton
+            <p class="text-xs text-zinc-400 mt-1 flex flex-wrap items-center gap-2">
+              <span class="inline-flex items-center gap-1.5 font-semibold text-emerald-400">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                {{ gamesStore.installedCount }} installés
+              </span>
+              <span>•</span>
+              <span class="inline-flex items-center gap-1.5 font-semibold text-zinc-300">
+                <span class="w-1.5 h-1.5 rounded-full bg-zinc-500" />
+                {{ gamesStore.uninstalledCount }} non installés
+              </span>
+              <span class="text-zinc-500 font-mono">({{ filteredGames.length }} affichés sur {{ gamesStore.totalCount }})</span>
             </p>
           </div>
 

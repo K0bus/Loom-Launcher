@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import type { Game, GameFilter, RunnerType, GameConfig } from '@/models/game'
 import { mapIGDBGameToLoomGame } from '@/models/igdb'
 import { MOCK_IGDB_CATALOG, igdbService } from '@/services/igdbService'
+import { steamService } from '@/services/steamService'
 import { ipc } from '@/services/ipc'
 
 export const useGamesStore = defineStore('games', () => {
@@ -13,12 +14,13 @@ export const useGamesStore = defineStore('games', () => {
       const saved = localStorage.getItem(STORAGE_KEY_LIBRARY)
       if (saved) {
         const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed)) return parsed
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed
       }
     } catch (e) {
       console.warn('[gamesStore] Failed to load persisted library:', e)
     }
-    return []
+    // Fallback: automatically load real detected local Steam library (294 real games)
+    return steamService.getLoomLibraryGames()
   }
 
   function saveLibrary() {
@@ -29,10 +31,10 @@ export const useGamesStore = defineStore('games', () => {
     }
   }
 
-  // Real library state: starts empty unless real games have been scanned or added
+  // Real library state: populated with real detected Steam games
   const games = ref<Game[]>(loadPersistedLibrary())
   const isScanningLibrary = ref(false)
-  const lastScannedAt = ref<Date | null>(null)
+  const lastScannedAt = ref<Date | null>(new Date())
 
   const runningGameId = ref<string | null>(null)
   const isLaunching = ref(false)
@@ -46,12 +48,20 @@ export const useGamesStore = defineStore('games', () => {
   })
 
   const recentGames = computed(() => {
-    return [...games.value].sort((a, b) => b.playtimeMinutes - a.playtimeMinutes).slice(0, 5)
+    return [...games.value].sort((a, b) => b.playtimeMinutes - a.playtimeMinutes).slice(0, 8)
   })
 
   const installedGames = computed(() => {
     return games.value.filter((g) => g.installed)
   })
+
+  const uninstalledGames = computed(() => {
+    return games.value.filter((g) => !g.installed)
+  })
+
+  const installedCount = computed(() => installedGames.value.length)
+  const uninstalledCount = computed(() => uninstalledGames.value.length)
+  const totalCount = computed(() => games.value.length)
 
   const allNews = computed(() => {
     const list: Array<{ game: Game; news: Game['news'][0] }> = []
@@ -218,18 +228,34 @@ export const useGamesStore = defineStore('games', () => {
   async function fetchLibrary(): Promise<void> {
     isScanningLibrary.value = true
     try {
-      // In the next step, this connects directly to Steam local detection
-      const saved = loadPersistedLibrary()
-      games.value = saved
+      const realGames = steamService.getLoomLibraryGames()
+      games.value = realGames
+      saveLibrary()
       lastScannedAt.value = new Date()
     } finally {
       isScanningLibrary.value = false
     }
   }
 
+  function installGame(id: string) {
+    const game = getGameById(id)
+    if (!game) return
+    if (game.platform === 'steam') {
+      const appid = game.id.replace('steam-', '')
+      const installUri = steamService.getSteamInstallUri(appid)
+      window.open(installUri, '_blank')
+    }
+  }
+
   async function launchGame(id: string) {
     const game = getGameById(id)
     if (!game) return
+
+    // If game is not installed, trigger install flow
+    if (!game.installed) {
+      installGame(id)
+      return
+    }
 
     isLaunching.value = true
     try {
@@ -283,6 +309,12 @@ export const useGamesStore = defineStore('games', () => {
 
   function filterGames(filters: GameFilter): Game[] {
     return games.value.filter((game) => {
+      // Installation status filter
+      if (filters.status && filters.status !== 'all') {
+        if (filters.status === 'installed' && !game.installed) return false
+        if (filters.status === 'uninstalled' && game.installed) return false
+      }
+
       // Fuzzy search match
       if (filters.search) {
         const query = filters.search.toLowerCase().trim()
@@ -316,7 +348,12 @@ export const useGamesStore = defineStore('games', () => {
       } else if (filters.sortBy === 'size') {
         result = b.sizeGb - a.sizeGb
       } else {
-        result = b.playtimeMinutes - a.playtimeMinutes
+        // installed first, then playtime
+        if (a.installed !== b.installed) {
+          result = a.installed ? -1 : 1
+        } else {
+          result = b.playtimeMinutes - a.playtimeMinutes
+        }
       }
       return filters.sortOrder === 'desc' ? result : -result
     })
@@ -332,12 +369,17 @@ export const useGamesStore = defineStore('games', () => {
     heroGame,
     recentGames,
     installedGames,
+    uninstalledGames,
+    installedCount,
+    uninstalledCount,
+    totalCount,
     allNews,
     isGameInLibrary,
     getGameById,
     getGameBySlug,
     fetchAndRegisterGame,
     fetchLibrary,
+    installGame,
     launchGame,
     stopGame,
     updateGameRunner,

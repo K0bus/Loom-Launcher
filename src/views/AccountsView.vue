@@ -27,6 +27,7 @@ const toast = useToastStore()
 
 const realSteamAccount = steamService.getDetectedAccount()
 const showSteamGamesList = ref(false)
+const steamGamesTab = ref<'installed' | 'uninstalled'>('installed')
 
 interface PlatformDetails {
   name: string
@@ -243,8 +244,15 @@ function handleSyncSteam() {
 
               <div class="flex items-center justify-between">
                 <span class="text-zinc-500 font-medium">Jeux installés :</span>
+                <span class="text-emerald-400 font-bold font-mono">
+                  {{ realSteamAccount.installedCount }} jeux locaux
+                </span>
+              </div>
+
+              <div class="flex items-center justify-between">
+                <span class="text-zinc-500 font-medium">Bibliothèque totale :</span>
                 <span class="text-amber-400 font-bold font-mono">
-                  {{ acc.gamesCount }} jeux réels
+                  {{ realSteamAccount.totalGamesCount }} jeux ({{ realSteamAccount.uninstalledCount }} non installés)
                 </span>
               </div>
 
@@ -256,30 +264,65 @@ function handleSyncSteam() {
               </div>
             </div>
 
-            <!-- Toggle View Real Installed Games -->
+            <!-- Toggle View Real Steam Games (Installed vs Uninstalled) -->
             <button
               type="button"
               @click="showSteamGamesList = !showSteamGamesList"
               class="w-full text-left text-[11px] text-amber-400 hover:text-amber-300 font-medium flex items-center justify-between px-1"
             >
-              <span>{{ showSteamGamesList ? 'Masquer la liste' : 'Voir les 11 jeux détectés' }}</span>
+              <span>{{ showSteamGamesList ? 'Masquer la liste' : `Parcourir les ${realSteamAccount.totalGamesCount} jeux détectés` }}</span>
               <i :class="showSteamGamesList ? 'ph ph-caret-up' : 'ph ph-caret-down'"></i>
             </button>
 
-            <!-- Real games list -->
+            <!-- Real games list with Installed / Uninstalled tabs -->
             <div
               v-if="showSteamGamesList"
-              class="max-h-40 overflow-y-auto space-y-1.5 pr-1 no-scrollbar pt-1"
+              class="space-y-2 pt-1"
             >
-              <div
-                v-for="game in realSteamAccount.installedGames"
-                :key="game.appid"
-                class="flex items-center justify-between p-2 rounded-lg bg-zinc-950/50 border border-zinc-800/50 text-[11px]"
-              >
-                <span class="text-zinc-200 truncate font-medium">{{ game.name }}</span>
-                <span class="text-zinc-500 font-mono text-[10px] flex-shrink-0 ml-2">
-                  {{ (game.sizeBytes / (1024 * 1024 * 1024)).toFixed(1) }} Go
-                </span>
+              <div class="flex items-center gap-1.5 p-1 rounded-lg bg-zinc-950 border border-zinc-800 text-[11px]">
+                <button
+                  type="button"
+                  @click="steamGamesTab = 'installed'"
+                  :class="[
+                    'flex-1 py-1 rounded font-medium transition-colors text-center',
+                    steamGamesTab === 'installed'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  ]"
+                >
+                  Installés ({{ realSteamAccount.installedCount }})
+                </button>
+                <button
+                  type="button"
+                  @click="steamGamesTab = 'uninstalled'"
+                  :class="[
+                    'flex-1 py-1 rounded font-medium transition-colors text-center',
+                    steamGamesTab === 'uninstalled'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  ]"
+                >
+                  Non installés ({{ realSteamAccount.uninstalledCount }})
+                </button>
+              </div>
+
+              <div class="max-h-48 overflow-y-auto space-y-1.5 pr-1 no-scrollbar">
+                <div
+                  v-for="game in (steamGamesTab === 'installed' ? realSteamAccount.installedGames : realSteamAccount.uninstalledGames)"
+                  :key="game.appid"
+                  class="flex items-center justify-between p-2 rounded-lg bg-zinc-950/50 border border-zinc-800/50 text-[11px]"
+                >
+                  <span class="text-zinc-200 truncate font-medium">{{ game.name }}</span>
+                  <span v-if="game.installed && game.sizeGb > 0" class="text-emerald-400 font-mono text-[10px] flex-shrink-0 ml-2">
+                    {{ game.sizeGb }} Go
+                  </span>
+                  <span v-else-if="game.playtimeMinutes > 0" class="text-zinc-500 font-mono text-[10px] flex-shrink-0 ml-2">
+                    {{ (game.playtimeMinutes / 60).toFixed(1) }} h
+                  </span>
+                  <span v-else class="text-zinc-600 font-mono text-[10px] flex-shrink-0 ml-2">
+                    Non installé
+                  </span>
+                </div>
               </div>
             </div>
           </div>
