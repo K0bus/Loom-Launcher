@@ -152,9 +152,21 @@ function handleSyncSteam() {
       <div
         v-for="acc in accountsStore.accounts"
         :key="acc.id"
-        class="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 hover:border-zinc-700/80 transition-all space-y-5 shadow-lg flex flex-col justify-between group"
+        class="relative overflow-hidden p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 hover:border-zinc-700/80 transition-all space-y-5 shadow-lg flex flex-col justify-between group"
       >
-        <div class="space-y-4">
+        <!-- Background Platform SVG (quart haut gauche, en plus clair / watermark, un peu de biais) -->
+        <div
+          class="absolute -top-6 -left-6 w-36 h-36 md:w-40 md:h-40 pointer-events-none select-none text-white/[0.08] group-hover:text-white/[0.16] -rotate-12 group-hover:-rotate-6 group-hover:scale-105 transition-all duration-500 ease-out z-0"
+          aria-hidden="true"
+        >
+          <PlatformIcon
+            :platform="acc.platform"
+            class-name="w-full h-full"
+            :colored="false"
+          />
+        </div>
+
+        <div class="relative z-10 space-y-4">
           <!-- Card Header : SVG Logo + Platform Name + Status Badge -->
           <div class="flex items-start justify-between gap-3">
             <div class="flex items-center gap-3.5">
@@ -274,7 +286,7 @@ function handleSyncSteam() {
         </div>
 
         <!-- Footer Action Button -->
-        <div class="pt-4 border-t border-zinc-800/80 flex items-center justify-between gap-3">
+        <div class="relative z-10 pt-4 border-t border-zinc-800/80 flex items-center justify-between gap-3">
           <span v-if="acc.connected" class="text-[11px] text-zinc-500 truncate font-mono">
             {{ acc.connectedAt }}
           </span>
