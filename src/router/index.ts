@@ -8,7 +8,7 @@ import SettingsView from '@/views/SettingsView.vue'
 const routes = [
   {
     path: '/',
-    redirect: '/games/hollow-knight-silksong'
+    redirect: '/library'
   },
   {
     path: '/library',
