@@ -291,22 +291,56 @@ const achievementPercent = computed(() => {
             <span>Ajouter à la Bibliothèque</span>
           </button>
 
-          <!-- Bouton Téléchargement en cours si le jeu est en cours d'installation Steam -->
-          <button
+          <!-- Bouton d'action dynamique : Barre de progression Téléchargement -->
+          <div
             v-if="currentDownload"
-            type="button"
-            disabled
-            class="flex items-center gap-2.5 px-6 py-3 rounded-xl font-bold text-sm tracking-wide bg-amber-500/15 border border-amber-500/40 text-amber-300 shadow-[0_0_24px_rgba(245,158,11,0.25)] cursor-wait"
+            class="relative overflow-hidden min-w-[260px] sm:min-w-[320px] px-5 py-2.5 rounded-xl bg-zinc-950/90 border border-amber-500/50 shadow-[0_0_24px_rgba(245,158,11,0.2)] flex flex-col justify-center select-none"
           >
-            <i class="ph ph-spinner animate-spin text-lg text-amber-400"></i>
-            <span>
-              {{
-                currentDownload.state === 'staging'
-                  ? 'Finalisation...'
-                  : `Téléchargement Steam (${currentDownload.progressPercent}%)`
-              }}
-            </span>
-          </button>
+            <!-- Fond animé de progression -->
+            <div
+              class="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-500/20 via-amber-400/15 to-sky-400/20 transition-all duration-300 pointer-events-none"
+              :style="{ width: `${Math.max(2, currentDownload.progressPercent)}%` }"
+            />
+
+            <!-- Ligne supérieure : Titre + Pourcentage -->
+            <div class="relative z-10 flex items-center justify-between gap-3">
+              <div class="flex items-center gap-2">
+                <i
+                  :class="[
+                    'text-base',
+                    currentDownload.state === 'staging'
+                      ? 'ph ph-arrows-clockwise animate-spin text-sky-400'
+                      : 'ph-bold ph-download-simple animate-bounce text-amber-400'
+                  ]"
+                />
+                <span class="text-sm font-bold text-white tracking-wide">
+                  {{ currentDownload.state === 'staging' ? 'Finalisation...' : 'Téléchargement' }}
+                </span>
+              </div>
+              <span class="text-sm font-black font-mono text-amber-400">
+                {{ currentDownload.progressPercent }}%
+              </span>
+            </div>
+
+            <!-- Ligne inférieure : Évolution détaillée (octets + vitesse) -->
+            <div class="relative z-10 flex items-center justify-between text-[11px] text-zinc-400 font-mono pt-0.5">
+              <span>
+                {{ formatBytes(currentDownload.bytesDownloaded) }} / {{ formatBytes(currentDownload.bytesTotal) }}
+              </span>
+              <span v-if="currentDownload.downloadRateMbps > 0" class="text-sky-400 font-semibold flex items-center gap-1">
+                <i class="ph-fill ph-lightning text-[10px]"></i>
+                {{ (currentDownload.downloadRateMbps / 8).toFixed(1) }} Mo/s
+              </span>
+            </div>
+
+            <!-- Micro-barre de progression lumineuse en bas du bouton -->
+            <div class="absolute bottom-0 left-0 right-0 h-[3px] bg-zinc-800/80 overflow-hidden">
+              <div
+                class="h-full bg-gradient-to-r from-amber-500 via-amber-400 to-sky-400 transition-all duration-300 rounded-full"
+                :style="{ width: `${Math.max(1, currentDownload.progressPercent)}%` }"
+              />
+            </div>
+          </div>
 
           <!-- Bouton Normal JOUER / STOP si déjà en bibliothèque -->
           <button
@@ -422,47 +456,7 @@ const achievementPercent = computed(() => {
               </p>
             </div>
           </div>
-
-          <!-- Carte de Suivi du Téléchargement Steam en Temps Réel -->
-          <div
-            v-if="currentDownload"
-            class="p-4 rounded-2xl bg-zinc-950/90 border border-amber-500/40 backdrop-blur-xl shadow-2xl max-w-2xl space-y-3"
-          >
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2.5">
-                <span class="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                  <i class="ph-bold ph-download-simple text-base animate-bounce"></i>
-                </span>
-                <div>
-                  <h4 class="text-xs font-bold text-white">
-                    {{ currentDownload.state === 'staging' ? 'Décompression & Finalisation...' : 'Téléchargement Steam en cours' }}
-                  </h4>
-                  <p class="text-[11px] text-zinc-400 font-mono">
-                    {{ formatBytes(currentDownload.bytesDownloaded) }} sur {{ formatBytes(currentDownload.bytesTotal) }} ({{ currentDownload.progressPercent }}%)
-                  </p>
-                </div>
-              </div>
-
-              <div class="flex items-center gap-3">
-                <span v-if="currentDownload.downloadRateMbps > 0" class="px-2.5 py-1 rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30 text-xs font-mono font-bold flex items-center gap-1.5">
-                  <i class="ph-fill ph-lightning text-xs"></i>
-                  {{ (currentDownload.downloadRateMbps / 8).toFixed(1) }} Mo/s ({{ currentDownload.downloadRateMbps }} Mbps)
-                </span>
-                <span class="text-amber-400 font-mono font-black text-sm">
-                  {{ currentDownload.progressPercent }}%
-                </span>
-              </div>
-            </div>
-
-            <!-- Animated Progress Bar -->
-            <div class="w-full h-2.5 rounded-full bg-zinc-900 overflow-hidden border border-zinc-800">
-              <div
-                class="h-full rounded-full transition-all duration-300 bg-gradient-to-r from-amber-500 via-amber-400 to-sky-400"
-                :style="{ width: `${currentDownload.progressPercent}%` }"
-              />
-            </div>
           </div>
-        </div>
       </div>
     </div>
 
