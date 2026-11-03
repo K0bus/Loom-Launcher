@@ -122,6 +122,112 @@ function getRunningSteamState(): { runningAppId: string | null; pids: number[] }
   return { runningAppId: null, pids: [] }
 }
 
+function getSteamLibraries() {
+  const vdfPath = path.join(os.homedir(), '.local/share/Steam/config/libraryfolders.vdf')
+  if (!fs.existsSync(vdfPath)) {
+    return []
+  }
+
+  try {
+    const content = fs.readFileSync(vdfPath, 'utf8')
+    const lines = content.split('\n')
+    const folders: Array<{
+      index: number
+      path: string
+      label: string
+      appsCount: number
+      available: boolean
+      freeGb: number
+      totalGb: number
+      usedPercent: number
+      isDefault: boolean
+    }> = []
+
+    let currentFolder: any = null
+    let inApps = false
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim()
+      if (!line) continue
+
+      const sectionMatch = line.match(/^"(\d+)"$/)
+      if (sectionMatch && !inApps) {
+        if (currentFolder) folders.push(currentFolder)
+        currentFolder = {
+          index: parseInt(sectionMatch[1], 10),
+          path: '',
+          label: '',
+          appsCount: 0,
+          isDefault: sectionMatch[1] === '0'
+        }
+        continue
+      }
+
+      if (line === '{' || line === '}') {
+        if (line === '}' && inApps) inApps = false
+        continue
+      }
+
+      if (line === '"apps"') {
+        inApps = true
+        continue
+      }
+
+      if (inApps && currentFolder) {
+        const appMatch = line.match(/^"(\d+)"\s+"(\d+)"$/)
+        if (appMatch) currentFolder.appsCount++
+        continue
+      }
+
+      const kvMatch = line.match(/^"([^"]+)"\s+"([^"]*)"$/)
+      if (kvMatch && currentFolder) {
+        const key = kvMatch[1]
+        const val = kvMatch[2]
+        if (key === 'path') currentFolder.path = val
+        if (key === 'label') currentFolder.label = val
+      }
+    }
+    if (currentFolder) folders.push(currentFolder)
+
+    for (const f of folders) {
+      if (f.path && fs.existsSync(f.path)) {
+        try {
+          const stat = fs.statfsSync(f.path)
+          f.available = true
+          f.freeGb = parseFloat(((stat.bavail * stat.bsize) / (1024 ** 3)).toFixed(1))
+          f.totalGb = parseFloat(((stat.blocks * stat.bsize) / (1024 ** 3)).toFixed(1))
+          f.usedPercent = Math.round(((f.totalGb - f.freeGb) / f.totalGb) * 100)
+        } catch {
+          f.available = false
+          f.freeGb = 0
+          f.totalGb = 0
+          f.usedPercent = 0
+        }
+      } else {
+        f.available = false
+        f.freeGb = 0
+        f.totalGb = 0
+        f.usedPercent = 0
+      }
+
+      if (!f.label) {
+        if (f.path.includes('.local/share/Steam')) {
+          f.label = 'Disque Principal (Steam Défaut)'
+        } else if (f.path.includes('/mnt/ssd')) {
+          f.label = 'SSD Secondaire'
+        } else {
+          f.label = path.basename(f.path) || `Bibliothèque ${f.index}`
+        }
+      }
+    }
+
+    return folders
+  } catch (e) {
+    console.warn('[Vite::SteamLibraries] Erreur de lecture libraryfolders:', e)
+    return []
+  }
+}
+
 function steamProcessPlugin(): Plugin {
   return {
     name: 'loom-steam-real-process',
@@ -137,6 +243,13 @@ function steamProcessPlugin(): Plugin {
         if (req.method === 'GET' && req.url === '/api/steam/status') {
           const state = getRunningSteamState()
           res.end(JSON.stringify({ success: true, ...state }))
+          return
+        }
+
+        // 1b. GET /api/steam/libraries
+        if (req.method === 'GET' && req.url === '/api/steam/libraries') {
+          const libraries = getSteamLibraries()
+          res.end(JSON.stringify({ success: true, libraries }))
           return
         }
 
@@ -247,9 +360,47 @@ function steamProcessPlugin(): Plugin {
                   res.end(JSON.stringify({ success: false, error: 'AppID manquant' }))
                   return
                 }
-                console.info(`[Loom::Steam] Demande d'installation réelle Steam AppID ${appid}...`)
-                exec(`xdg-open steam://install/${appid}`)
-                res.end(JSON.stringify({ success: true, message: `Installation transmise à Steam pour AppID ${appid}` }))
+                const folderIdx = data.folderIndex !== undefined ? data.folderIndex : 0
+                console.info(`[Loom::Steam] Installation silencieuse Steam AppID ${appid} dans volume ${folderIdx}...`)
+
+                // 1. Transmission directe au pipe console Steam
+                let pipeSent = false
+                try {
+                  const pipePath = path.join(os.homedir(), '.steam/steam.pipe')
+                  if (fs.existsSync(pipePath)) {
+                    const fd = fs.openSync(pipePath, fs.constants.O_WRONLY | fs.constants.O_NONBLOCK)
+                    fs.writeSync(fd, `app_install ${appid} ${folderIdx}\n`)
+                    fs.closeSync(fd)
+                    pipeSent = true
+                    console.info(`[Loom::Steam] Commande app_install transmise avec succès au pipe Steam`)
+                  }
+                } catch (pipeErr) {
+                  console.warn(`[Loom::Steam] Erreur steam.pipe (fallback steam-remote):`, pipeErr)
+                }
+
+                // 2. Transmission en arrière-plan sans xdg-open (ne vole pas le focus du bureau)
+                const remotePath = path.join(
+                  os.homedir(),
+                  '.steam/root/ubuntu12_32/steam-runtime/amd64/usr/bin/steam-runtime-steam-remote'
+                )
+                if (fs.existsSync(remotePath)) {
+                  exec(`"${remotePath}" "steam://install/${appid}"`, (err) => {
+                    if (err) console.warn('[Loom::Steam] steam-remote error:', err)
+                  })
+                } else {
+                  exec(`steam "steam://install/${appid}"`)
+                }
+
+                res.end(
+                  JSON.stringify({
+                    success: true,
+                    message: `Installation transmise silencieusement à Steam pour AppID ${appid}`,
+                    appid,
+                    folderIndex: folderIdx,
+                    pipeSent,
+                    silent: true
+                  })
+                )
                 return
               }
 

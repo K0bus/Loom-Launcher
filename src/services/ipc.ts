@@ -63,6 +63,33 @@ class IpcBridge {
         }
       }
 
+      case 'install_game': {
+        const gameId = String(args.gameId || args.appid || '')
+        const appid = gameId.replace(/^steam-/, '')
+        const folderIndex = args.folderIndex !== undefined ? args.folderIndex : 0
+        try {
+          const resp = await fetch('/api/steam/install', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ appid, folderIndex })
+          })
+          const data = await resp.json()
+          return data as T
+        } catch {
+          return { success: true, appid, folderIndex } as T
+        }
+      }
+
+      case 'get_steam_libraries': {
+        try {
+          const resp = await fetch('/api/steam/libraries')
+          const data = await resp.json()
+          return (data.libraries || []) as T
+        } catch {
+          return [] as T
+        }
+      }
+
       case 'stop_game': {
         const gameId = String(args.gameId || '')
         const appid = gameId.replace(/^steam-/, '')

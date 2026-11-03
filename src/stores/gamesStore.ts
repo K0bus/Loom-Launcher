@@ -7,6 +7,18 @@ import { steamService } from '@/services/steamService'
 import { achievementService } from '@/services/achievementService'
 import { ipc } from '@/services/ipc'
 
+export interface SteamLibraryFolder {
+  index: number
+  path: string
+  label: string
+  appsCount: number
+  isDefault: boolean
+  available: boolean
+  freeGb: number
+  totalGb: number
+  usedPercent: number
+}
+
 export const useGamesStore = defineStore('games', () => {
   const STORAGE_KEY_LIBRARY = 'loom_real_library_games'
 
@@ -481,14 +493,28 @@ export const useGamesStore = defineStore('games', () => {
     }
   }
 
-  function installGame(id: string) {
+  async function getSteamLibraries(): Promise<SteamLibraryFolder[]> {
+    try {
+      const res = await ipc.invoke<SteamLibraryFolder[]>('get_steam_libraries')
+      return res || []
+    } catch {
+      return []
+    }
+  }
+
+  async function installGame(id: string, folderIndex?: number): Promise<{ success: boolean; message?: string }> {
     const game = getGameById(id)
-    if (!game) return
+    if (!game) return { success: false, message: 'Jeu introuvable' }
+
     if (game.platform === 'steam') {
       const appid = game.id.replace('steam-', '')
-      const installUri = steamService.getSteamInstallUri(appid)
-      window.open(installUri, '_blank')
+      const res = await ipc.invoke<{ success: boolean; message?: string }>('install_game', {
+        appid,
+        folderIndex: folderIndex !== undefined ? folderIndex : 0
+      })
+      return res
     }
+    return { success: true }
   }
 
   async function launchGame(id: string) {
@@ -641,6 +667,7 @@ export const useGamesStore = defineStore('games', () => {
     fetchLibrary,
     syncAchievementSummaries,
     loadGameAchievements,
+    getSteamLibraries,
     installGame,
     launchGame,
     stopGame,

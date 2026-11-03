@@ -8,6 +8,7 @@ import UiModal from '@/components/ui/UiModal.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import IgdbSearchModal from '@/components/igdb/IgdbSearchModal.vue'
 import AchievementsModal from '@/components/games/AchievementsModal.vue'
+import GameInstallModal from '@/components/games/GameInstallModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,6 +18,7 @@ const toast = useToastStore()
 const igdbModalOpen = ref(false)
 const buyModalOpen = ref(false)
 const achievementsModalOpen = ref(false)
+const installModalOpen = ref(false)
 const isLoadingAchievements = ref(false)
 const selectedScreenshot = ref<string | null>(null)
 const isLoadingGame = ref(false)
@@ -90,12 +92,12 @@ const isStarting = computed(() => game.value && gamesStore.launchingGameId === g
 async function handlePlay() {
   if (!game.value) return
   if (!isRunning.value) {
-    await gamesStore.launchGame(game.value.id)
-    if (game.value.installed) {
-      toast.show(`Transmission de l'ordre de lancement à Steam pour ${game.value.title}...`, 'info')
-    } else {
-      toast.show(`Transmission de l'ordre d'installation à Steam pour ${game.value.title}...`, 'info')
+    if (!game.value.installed) {
+      installModalOpen.value = true
+      return
     }
+    await gamesStore.launchGame(game.value.id)
+    toast.show(`Transmission de l'ordre de lancement à Steam pour ${game.value.title}...`, 'info')
   } else {
     await gamesStore.stopGame(game.value.id)
     toast.show('Demande d\'arrêt transmise à Steam...', 'info')
@@ -893,6 +895,15 @@ const achievementPercent = computed(() => {
       :achievements="game.achievements || []"
       :loading="isLoadingAchievements"
       @close="achievementsModalOpen = false"
+    />
+
+    <!-- Modal d'Installation Silencieuse Native Loom -->
+    <GameInstallModal
+      v-if="game"
+      :game="game"
+      :is-open="installModalOpen"
+      @close="installModalOpen = false"
+      @installed="installModalOpen = false"
     />
   </div>
 
