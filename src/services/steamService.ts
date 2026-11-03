@@ -32,14 +32,23 @@ export interface RealSteamAccount {
  * Builds Steam official asset URLs
  */
 export function getSteamCoverUrl(appid: string): string {
+  if (['4126040', '4704690', '480', '2315050'].includes(appid)) {
+    return `/steam-assets/${appid}/library_capsule.jpg`
+  }
   return `https://shared.steamstatic.com/store_item_assets/steam/apps/${appid}/library_600x900.jpg`
 }
 
 export function getSteamBannerUrl(appid: string): string {
+  if (['4126040', '4704690', '480', '2315050'].includes(appid)) {
+    return `/steam-assets/${appid}/library_hero.jpg`
+  }
   return `https://shared.steamstatic.com/store_item_assets/steam/apps/${appid}/library_hero.jpg`
 }
 
 export function getSteamHeaderUrl(appid: string): string {
+  if (['4126040', '4704690', '480', '2315050'].includes(appid)) {
+    return `/steam-assets/${appid}/library_header.jpg`
+  }
   return `https://shared.steamstatic.com/store_item_assets/steam/apps/${appid}/header.jpg`
 }
 

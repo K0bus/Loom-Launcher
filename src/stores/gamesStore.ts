@@ -90,7 +90,9 @@ export const useGamesStore = defineStore('games', () => {
                   g.slug === 'meccha-chameleon' ||
                   g.slug === 'spacewar' ||
                   g.slug === 'we-were-here-tomorrow') &&
-                (!g.igdbId || g.developer === 'Valve / Steam Partner')
+                (!g.igdbId ||
+                  g.developer === 'Valve / Steam Partner' ||
+                  !g.coverUrl?.startsWith('/steam-assets/'))
             )
           ) {
             try {

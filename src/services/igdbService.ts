@@ -72,20 +72,30 @@ const MOCK_IGDB_CATALOG: IGDBGame[] = [
     cover: {
       id: 4126040,
       image_id: 'co_aniimo',
-      url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/4126040/library_600x900_2x.jpg'
+      url: '/steam-assets/4126040/library_capsule.jpg'
     },
     artworks: [
       {
         id: 41260401,
         image_id: 'ar_aniimo',
-        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/4126040/library_hero.jpg'
+        url: '/steam-assets/4126040/library_hero.jpg'
       }
     ],
     screenshots: [
       {
         id: 41260402,
         image_id: 'sc_aniimo_1',
-        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4126040/header.jpg'
+        url: '/steam-assets/4126040/library_hero.jpg'
+      },
+      {
+        id: 41260403,
+        image_id: 'sc_aniimo_2',
+        url: '/steam-assets/4126040/library_header.jpg'
+      },
+      {
+        id: 41260404,
+        image_id: 'sc_aniimo_3',
+        url: '/steam-assets/4126040/911829a13677bc978f6408f89e221aaabc0e4de6.jpg'
       }
     ],
     genres: [
@@ -134,20 +144,30 @@ const MOCK_IGDB_CATALOG: IGDBGame[] = [
     cover: {
       id: 4704690,
       image_id: 'co_chameleon',
-      url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/4704690/library_600x900_2x.jpg'
+      url: '/steam-assets/4704690/library_capsule.jpg'
     },
     artworks: [
       {
         id: 47046901,
         image_id: 'ar_chameleon',
-        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/4704690/library_hero.jpg'
+        url: '/steam-assets/4704690/library_hero.jpg'
       }
     ],
     screenshots: [
       {
         id: 47046902,
         image_id: 'sc_chameleon_1',
-        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4704690/header.jpg'
+        url: '/steam-assets/4704690/library_hero.jpg'
+      },
+      {
+        id: 47046903,
+        image_id: 'sc_chameleon_2',
+        url: '/steam-assets/4704690/library_header.jpg'
+      },
+      {
+        id: 47046904,
+        image_id: 'sc_chameleon_3',
+        url: '/steam-assets/4704690/fbef288370f6ae51cb0a5066d7fb13d26147c94a.jpg'
       }
     ],
     genres: [
@@ -195,20 +215,30 @@ const MOCK_IGDB_CATALOG: IGDBGame[] = [
     cover: {
       id: 480,
       image_id: 'co_spacewar',
-      url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/480/library_600x900_2x.jpg'
+      url: '/steam-assets/480/library_capsule.jpg'
     },
     artworks: [
       {
         id: 4801,
         image_id: 'ar_spacewar',
-        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/480/library_hero.jpg'
+        url: '/steam-assets/480/library_hero.jpg'
       }
     ],
     screenshots: [
       {
         id: 4802,
         image_id: 'sc_spacewar_1',
-        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/480/header.jpg'
+        url: '/steam-assets/480/library_hero.jpg'
+      },
+      {
+        id: 4803,
+        image_id: 'sc_spacewar_2',
+        url: '/steam-assets/480/page_bg.jpg'
+      },
+      {
+        id: 4804,
+        image_id: 'sc_spacewar_3',
+        url: '/steam-assets/480/library_header.jpg'
       }
     ],
     genres: [
@@ -255,20 +285,30 @@ const MOCK_IGDB_CATALOG: IGDBGame[] = [
     cover: {
       id: 2315050,
       image_id: 'co_wewerehere_tomorrow',
-      url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/2315050/library_600x900_2x.jpg'
+      url: '/steam-assets/2315050/library_capsule.jpg'
     },
     artworks: [
       {
         id: 23150501,
         image_id: 'ar_wewerehere_tomorrow',
-        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/2315050/library_hero.jpg'
+        url: '/steam-assets/2315050/library_hero.jpg'
       }
     ],
     screenshots: [
       {
         id: 23150502,
         image_id: 'sc_wewerehere_tomorrow_1',
-        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2315050/header.jpg'
+        url: '/steam-assets/2315050/library_hero.jpg'
+      },
+      {
+        id: 23150503,
+        image_id: 'sc_wewerehere_tomorrow_2',
+        url: '/steam-assets/2315050/library_header.jpg'
+      },
+      {
+        id: 23150504,
+        image_id: 'sc_wewerehere_tomorrow_3',
+        url: '/steam-assets/2315050/197608f1218830388625b6870089c381fb83534a.jpg'
       }
     ],
     genres: [

@@ -1,32 +1,12 @@
 [
   {
-    "appid": "1169040",
-    "name": "Necesse",
-    "slug": "necesse",
-    "installed": true,
-    "playtimeMinutes": 65542,
-    "lastPlayedTimestamp": 1793042104,
-    "sizeGb": 0.5,
-    "installDir": "Necesse"
-  },
-  {
-    "appid": "108600",
-    "name": "Project Zomboid",
-    "slug": "project-zomboid",
-    "installed": true,
-    "playtimeMinutes": 0,
-    "lastPlayedTimestamp": 1793042103,
-    "sizeGb": 9.7,
-    "installDir": "ProjectZomboid"
-  },
-  {
     "appid": "1817800",
     "name": "Oddsparks: An Automation Adventure",
     "slug": "oddsparks-an-automation-adventure",
     "installed": true,
     "playtimeMinutes": 1494,
     "lastPlayedTimestamp": 1793661367,
-    "sizeGb": 6.3,
+    "sizeGb": 3.1,
     "installDir": "Oddsparks"
   },
   {
@@ -36,7 +16,7 @@
     "installed": true,
     "playtimeMinutes": 22645,
     "lastPlayedTimestamp": 1793653015,
-    "sizeGb": 94.1,
+    "sizeGb": 0.1,
     "installDir": "Hunt Showdown 1896"
   },
   {
@@ -46,7 +26,7 @@
     "installed": true,
     "playtimeMinutes": 13399,
     "lastPlayedTimestamp": 1793489888,
-    "sizeGb": 41.6,
+    "sizeGb": 16,
     "installDir": "Phasmophobia"
   },
   {
@@ -56,8 +36,10 @@
     "installed": true,
     "playtimeMinutes": 1143,
     "lastPlayedTimestamp": 1793479957,
-    "sizeGb": 19.9,
-    "installDir": "We Were Here Tomorrow"
+    "sizeGb": 0.4,
+    "installDir": "We Were Here Tomorrow",
+    "coverUrl": "/steam-assets/2315050/library_capsule.jpg",
+    "bannerUrl": "/steam-assets/2315050/library_hero.jpg"
   },
   {
     "appid": "1203620",
@@ -66,7 +48,7 @@
     "installed": true,
     "playtimeMinutes": 7163,
     "lastPlayedTimestamp": 1792433337,
-    "sizeGb": 48.3,
+    "sizeGb": 0.4,
     "installDir": "Enshrouded"
   },
   {
@@ -76,8 +58,10 @@
     "installed": true,
     "playtimeMinutes": 2388,
     "lastPlayedTimestamp": 1791149837,
-    "sizeGb": 34.9,
-    "installDir": "Aniimo"
+    "sizeGb": 0.3,
+    "installDir": "Aniimo",
+    "coverUrl": "/steam-assets/4126040/library_capsule.jpg",
+    "bannerUrl": "/steam-assets/4126040/library_hero.jpg"
   },
   {
     "appid": "892970",
@@ -86,7 +70,7 @@
     "installed": true,
     "playtimeMinutes": 10743,
     "lastPlayedTimestamp": 1791128063,
-    "sizeGb": 3.9,
+    "sizeGb": 1.9,
     "installDir": "Valheim"
   },
   {
@@ -96,7 +80,7 @@
     "installed": true,
     "playtimeMinutes": 41,
     "lastPlayedTimestamp": 1791054824,
-    "sizeGb": 2.1,
+    "sizeGb": 1.6,
     "installDir": "Oh Deer"
   },
   {
@@ -117,7 +101,9 @@
     "playtimeMinutes": 208,
     "lastPlayedTimestamp": 1790530922,
     "sizeGb": 0,
-    "installDir": ""
+    "installDir": "",
+    "coverUrl": "/steam-assets/4704690/library_capsule.jpg",
+    "bannerUrl": "/steam-assets/4704690/library_hero.jpg"
   },
   {
     "appid": "4000",
@@ -147,17 +133,9 @@
     "playtimeMinutes": 186,
     "lastPlayedTimestamp": 1790371809,
     "sizeGb": 0,
-    "installDir": ""
-  },
-  {
-    "appid": "1431300",
-    "name": "Sand",
-    "slug": "sand",
-    "installed": false,
-    "playtimeMinutes": 65543,
-    "lastPlayedTimestamp": 1790352902,
-    "sizeGb": 0,
-    "installDir": ""
+    "installDir": "",
+    "coverUrl": "/steam-assets/480/library_capsule.jpg",
+    "bannerUrl": "/steam-assets/480/library_hero.jpg"
   },
   {
     "appid": "1295660",
@@ -170,14 +148,14 @@
     "installDir": ""
   },
   {
-    "appid": "206420",
-    "name": "Saints Row IV",
-    "slug": "saints-row-iv",
-    "installed": false,
-    "playtimeMinutes": 1769472,
-    "lastPlayedTimestamp": 1788470636,
-    "sizeGb": 0,
-    "installDir": ""
+    "appid": "1169040",
+    "name": "Necesse",
+    "slug": "necesse",
+    "installed": true,
+    "playtimeMinutes": 676,
+    "lastPlayedTimestamp": 1788564576,
+    "sizeGb": 0.4,
+    "installDir": "Necesse"
   },
   {
     "appid": "346110",
@@ -190,14 +168,14 @@
     "installDir": ""
   },
   {
-    "appid": "1422450",
-    "name": "Deadlock",
-    "slug": "deadlock",
-    "installed": false,
-    "playtimeMinutes": 16,
-    "lastPlayedTimestamp": 1787765215,
-    "sizeGb": 0,
-    "installDir": ""
+    "appid": "108600",
+    "name": "Project Zomboid",
+    "slug": "project-zomboid",
+    "installed": true,
+    "playtimeMinutes": 1518,
+    "lastPlayedTimestamp": 1787783551,
+    "sizeGb": 9.7,
+    "installDir": "ProjectZomboid"
   },
   {
     "appid": "251570",
@@ -240,6 +218,16 @@
     "installDir": ""
   },
   {
+    "appid": "206420",
+    "name": "Saints Row IV",
+    "slug": "saints-row-iv",
+    "installed": false,
+    "playtimeMinutes": 45,
+    "lastPlayedTimestamp": 1786713545,
+    "sizeGb": 0,
+    "installDir": ""
+  },
+  {
     "appid": "2623190",
     "name": "The Elder Scrolls IV: Oblivion Remastered",
     "slug": "the-elder-scrolls-iv-oblivion-remastered",
@@ -266,6 +254,16 @@
     "installed": false,
     "playtimeMinutes": 95639,
     "lastPlayedTimestamp": 1786131805,
+    "sizeGb": 0,
+    "installDir": ""
+  },
+  {
+    "appid": "1422450",
+    "name": "Deadlock",
+    "slug": "deadlock",
+    "installed": false,
+    "playtimeMinutes": 207,
+    "lastPlayedTimestamp": 1785966430,
     "sizeGb": 0,
     "installDir": ""
   },
@@ -300,16 +298,6 @@
     "installDir": ""
   },
   {
-    "appid": "2399830",
-    "name": "ARK: Survival Ascended",
-    "slug": "ark-survival-ascended",
-    "installed": false,
-    "playtimeMinutes": 458765,
-    "lastPlayedTimestamp": 1784932299,
-    "sizeGb": 0,
-    "installDir": ""
-  },
-  {
     "appid": "3124540",
     "name": "Far Far West",
     "slug": "far-far-west",
@@ -326,6 +314,26 @@
     "installed": false,
     "playtimeMinutes": 2780,
     "lastPlayedTimestamp": 1783294739,
+    "sizeGb": 0,
+    "installDir": ""
+  },
+  {
+    "appid": "2399830",
+    "name": "ARK: Survival Ascended",
+    "slug": "ark-survival-ascended",
+    "installed": false,
+    "playtimeMinutes": 160,
+    "lastPlayedTimestamp": 1783178288,
+    "sizeGb": 0,
+    "installDir": ""
+  },
+  {
+    "appid": "1431300",
+    "name": "Sand",
+    "slug": "sand",
+    "installed": false,
+    "playtimeMinutes": 1332,
+    "lastPlayedTimestamp": 1783100302,
     "sizeGb": 0,
     "installDir": ""
   },
