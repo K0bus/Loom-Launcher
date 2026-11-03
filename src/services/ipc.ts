@@ -90,6 +90,16 @@ class IpcBridge {
         }
       }
 
+      case 'get_steam_downloads': {
+        try {
+          const resp = await fetch('/api/steam/downloads')
+          const data = await resp.json()
+          return data as T
+        } catch {
+          return { success: true, active: [], completed: [], totalRateMbps: 0 } as T
+        }
+      }
+
       case 'stop_game': {
         const gameId = String(args.gameId || '')
         const appid = gameId.replace(/^steam-/, '')

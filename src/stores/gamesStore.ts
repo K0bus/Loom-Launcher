@@ -678,6 +678,7 @@ export const useGamesStore = defineStore('games', () => {
     discoveredGames,
     registerDiscoveredGame,
     addToLibrary,
-    removeFromLibrary
+    removeFromLibrary,
+    saveLibrary
   }
 })

@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useGamesStore } from '@/stores/gamesStore'
 import { useToastStore } from '@/stores/toastStore'
+import { useDownloadsStore } from '@/stores/downloadsStore'
 import type { Game, RunnerType } from '@/models/game'
 import UiModal from '@/components/ui/UiModal.vue'
 import UiButton from '@/components/ui/UiButton.vue'
@@ -13,6 +14,17 @@ const route = useRoute()
 const router = useRouter()
 const gamesStore = useGamesStore()
 const toast = useToastStore()
+const downloadsStore = useDownloadsStore()
+
+function formatBytes(bytes: number): string {
+  if (!bytes || bytes <= 0) return '0 Go'
+  const gb = bytes / (1024 ** 3)
+  if (gb < 0.1) {
+    const mb = bytes / (1024 ** 2)
+    return `${mb.toFixed(0)} Mo`
+  }
+  return `${gb.toFixed(1)} Go`
+}
 
 const igdbModalOpen = ref(false)
 const buyModalOpen = ref(false)
@@ -25,6 +37,11 @@ const gameSlug = computed(() => (route.params.slug as string) || (route.params.i
 const game = computed<Game | undefined>(() => {
   if (!gameSlug.value) return undefined
   return gamesStore.getGameBySlug(gameSlug.value) || gamesStore.getGameById(gameSlug.value)
+})
+
+const currentDownload = computed(() => {
+  if (!game.value) return undefined
+  return downloadsStore.getDownloadForGame(game.value.id)
 })
 
 async function loadGameDetails() {
@@ -274,6 +291,23 @@ const achievementPercent = computed(() => {
             <span>Ajouter à la Bibliothèque</span>
           </button>
 
+          <!-- Bouton Téléchargement en cours si le jeu est en cours d'installation Steam -->
+          <button
+            v-if="currentDownload"
+            type="button"
+            disabled
+            class="flex items-center gap-2.5 px-6 py-3 rounded-xl font-bold text-sm tracking-wide bg-amber-500/15 border border-amber-500/40 text-amber-300 shadow-[0_0_24px_rgba(245,158,11,0.25)] cursor-wait"
+          >
+            <i class="ph ph-spinner animate-spin text-lg text-amber-400"></i>
+            <span>
+              {{
+                currentDownload.state === 'staging'
+                  ? 'Finalisation...'
+                  : `Téléchargement Steam (${currentDownload.progressPercent}%)`
+              }}
+            </span>
+          </button>
+
           <!-- Bouton Normal JOUER / STOP si déjà en bibliothèque -->
           <button
             v-else
@@ -386,6 +420,46 @@ const achievementPercent = computed(() => {
               <p class="font-semibold text-emerald-400 flex items-center gap-1">
                 <i class="ph-bold ph-check text-xs"></i> Up to date
               </p>
+            </div>
+          </div>
+
+          <!-- Carte de Suivi du Téléchargement Steam en Temps Réel -->
+          <div
+            v-if="currentDownload"
+            class="p-4 rounded-2xl bg-zinc-950/90 border border-amber-500/40 backdrop-blur-xl shadow-2xl max-w-2xl space-y-3"
+          >
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <span class="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  <i class="ph-bold ph-download-simple text-base animate-bounce"></i>
+                </span>
+                <div>
+                  <h4 class="text-xs font-bold text-white">
+                    {{ currentDownload.state === 'staging' ? 'Décompression & Finalisation...' : 'Téléchargement Steam en cours' }}
+                  </h4>
+                  <p class="text-[11px] text-zinc-400 font-mono">
+                    {{ formatBytes(currentDownload.bytesDownloaded) }} sur {{ formatBytes(currentDownload.bytesTotal) }} ({{ currentDownload.progressPercent }}%)
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-3">
+                <span v-if="currentDownload.downloadRateMbps > 0" class="px-2.5 py-1 rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30 text-xs font-mono font-bold flex items-center gap-1.5">
+                  <i class="ph-fill ph-lightning text-xs"></i>
+                  {{ currentDownload.downloadRateMbps }} Mbps
+                </span>
+                <span class="text-amber-400 font-mono font-black text-sm">
+                  {{ currentDownload.progressPercent }}%
+                </span>
+              </div>
+            </div>
+
+            <!-- Animated Progress Bar -->
+            <div class="w-full h-2.5 rounded-full bg-zinc-900 overflow-hidden border border-zinc-800">
+              <div
+                class="h-full rounded-full transition-all duration-300 bg-gradient-to-r from-amber-500 via-amber-400 to-sky-400"
+                :style="{ width: `${currentDownload.progressPercent}%` }"
+              />
             </div>
           </div>
         </div>

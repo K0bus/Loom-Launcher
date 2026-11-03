@@ -3,13 +3,17 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToastStore } from '@/stores/toastStore'
 import { useGamesStore } from '@/stores/gamesStore'
+import { useDownloadsStore } from '@/stores/downloadsStore'
+import DownloadsPopover from '@/components/layout/DownloadsPopover.vue'
 import { ipc } from '@/services/ipc'
 
 const route = useRoute()
 const router = useRouter()
 const toast = useToastStore()
 const gamesStore = useGamesStore()
+const downloadsStore = useDownloadsStore()
 
+const downloadsPopoverOpen = ref(false)
 const searchQuery = ref('')
 const searchInputRef = ref<HTMLInputElement | null>(null)
 
@@ -174,16 +178,41 @@ async function closeWindow() {
         <span>En cours : {{ gamesStore.getGameById(gamesStore.runningGameId)?.title }}</span>
       </div>
 
-      <!-- Download Manager -->
-      <button
-        type="button"
-        @click="toast.show('Tous les téléchargements sont à jour', 'info')"
-        class="p-2 rounded-full text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/80 transition relative"
-        title="Gestionnaire de téléchargements"
-      >
-        <i class="ph ph-download-simple text-base"></i>
-        <span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-      </button>
+      <!-- Download Manager with Popover -->
+      <div class="relative">
+        <button
+          type="button"
+          @click="downloadsPopoverOpen = !downloadsPopoverOpen"
+          :class="[
+            'p-2 rounded-full transition relative flex items-center gap-1.5',
+            downloadsPopoverOpen || downloadsStore.isDownloading
+              ? 'text-amber-400 bg-amber-500/15 border border-amber-500/30 shadow-sm'
+              : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/80'
+          ]"
+          :title="downloadsStore.isDownloading ? `Téléchargement Steam en cours (${downloadsStore.formattedSpeed})` : 'Gestionnaire de téléchargements'"
+        >
+          <i
+            class="ph ph-download-simple text-base"
+            :class="{ 'animate-bounce text-amber-400': downloadsStore.isDownloading }"
+          ></i>
+          <span
+            v-if="downloadsStore.isDownloading"
+            class="text-[11px] font-bold font-mono text-amber-300 pr-0.5"
+          >
+            {{ downloadsStore.activeCount }}
+          </span>
+          <span
+            v-else-if="downloadsStore.completedDownloads.length > 0"
+            class="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400"
+          ></span>
+        </button>
+
+        <!-- Dropdown Popover -->
+        <DownloadsPopover
+          :open="downloadsPopoverOpen"
+          @close="downloadsPopoverOpen = false"
+        />
+      </div>
 
       <!-- Notifications -->
       <button

@@ -228,6 +228,117 @@ function getSteamLibraries() {
   }
 }
 
+function getSteamDownloads() {
+  const libraries = getSteamLibraries()
+  const active: any[] = []
+  const completed: any[] = []
+
+  let latestRate = 0
+  const contentLogPath = path.join(os.homedir(), '.local/share/Steam/logs/content_log.txt')
+  if (fs.existsSync(contentLogPath)) {
+    try {
+      const logText = fs.readFileSync(contentLogPath, 'utf8')
+      const matches = [...logText.matchAll(/Current download rate:\s+([\d\.]+)\s+Mbps/g)]
+      if (matches.length > 0) {
+        latestRate = parseFloat(matches[matches.length - 1][1])
+      }
+    } catch {}
+  }
+
+  const seenAppids = new Set<string>()
+
+  for (const lib of libraries) {
+    if (!lib.available || !lib.path) continue
+    const steamappsDir = path.join(lib.path, 'steamapps')
+    if (!fs.existsSync(steamappsDir)) continue
+
+    // 1. Check active downloading folders
+    const downloadingDir = path.join(steamappsDir, 'downloading')
+    if (fs.existsSync(downloadingDir)) {
+      try {
+        const entries = fs.readdirSync(downloadingDir)
+        for (const appid of entries) {
+          if (!/^\d+$/.test(appid)) continue
+          seenAppids.add(appid)
+          const appDir = path.join(downloadingDir, appid)
+          const manifestPath = path.join(steamappsDir, `appmanifest_${appid}.acf`)
+          let name = `App ${appid}`
+          let bytesTotal = 0
+          let bytesDownloaded = 0
+
+          if (fs.existsSync(manifestPath)) {
+            try {
+              const manifest = fs.readFileSync(manifestPath, 'utf8')
+              name = manifest.match(/"name"\s+"([^"]+)"/)?.[1] || name
+              bytesTotal = parseInt(manifest.match(/"BytesToDownload"\s+"(\d+)"/)?.[1] || '0', 10)
+            } catch {}
+          }
+
+          try {
+            const duOut = execSync(`du -sb "${appDir}"`, { encoding: 'utf8' })
+            bytesDownloaded = parseInt(duOut.trim().split(/\s+/)[0] || '0', 10)
+          } catch {}
+
+          const progress = bytesTotal > 0 ? Math.min(100, Math.round((bytesDownloaded / bytesTotal) * 100)) : 0
+          active.push({
+            appid,
+            gameId: `steam-${appid}`,
+            name,
+            state: progress >= 100 ? 'staging' : 'downloading',
+            bytesDownloaded,
+            bytesTotal,
+            progressPercent: progress,
+            downloadRateMbps: latestRate,
+            coverUrl: ['4126040', '4704690', '480', '2315050'].includes(appid)
+              ? `/steam-assets/${appid}/library_capsule.jpg`
+              : `https://shared.steamstatic.com/store_item_assets/steam/apps/${appid}/library_600x900.jpg`
+          })
+        }
+      } catch {}
+    }
+
+    // 2. Check recently updated appmanifests (installed in the last 7 days)
+    try {
+      const manifests = fs.readdirSync(steamappsDir).filter((f) => f.startsWith('appmanifest_') && f.endsWith('.acf'))
+      const now = Math.floor(Date.now() / 1000)
+
+      for (const mFile of manifests) {
+        const mPath = path.join(steamappsDir, mFile)
+        try {
+          const content = fs.readFileSync(mPath, 'utf8')
+          const appid = mFile.match(/appmanifest_(\d+)\.acf/)?.[1]
+          if (!appid || seenAppids.has(appid)) continue
+
+          const lastUpdated = parseInt(content.match(/"LastUpdated"\s+"(\d+)"/)?.[1] || '0', 10)
+          const stateFlags = content.match(/"StateFlags"\s+"(\d+)"/)?.[1]
+          const name = content.match(/"name"\s+"([^"]+)"/)?.[1] || `App ${appid}`
+          const bytesTotal = parseInt(content.match(/"SizeOnDisk"\s+"(\d+)"/)?.[1] || '0', 10)
+
+          if (stateFlags === '4' && now - lastUpdated < 604800 && lastUpdated > 0) {
+            seenAppids.add(appid)
+            completed.push({
+              appid,
+              gameId: `steam-${appid}`,
+              name,
+              state: 'completed',
+              bytesDownloaded: bytesTotal,
+              bytesTotal,
+              progressPercent: 100,
+              completedAt: lastUpdated,
+              coverUrl: ['4126040', '4704690', '480', '2315050'].includes(appid)
+                ? `/steam-assets/${appid}/library_capsule.jpg`
+                : `https://shared.steamstatic.com/store_item_assets/steam/apps/${appid}/library_600x900.jpg`
+            })
+          }
+        } catch {}
+      }
+    } catch {}
+  }
+
+  completed.sort((a, b) => b.completedAt - a.completedAt)
+  return { active, completed: completed.slice(0, 10), totalRateMbps: active.length > 0 ? latestRate : 0 }
+}
+
 function steamProcessPlugin(): Plugin {
   return {
     name: 'loom-steam-real-process',
@@ -250,6 +361,13 @@ function steamProcessPlugin(): Plugin {
         if (req.method === 'GET' && req.url === '/api/steam/libraries') {
           const libraries = getSteamLibraries()
           res.end(JSON.stringify({ success: true, libraries }))
+          return
+        }
+
+        // 1c. GET /api/steam/downloads
+        if (req.method === 'GET' && req.url === '/api/steam/downloads') {
+          const downloads = getSteamDownloads()
+          res.end(JSON.stringify({ success: true, ...downloads }))
           return
         }
 
