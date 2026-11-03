@@ -41,7 +41,7 @@ const game = computed<Game | undefined>(() => {
 
 const currentDownload = computed(() => {
   if (!game.value) return undefined
-  return downloadsStore.getDownloadForGame(game.value.id)
+  return downloadsStore.getDownloadForGame(game.value.id, game.value.slug)
 })
 
 async function loadGameDetails() {
@@ -446,7 +446,7 @@ const achievementPercent = computed(() => {
               <div class="flex items-center gap-3">
                 <span v-if="currentDownload.downloadRateMbps > 0" class="px-2.5 py-1 rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30 text-xs font-mono font-bold flex items-center gap-1.5">
                   <i class="ph-fill ph-lightning text-xs"></i>
-                  {{ currentDownload.downloadRateMbps }} Mbps
+                  {{ (currentDownload.downloadRateMbps / 8).toFixed(1) }} Mo/s ({{ currentDownload.downloadRateMbps }} Mbps)
                 </span>
                 <span class="text-amber-400 font-mono font-black text-sm">
                   {{ currentDownload.progressPercent }}%

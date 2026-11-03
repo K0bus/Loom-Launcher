@@ -21,18 +21,19 @@ class IpcBridge {
    * or falls back to simulated mock handlers.
    */
   public async invoke<T = any>(command: string, args: Record<string, any> = {}): Promise<T> {
-    if (this.isTauri()) {
+    const viteApiCommands = ['get_steam_downloads', 'get_steam_libraries', 'install_game']
+
+    if (this.isTauri() && !viteApiCommands.includes(command)) {
       try {
         const { invoke } = await import('@tauri-apps/api/core')
         return await invoke<T>(command, args)
       } catch (err: any) {
-        console.warn(`[IPC::Tauri] Error executing command '${command}':`, err)
-        throw err
+        console.warn(`[IPC::Tauri] Error executing command '${command}', using fallback:`, err)
+        return this.handleMockCommand<T>(command, args)
       }
     }
 
-    // Fallback Mock execution
-    console.info(`[IPC::Mock] Simulated invoke: '${command}'`, args)
+    // Fallback or Vite dev server API execution
     return this.handleMockCommand<T>(command, args)
   }
 

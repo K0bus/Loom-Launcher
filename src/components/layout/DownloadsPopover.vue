@@ -122,6 +122,9 @@ async function handleLaunch(item: SteamDownloadItem, event: Event) {
                 <span class="bytes-text">
                   {{ formatBytes(item.bytesDownloaded) }} / {{ formatBytes(item.bytesTotal) }}
                 </span>
+                <span v-if="item.downloadRateMbps > 0" class="rate-badge">
+                  ⚡ {{ (item.downloadRateMbps / 8).toFixed(1) }} Mo/s
+                </span>
                 <span class="state-pill" :class="item.state">
                   {{ item.state === 'staging' ? 'Finalisation...' : 'Téléchargement...' }}
                 </span>
@@ -434,6 +437,13 @@ async function handleLaunch(item: SteamDownloadItem, event: Event) {
 .bytes-text {
   font-size: 0.72rem;
   color: #94a3b8;
+  font-family: monospace;
+}
+
+.rate-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #38bdf8;
   font-family: monospace;
 }
 

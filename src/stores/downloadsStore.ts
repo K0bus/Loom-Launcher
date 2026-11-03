@@ -30,21 +30,29 @@ export const useDownloadsStore = defineStore('downloads', () => {
     return activeDownloads.value[0] || null
   })
 
-  // Format speed into readable string (e.g. "148.5 Mbps" or "1.4 Gbps" or "18.5 MB/s")
+  // Format speed into readable string (e.g. "62.5 Mo/s" or "1.2 Go/s")
   const formattedSpeed = computed(() => {
     const mbps = totalRateMbps.value
-    if (mbps <= 0) return '0 MB/s'
+    if (mbps <= 0) return '0 Mo/s'
     const mbytePerSec = mbps / 8
     if (mbytePerSec >= 1000) {
-      return `${(mbytePerSec / 1000).toFixed(2)} GB/s`
+      return `${(mbytePerSec / 1000).toFixed(2)} Go/s`
     }
-    return `${mbytePerSec.toFixed(1)} MB/s`
+    if (mbytePerSec < 0.1) {
+      const kbytePerSec = (mbps * 1024) / 8
+      return `${kbytePerSec.toFixed(0)} Ko/s`
+    }
+    return `${mbytePerSec.toFixed(1)} Mo/s`
   })
 
-  function getDownloadForGame(gameIdOrAppid: string): SteamDownloadItem | undefined {
+  function getDownloadForGame(gameIdOrAppid: string, slug?: string): SteamDownloadItem | undefined {
     const clean = gameIdOrAppid.replace(/^steam-/, '')
     return activeDownloads.value.find(
-      (d) => d.appid === clean || d.gameId === gameIdOrAppid || d.gameId === `steam-${clean}`
+      (d) =>
+        d.appid === clean ||
+        d.gameId === gameIdOrAppid ||
+        d.gameId === `steam-${clean}` ||
+        (slug && d.gameId.includes(slug))
     )
   }
 
@@ -87,10 +95,10 @@ export const useDownloadsStore = defineStore('downloads', () => {
     }
   }
 
-  // Automatic polling interval (1.5 seconds)
+  // Automatic polling interval (1.0 second for true real-time)
   if (typeof window !== 'undefined') {
     pollDownloads()
-    setInterval(pollDownloads, 1500)
+    setInterval(pollDownloads, 1000)
   }
 
   return {

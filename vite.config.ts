@@ -4,7 +4,7 @@ import path from 'path'
 import fs from 'fs'
 import os from 'os'
 import https from 'https'
-import { exec } from 'child_process'
+import { exec, execSync } from 'child_process'
 
 function httpsGet(url: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -228,11 +228,99 @@ function getSteamLibraries() {
   }
 }
 
+// Ignore Steam internal runtimes & shared redistributable packages that aren't games
+const IGNORED_STEAM_APPIDS = new Set(['228980', '1070560', '1391110', '1628350', '2180100', '1493710'])
+
+// 1. Resilient directory size calculation (doesn't fail if files are written/moved during download)
+const lastKnownBytesDownloaded = new Map<string, number>()
+
+function getDirectorySizeBytes(dirPath: string): number {
+  if (!fs.existsSync(dirPath)) return 0
+  try {
+    const out = execSync(`du -sb "${dirPath}" 2>/dev/null || true`, {
+      encoding: 'utf8',
+      shell: '/bin/bash',
+      timeout: 2000
+    })
+    const match = out.trim().match(/^(\d+)/)
+    if (match) {
+      const val = parseInt(match[1], 10)
+      if (val > 0) return val
+    }
+  } catch (err: any) {
+    if (err?.stdout) {
+      const match = String(err.stdout).trim().match(/^(\d+)/)
+      if (match) {
+        const val = parseInt(match[1], 10)
+        if (val > 0) return val
+      }
+    }
+  }
+  return 0
+}
+
+// 2. Real-time network speed from Steam process I/O (/proc/<steam_pid>/io)
+let steamPidCache: { pid: number | null; checkedAt: number } = { pid: null, checkedAt: 0 }
+let steamIoTracker: { pid: number; rchar: number; time: number; speedMbps: number } | null = null
+
+function getSteamProcessPid(): number | null {
+  const now = Date.now()
+  if (steamPidCache.pid !== null && now - steamPidCache.checkedAt < 4000) {
+    if (fs.existsSync(`/proc/${steamPidCache.pid}`)) {
+      return steamPidCache.pid
+    }
+  }
+  try {
+    const out = execSync('pgrep -x steam 2>/dev/null || true', { encoding: 'utf8', timeout: 500 })
+    const pid = parseInt(out.trim().split('\n')[0], 10)
+    const validPid = !isNaN(pid) && pid > 0 ? pid : null
+    steamPidCache = { pid: validPid, checkedAt: now }
+    return validPid
+  } catch {
+    steamPidCache = { pid: null, checkedAt: now }
+    return null
+  }
+}
+
+function getSteamLiveNetworkRateMbps(): number {
+  const pid = getSteamProcessPid()
+  if (!pid) return 0
+  try {
+    const ioContent = fs.readFileSync(`/proc/${pid}/io`, 'utf8')
+    const rcharMatch = ioContent.match(/rchar:\s+(\d+)/)
+    if (!rcharMatch) return 0
+    const rchar = parseInt(rcharMatch[1], 10)
+    const now = Date.now()
+
+    if (!steamIoTracker || steamIoTracker.pid !== pid) {
+      steamIoTracker = { pid, rchar, time: now, speedMbps: 0 }
+      return 0
+    }
+
+    const dtSec = (now - steamIoTracker.time) / 1000
+    if (dtSec >= 0.4) {
+      const deltaBytes = Math.max(0, rchar - steamIoTracker.rchar)
+      const rawMbps = ((deltaBytes * 8) / (1024 * 1024)) / dtSec
+      const smoothMbps = steamIoTracker.speedMbps > 0
+        ? (steamIoTracker.speedMbps * 0.4) + (rawMbps * 0.6)
+        : rawMbps
+      const finalMbps = parseFloat(smoothMbps.toFixed(1))
+      steamIoTracker = { pid, rchar, time: now, speedMbps: finalMbps }
+      return finalMbps
+    }
+
+    return steamIoTracker.speedMbps
+  } catch {
+    return 0
+  }
+}
+
 function getSteamDownloads() {
   const libraries = getSteamLibraries()
   const active: any[] = []
   const completed: any[] = []
 
+  // Check content_log.txt for baseline fallback
   let latestRate = 0
   const contentLogPath = path.join(os.homedir(), '.local/share/Steam/logs/content_log.txt')
   if (fs.existsSync(contentLogPath)) {
@@ -244,6 +332,10 @@ function getSteamDownloads() {
       }
     } catch {}
   }
+
+  // Real-time network speed from Steam kernel I/O
+  const liveNetworkMbps = getSteamLiveNetworkRateMbps()
+  const effectiveTotalRate = liveNetworkMbps > 0 ? liveNetworkMbps : latestRate
 
   const seenAppids = new Set<string>()
 
@@ -259,36 +351,59 @@ function getSteamDownloads() {
         const entries = fs.readdirSync(downloadingDir)
         for (const appid of entries) {
           if (!/^\d+$/.test(appid)) continue
-          seenAppids.add(appid)
+          if (IGNORED_STEAM_APPIDS.has(appid)) continue
+
           const appDir = path.join(downloadingDir, appid)
           const manifestPath = path.join(steamappsDir, `appmanifest_${appid}.acf`)
           let name = `App ${appid}`
-          let bytesTotal = 0
-          let bytesDownloaded = 0
+          let bytesToDownload = 0
+          let bytesToStage = 0
 
           if (fs.existsSync(manifestPath)) {
             try {
               const manifest = fs.readFileSync(manifestPath, 'utf8')
               name = manifest.match(/"name"\s+"([^"]+)"/)?.[1] || name
-              bytesTotal = parseInt(manifest.match(/"BytesToDownload"\s+"(\d+)"/)?.[1] || '0', 10)
+              bytesToDownload = parseInt(manifest.match(/"BytesToDownload"\s+"(\d+)"/)?.[1] || '0', 10)
+              bytesToStage = parseInt(manifest.match(/"BytesToStage"\s+"(\d+)"/)?.[1] || '0', 10)
             } catch {}
           }
 
-          try {
-            const duOut = execSync(`du -sb "${appDir}"`, { encoding: 'utf8' })
-            bytesDownloaded = parseInt(duOut.trim().split(/\s+/)[0] || '0', 10)
-          } catch {}
+          if (name.includes('Steamworks Common Redistributables') || name.startsWith('Steam Linux Runtime')) {
+            continue
+          }
 
-          const progress = bytesTotal > 0 ? Math.min(100, Math.round((bytesDownloaded / bytesTotal) * 100)) : 0
+          seenAppids.add(appid)
+
+          // Measure folder size with resilience and memory retention
+          let bytesDownloaded = getDirectorySizeBytes(appDir)
+          if (bytesDownloaded === 0 && lastKnownBytesDownloaded.has(appid)) {
+            bytesDownloaded = lastKnownBytesDownloaded.get(appid)!
+          } else if (bytesDownloaded > 0) {
+            lastKnownBytesDownloaded.set(appid, bytesDownloaded)
+          }
+
+          // Target total is the uncompressed staged size on disk (BytesToStage)
+          const targetTotal = bytesToStage > 0 ? bytesToStage : (bytesToDownload > 0 ? bytesToDownload : 0)
+
+          let progress = 0
+          let state: 'downloading' | 'staging' = 'downloading'
+
+          if (targetTotal > 0) {
+            progress = Math.min(100, Math.round((bytesDownloaded / targetTotal) * 100))
+            if (bytesToDownload > 0 && bytesDownloaded >= bytesToDownload) {
+              state = progress >= 99 ? 'staging' : 'downloading'
+            }
+          }
+
           active.push({
             appid,
             gameId: `steam-${appid}`,
             name,
-            state: progress >= 100 ? 'staging' : 'downloading',
+            state,
             bytesDownloaded,
-            bytesTotal,
+            bytesTotal: targetTotal,
             progressPercent: progress,
-            downloadRateMbps: latestRate,
+            downloadRateMbps: effectiveTotalRate,
             coverUrl: ['4126040', '4704690', '480', '2315050'].includes(appid)
               ? `/steam-assets/${appid}/library_capsule.jpg`
               : `https://shared.steamstatic.com/store_item_assets/steam/apps/${appid}/library_600x900.jpg`
@@ -307,15 +422,22 @@ function getSteamDownloads() {
         try {
           const content = fs.readFileSync(mPath, 'utf8')
           const appid = mFile.match(/appmanifest_(\d+)\.acf/)?.[1]
-          if (!appid || seenAppids.has(appid)) continue
+          if (!appid || seenAppids.has(appid) || IGNORED_STEAM_APPIDS.has(appid)) continue
 
           const lastUpdated = parseInt(content.match(/"LastUpdated"\s+"(\d+)"/)?.[1] || '0', 10)
           const stateFlags = content.match(/"StateFlags"\s+"(\d+)"/)?.[1]
           const name = content.match(/"name"\s+"([^"]+)"/)?.[1] || `App ${appid}`
+          if (name.includes('Steamworks Common Redistributables') || name.startsWith('Steam Linux Runtime')) {
+            continue
+          }
+
           const bytesTotal = parseInt(content.match(/"SizeOnDisk"\s+"(\d+)"/)?.[1] || '0', 10)
 
           if (stateFlags === '4' && now - lastUpdated < 604800 && lastUpdated > 0) {
             seenAppids.add(appid)
+            // Clean up memory cache for completed apps
+            lastKnownBytesDownloaded.delete(appid)
+
             completed.push({
               appid,
               gameId: `steam-${appid}`,
@@ -335,8 +457,19 @@ function getSteamDownloads() {
     } catch {}
   }
 
+  // Clean up any stale entries in lastKnownBytesDownloaded
+  for (const cachedAppid of lastKnownBytesDownloaded.keys()) {
+    if (!seenAppids.has(cachedAppid)) {
+      lastKnownBytesDownloaded.delete(cachedAppid)
+    }
+  }
+
   completed.sort((a, b) => b.completedAt - a.completedAt)
-  return { active, completed: completed.slice(0, 10), totalRateMbps: active.length > 0 ? latestRate : 0 }
+  return {
+    active,
+    completed: completed.slice(0, 10),
+    totalRateMbps: active.length > 0 ? effectiveTotalRate : 0
+  }
 }
 
 function steamProcessPlugin(): Plugin {
