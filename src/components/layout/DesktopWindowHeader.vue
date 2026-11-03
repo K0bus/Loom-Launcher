@@ -49,8 +49,12 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
 })
 
-// Window controls (Tauri native or mock)
+// Window controls (Desktop native, Tauri or fallback)
 async function minimizeWindow() {
+  if ((window as any).desktopWindow) {
+    ;(window as any).desktopWindow.minimize()
+    return
+  }
   if (ipc.isTauri()) {
     const { getCurrentWindow } = await import('@tauri-apps/api/window')
     getCurrentWindow().minimize()
@@ -60,6 +64,10 @@ async function minimizeWindow() {
 }
 
 async function toggleMaximizeWindow() {
+  if ((window as any).desktopWindow) {
+    ;(window as any).desktopWindow.toggleMaximize()
+    return
+  }
   if (ipc.isTauri()) {
     const { getCurrentWindow } = await import('@tauri-apps/api/window')
     getCurrentWindow().toggleMaximize()
@@ -69,6 +77,10 @@ async function toggleMaximizeWindow() {
 }
 
 async function closeWindow() {
+  if ((window as any).desktopWindow) {
+    ;(window as any).desktopWindow.close()
+    return
+  }
   if (ipc.isTauri()) {
     const { getCurrentWindow } = await import('@tauri-apps/api/window')
     getCurrentWindow().close()
