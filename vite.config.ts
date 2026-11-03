@@ -259,9 +259,10 @@ function getDirectorySizeBytes(dirPath: string): number {
   return 0
 }
 
-// 2. Real-time network speed from Steam process I/O (/proc/<steam_pid>/io)
+// 2. Real-time disk write / staging speed from Steam process I/O (/proc/<steam_pid>/io)
 let steamPidCache: { pid: number | null; checkedAt: number } = { pid: null, checkedAt: 0 }
-let steamIoTracker: { pid: number; rchar: number; time: number; speedMbps: number } | null = null
+let steamIoTracker: { pid: number; writeBytes: number; time: number; speedMbps: number } | null = null
+const appSpeedTracker = new Map<string, { bytes: number; time: number; speedMbps: number }>()
 
 function getSteamProcessPid(): number | null {
   const now = Date.now()
@@ -282,30 +283,30 @@ function getSteamProcessPid(): number | null {
   }
 }
 
-function getSteamLiveNetworkRateMbps(): number {
+function getSteamLiveIoRateMbps(): number {
   const pid = getSteamProcessPid()
   if (!pid) return 0
   try {
     const ioContent = fs.readFileSync(`/proc/${pid}/io`, 'utf8')
-    const rcharMatch = ioContent.match(/rchar:\s+(\d+)/)
-    if (!rcharMatch) return 0
-    const rchar = parseInt(rcharMatch[1], 10)
+    const match = ioContent.match(/write_bytes:\s+(\d+)/) || ioContent.match(/wchar:\s+(\d+)/)
+    if (!match) return 0
+    const writeBytes = parseInt(match[1], 10)
     const now = Date.now()
 
     if (!steamIoTracker || steamIoTracker.pid !== pid) {
-      steamIoTracker = { pid, rchar, time: now, speedMbps: 0 }
+      steamIoTracker = { pid, writeBytes, time: now, speedMbps: 0 }
       return 0
     }
 
     const dtSec = (now - steamIoTracker.time) / 1000
-    if (dtSec >= 0.4) {
-      const deltaBytes = Math.max(0, rchar - steamIoTracker.rchar)
+    if (dtSec >= 0.5) {
+      const deltaBytes = Math.max(0, writeBytes - steamIoTracker.writeBytes)
       const rawMbps = ((deltaBytes * 8) / (1024 * 1024)) / dtSec
       const smoothMbps = steamIoTracker.speedMbps > 0
-        ? (steamIoTracker.speedMbps * 0.4) + (rawMbps * 0.6)
+        ? (steamIoTracker.speedMbps * 0.3) + (rawMbps * 0.7)
         : rawMbps
       const finalMbps = parseFloat(smoothMbps.toFixed(1))
-      steamIoTracker = { pid, rchar, time: now, speedMbps: finalMbps }
+      steamIoTracker = { pid, writeBytes, time: now, speedMbps: finalMbps }
       return finalMbps
     }
 
@@ -320,22 +321,25 @@ function getSteamDownloads() {
   const active: any[] = []
   const completed: any[] = []
 
-  // Check content_log.txt for baseline fallback
+  // Extract recent download rate from content_log.txt
   let latestRate = 0
   const contentLogPath = path.join(os.homedir(), '.local/share/Steam/logs/content_log.txt')
   if (fs.existsSync(contentLogPath)) {
     try {
       const logText = fs.readFileSync(contentLogPath, 'utf8')
-      const matches = [...logText.matchAll(/Current download rate:\s+([\d\.]+)\s+Mbps/g)]
-      if (matches.length > 0) {
-        latestRate = parseFloat(matches[matches.length - 1][1])
+      const matches = [...logText.matchAll(/(?:Current download rate:\s+([\d\.]+)\s+Mbps|now\s+([\d\.]+)\))/g)]
+      for (let i = matches.length - 1; i >= Math.max(0, matches.length - 8); i--) {
+        const val = parseFloat(matches[i][1] || matches[i][2] || '0')
+        if (val > 0) {
+          latestRate = val
+          break
+        }
       }
     } catch {}
   }
 
-  // Real-time network speed from Steam kernel I/O
-  const liveNetworkMbps = getSteamLiveNetworkRateMbps()
-  const effectiveTotalRate = liveNetworkMbps > 0 ? liveNetworkMbps : latestRate
+  // Real-time disk write speed from Steam kernel I/O
+  const liveIoMbps = getSteamLiveIoRateMbps()
 
   const seenAppids = new Set<string>()
 
@@ -382,6 +386,28 @@ function getSteamDownloads() {
             lastKnownBytesDownloaded.set(appid, bytesDownloaded)
           }
 
+          // Per-app byte growth delta speed
+          let appRateMbps = 0
+          const prevApp = appSpeedTracker.get(appid)
+          const nowMs = Date.now()
+          if (prevApp && prevApp.bytes > 0 && bytesDownloaded >= prevApp.bytes) {
+            const dtSec = (nowMs - prevApp.time) / 1000
+            if (dtSec >= 0.5) {
+              const deltaBytes = bytesDownloaded - prevApp.bytes
+              const calcMbps = ((deltaBytes * 8) / (1024 * 1024)) / dtSec
+              appRateMbps = parseFloat(calcMbps.toFixed(1))
+              appSpeedTracker.set(appid, { bytes: bytesDownloaded, time: nowMs, speedMbps: appRateMbps })
+            } else {
+              appRateMbps = prevApp.speedMbps
+            }
+          } else {
+            appSpeedTracker.set(appid, { bytes: bytesDownloaded, time: nowMs, speedMbps: appRateMbps })
+          }
+
+          // Effective rate: choose highest reliable non-zero signal
+          const candidates = [liveIoMbps, appRateMbps, latestRate].filter((r) => r > 1)
+          const appEffectiveRate = candidates.length > 0 ? Math.max(...candidates) : (latestRate > 0 ? latestRate : 0)
+
           // Target total is the uncompressed staged size on disk (BytesToStage)
           const targetTotal = bytesToStage > 0 ? bytesToStage : (bytesToDownload > 0 ? bytesToDownload : 0)
 
@@ -403,7 +429,7 @@ function getSteamDownloads() {
             bytesDownloaded,
             bytesTotal: targetTotal,
             progressPercent: progress,
-            downloadRateMbps: effectiveTotalRate,
+            downloadRateMbps: appEffectiveRate,
             coverUrl: ['4126040', '4704690', '480', '2315050'].includes(appid)
               ? `/steam-assets/${appid}/library_capsule.jpg`
               : `https://shared.steamstatic.com/store_item_assets/steam/apps/${appid}/library_600x900.jpg`
@@ -464,11 +490,13 @@ function getSteamDownloads() {
     }
   }
 
+  const totalActiveRate = active.reduce((sum, a) => sum + (a.downloadRateMbps || 0), 0)
+
   completed.sort((a, b) => b.completedAt - a.completedAt)
   return {
     active,
     completed: completed.slice(0, 10),
-    totalRateMbps: active.length > 0 ? effectiveTotalRate : 0
+    totalRateMbps: active.length > 0 ? (totalActiveRate > 0 ? totalActiveRate : latestRate) : 0
   }
 }
 

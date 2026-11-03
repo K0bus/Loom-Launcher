@@ -26,6 +26,19 @@ function formatBytes(bytes: number): string {
   return `${gb.toFixed(1)} Go`
 }
 
+function formatSpeed(mbps: number): string {
+  if (!mbps || mbps <= 0) return '0 Mo/s'
+  const mbytePerSec = mbps / 8
+  if (mbytePerSec >= 1000) {
+    return `${(mbytePerSec / 1000).toFixed(2)} Go/s`
+  }
+  if (mbytePerSec < 0.1) {
+    const kbytePerSec = (mbps * 1024) / 8
+    return `${Math.max(1, Math.round(kbytePerSec))} Ko/s`
+  }
+  return `${mbytePerSec.toFixed(1)} Mo/s`
+}
+
 const igdbModalOpen = ref(false)
 const buyModalOpen = ref(false)
 const achievementsModalOpen = ref(false)
@@ -329,7 +342,7 @@ const achievementPercent = computed(() => {
               </span>
               <span v-if="currentDownload.downloadRateMbps > 0" class="text-sky-400 font-semibold flex items-center gap-1">
                 <i class="ph-fill ph-lightning text-[10px]"></i>
-                {{ (currentDownload.downloadRateMbps / 8).toFixed(1) }} Mo/s
+                {{ formatSpeed(currentDownload.downloadRateMbps) }}
               </span>
             </div>
 
