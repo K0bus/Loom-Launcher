@@ -95,7 +95,7 @@ async function closeWindow() {
     data-tauri-drag-region
     class="relative z-30 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4 backdrop-blur-md bg-zinc-950/60 border-b border-zinc-800/60 select-none flex-shrink-0"
   >
-    <!-- Left: Back/Forward Navigation + Clean Menu Pills (Bibliothèque, Fiche Jeu, Studio) -->
+    <!-- Left: Back/Forward Navigation + Clean Menu Pills (Bibliothèque, Minecraft) -->
     <div class="flex items-center gap-3">
       <!-- History navigation -->
       <div class="flex items-center text-zinc-400 mr-1">
@@ -117,7 +117,7 @@ async function closeWindow() {
         </button>
       </div>
 
-      <!-- Section Switcher Pills (Épuré : Bibliothèque, Fiche Jeu, Studio) -->
+      <!-- Section Switcher Pills (Épuré : Bibliothèque, Minecraft) -->
       <nav class="flex items-center gap-1 bg-zinc-900/80 p-1 rounded-full border border-zinc-800/80">
         <button
           type="button"
@@ -132,19 +132,6 @@ async function closeWindow() {
           Bibliothèque
         </button>
 
-        <button
-          type="button"
-          @click="router.push('/games/hollow-knight-silksong')"
-          :class="[
-            'px-3.5 py-1 rounded-full text-xs font-medium transition flex items-center gap-1',
-            route.path.startsWith('/games')
-              ? 'bg-amber-500 text-zinc-950 font-bold shadow-sm'
-              : 'text-zinc-400 hover:text-zinc-200'
-          ]"
-        >
-          Fiche Jeu
-        </button>
-
         <!-- Special tab: Minecraft Studio integration -->
         <button
           type="button"
@@ -156,7 +143,7 @@ async function closeWindow() {
               : 'text-amber-400/90 hover:text-amber-300'
           ]"
         >
-          <i class="ph-fill ph-cube text-xs"></i> Studio
+          <i class="ph-fill ph-cube text-xs"></i> Minecraft
         </button>
       </nav>
     </div>
