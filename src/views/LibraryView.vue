@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useGamesStore } from '@/stores/gamesStore'
 import { useIgdbStore } from '@/stores/igdbStore'
@@ -23,6 +23,44 @@ const filterModalOpen = ref(false)
 const runnerModalOpen = ref(false)
 const igdbModalOpen = ref(false)
 const selectedGameForRunner = ref<Game | null>(null)
+
+// Chargement progressif au scroll (évite d'instancier 800+ composants d'un coup)
+const PAGE_SIZE = 36
+const displayedCount = ref(PAGE_SIZE)
+const sentinelRef = ref<HTMLElement | null>(null)
+let scrollObserver: IntersectionObserver | null = null
+
+function loadMoreGames() {
+  if (displayedCount.value < filteredGames.value.length) {
+    displayedCount.value = Math.min(displayedCount.value + PAGE_SIZE, filteredGames.value.length)
+  }
+}
+
+onMounted(() => {
+  scrollObserver = new IntersectionObserver(
+    (entries) => {
+      if (entries[0]?.isIntersecting) {
+        loadMoreGames()
+      }
+    },
+    { rootMargin: '300px' }
+  )
+
+  if (sentinelRef.value) {
+    scrollObserver.observe(sentinelRef.value)
+  }
+})
+
+onUnmounted(() => {
+  scrollObserver?.disconnect()
+})
+
+watch(sentinelRef, (newEl) => {
+  if (scrollObserver && newEl) {
+    scrollObserver.disconnect()
+    scrollObserver.observe(newEl)
+  }
+})
 
 // 1. HERO : Dernier jeu joué (null si bibliothèque vide)
 const heroGame = computed<Game | null>(() => {
@@ -137,6 +175,22 @@ const filteredGames = computed(() => {
   }
   return list
 })
+
+const displayedGames = computed(() => {
+  return filteredGames.value.slice(0, displayedCount.value)
+})
+
+const hasMoreGames = computed(() => {
+  return displayedCount.value < filteredGames.value.length
+})
+
+watch(
+  [() => filters.value, () => selectedTag.value],
+  () => {
+    displayedCount.value = PAGE_SIZE
+  },
+  { deep: true }
+)
 
 function openIgdbWithSearch(query?: string) {
   igdbModalOpen.value = true
@@ -583,12 +637,24 @@ function scrollToCatalog() {
         <!-- 3:4 Movie Poster Grid -->
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5">
           <GameCard
-            v-for="game in filteredGames"
+            v-for="game in displayedGames"
             :key="game.id"
             :game="game"
             @select="openGameDetail"
             @configure="configureRunner"
           />
+        </div>
+
+        <!-- Scroll Sentinel & Chargement progressif -->
+        <div
+          v-if="hasMoreGames"
+          ref="sentinelRef"
+          class="w-full py-10 flex flex-col items-center justify-center gap-2.5 text-zinc-400 select-none"
+        >
+          <div class="w-7 h-7 rounded-full border-2 border-amber-500/30 border-t-amber-500 animate-spin" />
+          <p class="text-xs text-zinc-400 font-mono tracking-wide">
+            {{ displayedGames.length }} sur {{ filteredGames.length }} jeux chargés • Défilez pour afficher la suite
+          </p>
         </div>
 
         <!-- Empty State -->

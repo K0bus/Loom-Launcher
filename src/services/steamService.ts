@@ -78,32 +78,69 @@ export const REAL_STEAM_DATA: RealSteamAccount = {
   allGames: parsedAllGames
 }
 
+import { MOCK_IGDB_CATALOG } from './igdbService'
+
 /**
  * Convert a RealSteamGame to Loom's unified Game model
  */
 export function mapSteamGameToLoomGame(sGame: RealSteamGame): Game {
   const isInstalled = sGame.installed
+  const now = Math.floor(Date.now() / 1000)
+  let cleanTimestamp = sGame.lastPlayedTimestamp || 0
+  if (cleanTimestamp > now) {
+    if (cleanTimestamp - 1814400 <= now) {
+      cleanTimestamp -= 1814400
+    } else {
+      cleanTimestamp = now
+    }
+  }
+
   const formattedDate =
-    sGame.lastPlayedTimestamp > 0
-      ? new Date(sGame.lastPlayedTimestamp * 1000).toLocaleDateString('fr-FR', {
+    cleanTimestamp > 0
+      ? new Date(cleanTimestamp * 1000).toLocaleDateString('fr-FR', {
           year: 'numeric',
           month: 'short',
           day: 'numeric'
         })
       : 'Jamais lancé'
 
+  const normalize = (s: string) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+  const normSlug = normalize(sGame.slug)
+  const normTitle = normalize(sGame.name)
+  const igdbMatch = MOCK_IGDB_CATALOG.find(
+    (e) =>
+      e.slug === sGame.slug ||
+      normalize(e.slug) === normSlug ||
+      normalize(e.name) === normTitle ||
+      (e.id === 480 && (sGame.slug === 'spacewar' || sGame.appid === '480')) ||
+      (e.id === 2315050 && (sGame.slug === 'we-were-here-tomorrow' || sGame.appid === '2315050')) ||
+      (e.id === 4126040 && (sGame.slug === 'aniimo' || sGame.appid === '4126040')) ||
+      (e.id === 4704690 && (sGame.slug === 'meccha-chameleon' || sGame.appid === '4704690'))
+  )
+
+  const devCompany = igdbMatch?.involved_companies?.find((c) => c.developer)?.company.name
+  const pubCompany = igdbMatch?.involved_companies?.find((c) => c.publisher)?.company.name
+  const releaseYear = igdbMatch?.first_release_date
+    ? new Date(igdbMatch.first_release_date * 1000).getFullYear()
+    : 2024
+  const genres = igdbMatch?.genres?.map((g) => g.name) || ['Steam']
+  const rating =
+    igdbMatch?.total_rating || igdbMatch?.rating
+      ? Math.round(igdbMatch.total_rating || igdbMatch.rating || 0)
+      : undefined
+
   return {
     id: `steam-${sGame.appid}`,
     title: sGame.name,
     slug: sGame.slug,
-    bannerUrl: sGame.bannerUrl,
-    coverUrl: sGame.coverUrl,
+    bannerUrl: igdbMatch?.artworks?.[0]?.url || sGame.bannerUrl,
+    coverUrl: igdbMatch?.cover?.url || sGame.coverUrl,
     iconUrl: `https://shared.steamstatic.com/store_item_assets/steam/apps/${sGame.appid}/capsule_231x87.jpg`,
     platform: 'steam',
-    genre: ['Steam'],
+    genre: genres,
     playtimeMinutes: sGame.playtimeMinutes,
     lastPlayed: formattedDate,
-    lastPlayedTimestamp: sGame.lastPlayedTimestamp,
+    lastPlayedTimestamp: cleanTimestamp,
     installed: isInstalled,
     installPath: sGame.installDir
       ? `/home/k0bus/.local/share/Steam/steamapps/common/${sGame.installDir}`
@@ -119,12 +156,26 @@ export function mapSteamGameToLoomGame(sGame: RealSteamGame): Game {
       envVariables: {},
       launchArguments: ''
     },
-    developer: 'Valve / Steam Partner',
-    publisher: 'Steam',
-    releaseYear: 2024,
-    description: `Jeu officiel Steam (${isInstalled ? 'Installé sur le disque local' : 'Dans la bibliothèque Steam, prêt à être installé'}). AppID Steam: ${sGame.appid}`,
-    screenshots: [sGame.bannerUrl, getSteamHeaderUrl(sGame.appid)],
+    developer: devCompany || 'Valve / Steam Partner',
+    publisher: pubCompany || 'Steam',
+    releaseYear,
+    description:
+      igdbMatch?.summary ||
+      `Jeu officiel Steam (${isInstalled ? 'Installé sur le disque local' : 'Dans la bibliothèque Steam, prêt à être installé'}). AppID Steam: ${sGame.appid}`,
+    storyline: igdbMatch?.storyline,
+    rating,
+    ratingCount: igdbMatch?.total_rating_count,
+    themes: igdbMatch?.themes?.map((t) => t.name),
+    gameModes: igdbMatch?.game_modes?.map((m) => m.name),
+    screenshots:
+      igdbMatch?.screenshots
+        ?.map((s) => s.url)
+        .filter((u): u is string => Boolean(u)) || [
+        sGame.bannerUrl,
+        getSteamHeaderUrl(sGame.appid)
+      ],
     inLibrary: true,
+    igdbId: igdbMatch?.id,
     storeLinks: [
       {
         store: 'Steam',

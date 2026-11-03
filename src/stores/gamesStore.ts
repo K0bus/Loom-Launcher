@@ -78,11 +78,20 @@ export const useGamesStore = defineStore('games', () => {
       if (saved) {
         const parsed = JSON.parse(saved)
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Refresh if library count expanded (e.g. from 294 to 860) or missing lastPlayedTimestamp or missing IGDB match for known games
+          const now = Math.floor(Date.now() / 1000)
+          // Refresh if library count expanded (e.g. from 294 to 860), has future timestamps, or missing IGDB match for known games
           if (
             parsed.length < fresh.length ||
             parsed.some((g) => g.platform === 'steam' && g.lastPlayedTimestamp === undefined) ||
-            parsed.some((g) => (g.slug === 'aniimo' || g.slug === 'meccha-chameleon' || g.slug === 'spacewar') && !g.igdbId)
+            parsed.some((g) => (g.lastPlayedTimestamp || 0) > now) ||
+            parsed.some(
+              (g) =>
+                (g.slug === 'aniimo' ||
+                  g.slug === 'meccha-chameleon' ||
+                  g.slug === 'spacewar' ||
+                  g.slug === 'we-were-here-tomorrow') &&
+                (!g.igdbId || g.developer === 'Valve / Steam Partner')
+            )
           ) {
             try {
               localStorage.setItem(STORAGE_KEY_LIBRARY, JSON.stringify(fresh))
@@ -320,6 +329,13 @@ export const useGamesStore = defineStore('games', () => {
       return game
     }
 
+    // 0. Vérification prioritaire dans le catalogue enrichi (Aniimo, Meccha Chameleon, Spacewar, We Were Here, etc.)
+    enrichWithCatalogIfAvailable(game)
+    if (game.igdbId && game.developer !== 'Valve / Steam Partner') {
+      saveLibrary()
+      return game
+    }
+
     try {
       // 1. Recherche par slug
       let igdbMatch = await igdbService.getGameBySlug(game.slug)
@@ -337,16 +353,20 @@ export const useGamesStore = defineStore('games', () => {
         }
       }
 
-      // 3. Recherche textuelle IGDB par titre
+      // 3. Recherche textuelle IGDB par titre (uniquement si correspondance exacte pour éviter les associations incohérentes)
       if (!igdbMatch && game.title) {
         const results = await igdbService.searchGames(game.title, 5)
         if (results && results.length > 0) {
+          const normTitle = game.title.toLowerCase().replace(/[^a-z0-9]/g, '')
           const exact = results.find(
             (r) =>
               r.name.toLowerCase() === game.title.toLowerCase() ||
-              r.slug.toLowerCase() === game.slug.toLowerCase()
+              r.slug.toLowerCase() === game.slug.toLowerCase() ||
+              r.name.toLowerCase().replace(/[^a-z0-9]/g, '') === normTitle
           )
-          igdbMatch = exact || results[0]
+          if (exact) {
+            igdbMatch = exact
+          }
         }
       }
 

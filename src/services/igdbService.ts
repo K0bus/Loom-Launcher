@@ -239,6 +239,67 @@ const MOCK_IGDB_CATALOG: IGDBGame[] = [
     ]
   },
   {
+    id: 2315050,
+    name: 'We Were Here Tomorrow',
+    slug: 'we-were-here-tomorrow',
+    summary:
+      "Dans cette aventure coopérative asymétrique palpitante de la célèbre saga We Were Here, vous et votre partenaire êtes pris au piège sous les glaces de l'Antarctique. Pour percer les mystères de cette cité gelée et vous échapper, votre talkie-walkie et votre esprit d'équipe seront vos uniques alliés.",
+    storyline:
+      "Partis en expédition pour secourir leurs compagnons explorateurs, deux partenaires se retrouvent séparés dans d'antiques installations souterraines oubliées par le temps. Face au froid glacial et aux mécanismes complexes, ils devront collaborer à distance pour s'échapper avant que la glace ne se referme définitivement sur eux.",
+    first_release_date: 1792695687,
+    total_rating: 89,
+    total_rating_count: 3200,
+    rating: 89,
+    aggregated_rating: 88,
+    category: 0,
+    cover: {
+      id: 2315050,
+      image_id: 'co_wewerehere_tomorrow',
+      url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/2315050/library_600x900_2x.jpg'
+    },
+    artworks: [
+      {
+        id: 23150501,
+        image_id: 'ar_wewerehere_tomorrow',
+        url: 'https://shared.steamstatic.com/store_item_assets/steam/apps/2315050/library_hero.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 23150502,
+        image_id: 'sc_wewerehere_tomorrow_1',
+        url: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2315050/header.jpg'
+      }
+    ],
+    genres: [
+      { id: 9, name: 'Puzzle', slug: 'puzzle' },
+      { id: 31, name: 'Aventure', slug: 'adventure' },
+      { id: 32, name: 'Indie', slug: 'indie' }
+    ],
+    platforms: [
+      { id: 6, name: 'PC (Linux & Windows)', abbreviation: 'PC' }
+    ],
+    themes: [
+      { id: 43, name: 'Mystère', slug: 'mystery' },
+      { id: 19, name: 'Horreur psychologique', slug: 'horror' }
+    ],
+    game_modes: [
+      { id: 2, name: 'Multijoueur', slug: 'multiplayer' },
+      { id: 3, name: 'Coopération en ligne', slug: 'co-op' }
+    ],
+    involved_companies: [
+      {
+        id: 104,
+        developer: true,
+        publisher: true,
+        company: { id: 1004, name: 'Total Mayhem Games' }
+      }
+    ],
+    websites: [
+      { id: 1041, category: 1, url: 'https://store.steampowered.com/app/2315050/We_Were_Here_Tomorrow/' }
+    ]
+  },
+  {
     id: 115278,
     name: 'Hollow Knight: Silksong',
     slug: 'hollow-knight-silksong',
