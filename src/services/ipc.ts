@@ -21,7 +21,7 @@ class IpcBridge {
    * or falls back to simulated mock handlers.
    */
   public async invoke<T = any>(command: string, args: Record<string, any> = {}): Promise<T> {
-    const viteApiCommands = ['get_steam_downloads', 'get_steam_libraries', 'install_game']
+    const viteApiCommands = ['get_steam_downloads', 'get_steam_libraries', 'install_game', 'uninstall_game']
 
     if (this.isTauri() && !viteApiCommands.includes(command)) {
       try {
@@ -78,6 +78,25 @@ class IpcBridge {
           return data as T
         } catch {
           return { success: true, appid, folderIndex } as T
+        }
+      }
+
+      case 'uninstall_game': {
+        const gameId = String(args.gameId || args.appid || '')
+        const appid = gameId.replace(/^steam-/, '')
+        try {
+          const resp = await fetch('/api/steam/uninstall', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ appid })
+          })
+          const data = await resp.json()
+          return data as T
+        } catch {
+          if (typeof window !== 'undefined' && appid) {
+            window.location.href = `steam://uninstall/${appid}`
+          }
+          return { success: true, appid } as T
         }
       }
 

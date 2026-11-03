@@ -63,6 +63,7 @@ export const useDownloadsStore = defineStore('downloads', () => {
         active: SteamDownloadItem[]
         completed: SteamDownloadItem[]
         totalRateMbps: number
+        installedAppids?: string[]
       }>('get_steam_downloads')
 
       if (res && res.success) {
@@ -71,6 +72,28 @@ export const useDownloadsStore = defineStore('downloads', () => {
         completedDownloads.value = res.completed || []
         totalRateMbps.value = res.totalRateMbps || 0
         lastPolledAt.value = new Date()
+
+        // Sync installed state across library if Steam returns installedAppids
+        if (Array.isArray(res.installedAppids) && res.installedAppids.length > 0) {
+          try {
+            const gamesStore = useGamesStore()
+            const installedSet = new Set(res.installedAppids)
+            let changed = false
+            for (const game of gamesStore.games) {
+              if (game.platform === 'steam') {
+                const aid = game.id.replace(/^steam-/, '')
+                const isNowInstalled = installedSet.has(aid)
+                if (game.installed !== isNowInstalled) {
+                  game.installed = isNowInstalled
+                  changed = true
+                }
+              }
+            }
+            if (changed) {
+              gamesStore.saveLibrary?.()
+            }
+          } catch {}
+        }
 
         // Check if any active download finished
         const currentActiveAppids = new Set(activeDownloads.value.map((d) => d.appid))

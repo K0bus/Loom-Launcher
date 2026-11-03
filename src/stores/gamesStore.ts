@@ -517,6 +517,21 @@ export const useGamesStore = defineStore('games', () => {
     return { success: true }
   }
 
+  async function uninstallGame(id: string): Promise<{ success: boolean; message?: string }> {
+    const game = getGameById(id)
+    if (!game) return { success: false, message: 'Jeu introuvable' }
+
+    if (game.platform === 'steam') {
+      const appid = game.id.replace(/^steam-/, '')
+      const res = await ipc.invoke<{ success: boolean; message?: string }>('uninstall_game', {
+        gameId: id,
+        appid
+      })
+      return res
+    }
+    return { success: true }
+  }
+
   async function launchGame(id: string) {
     const game = getGameById(id)
     if (!game) return
@@ -669,6 +684,7 @@ export const useGamesStore = defineStore('games', () => {
     loadGameAchievements,
     getSteamLibraries,
     installGame,
+    uninstallGame,
     launchGame,
     stopGame,
     updateGameRunner,

@@ -41,6 +41,8 @@ function formatSpeed(mbps: number): string {
 
 const igdbModalOpen = ref(false)
 const buyModalOpen = ref(false)
+const uninstallModalOpen = ref(false)
+const isUninstalling = ref(false)
 const achievementsModalOpen = ref(false)
 const isLoadingAchievements = ref(false)
 const selectedScreenshot = ref<string | null>(null)
@@ -116,6 +118,20 @@ function toggleSteam() {
 // Play / Stop game state
 const isRunning = computed(() => game.value && gamesStore.runningGameId === game.value.id)
 const isStarting = computed(() => game.value && gamesStore.launchingGameId === game.value.id)
+
+async function handleUninstall() {
+  if (!game.value) return
+  isUninstalling.value = true
+  try {
+    toast.show(`Ouverture de la désinstallation Steam pour ${game.value.title}...`, 'info')
+    await gamesStore.uninstallGame(game.value.id)
+    uninstallModalOpen.value = false
+  } catch (e: any) {
+    toast.show(e.message || 'Erreur lors de la désinstallation', 'error')
+  } finally {
+    isUninstalling.value = false
+  }
+}
 
 async function handlePlay() {
   if (!game.value) return
@@ -420,6 +436,18 @@ const achievementPercent = computed(() => {
           >
             <i class="ph-fill ph-database text-base text-amber-400"></i>
             <span class="hidden sm:inline">Sync IGDB</span>
+          </button>
+
+          <!-- Bouton Désinstaller le jeu si installé -->
+          <button
+            v-if="game.installed && !currentDownload && !isRunning"
+            type="button"
+            @click="uninstallModalOpen = true"
+            class="p-3 rounded-xl bg-zinc-900/80 hover:bg-rose-500/15 hover:border-rose-500/40 border border-zinc-800/80 text-zinc-400 hover:text-rose-400 transition backdrop-blur-md flex items-center gap-2 text-xs font-medium group"
+            title="Désinstaller le jeu"
+          >
+            <i class="ph-bold ph-trash text-base text-zinc-400 group-hover:text-rose-400 transition-colors"></i>
+            <span class="hidden md:inline">Désinstaller</span>
           </button>
 
           <!-- Horizontal Metrics Bar -->
@@ -976,6 +1004,61 @@ const achievementPercent = computed(() => {
       :loading="isLoadingAchievements"
       @close="achievementsModalOpen = false"
     />
+
+    <!-- Modal de Confirmation de Désinstallation -->
+    <UiModal
+      :open="uninstallModalOpen"
+      title="Désinstaller le jeu"
+      max-width="md"
+      @close="uninstallModalOpen = false"
+    >
+      <div v-if="game" class="space-y-5">
+        <!-- Aperçu du jeu avec taille libérée -->
+        <div class="flex items-center gap-3.5 p-3 rounded-xl bg-zinc-950/80 border border-zinc-800">
+          <img
+            :src="game.coverUrl"
+            :alt="game.title"
+            class="w-12 h-16 object-cover rounded-lg border border-zinc-700/60 shadow-md flex-shrink-0"
+          />
+          <div class="space-y-0.5 min-w-0">
+            <h4 class="font-bold text-sm text-white truncate">{{ game.title }}</h4>
+            <p class="text-xs text-zinc-400">
+              Espace libéré : <span class="font-semibold text-rose-400 font-mono">{{ game.sizeGb || '0' }} Go</span>
+            </p>
+            <span class="text-[11px] text-zinc-500">Plateforme Steam</span>
+          </div>
+        </div>
+
+        <div class="space-y-2 text-xs text-zinc-300 leading-relaxed">
+          <p>
+            Êtes-vous sûr de vouloir désinstaller <span class="font-bold text-white">{{ game.title }}</span> ?
+          </p>
+          <p class="text-zinc-400 text-[11px]">
+            Cette action ouvrira l'assistant officiel de Steam pour supprimer les fichiers du jeu de votre disque dur. Vos sauvegardes cloud et vos succès resteront précieusement conservés.
+          </p>
+        </div>
+
+        <!-- Boutons d'action -->
+        <div class="pt-3 border-t border-zinc-800/80 flex items-center justify-end gap-3">
+          <UiButton
+            variant="ghost"
+            size="sm"
+            @click="uninstallModalOpen = false"
+          >
+            Annuler
+          </UiButton>
+          <button
+            type="button"
+            @click="handleUninstall"
+            :disabled="isUninstalling"
+            class="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-bold text-xs transition shadow-[0_0_16px_rgba(225,29,72,0.3)] disabled:opacity-50"
+          >
+            <i class="ph-bold ph-trash text-sm"></i>
+            <span>Désinstaller via Steam</span>
+          </button>
+        </div>
+      </div>
+    </UiModal>
   </div>
 
   <!-- Loading or Not Found State -->

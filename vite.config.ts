@@ -483,6 +483,29 @@ function getSteamDownloads() {
     } catch {}
   }
 
+  const installedAppids: string[] = []
+
+  for (const lib of libraries) {
+    if (!lib.available || !lib.path) continue
+    const steamappsDir = path.join(lib.path, 'steamapps')
+    if (!fs.existsSync(steamappsDir)) continue
+
+    try {
+      const manifests = fs.readdirSync(steamappsDir).filter((f) => f.startsWith('appmanifest_') && f.endsWith('.acf'))
+      for (const mFile of manifests) {
+        const mPath = path.join(steamappsDir, mFile)
+        try {
+          const content = fs.readFileSync(mPath, 'utf8')
+          const appid = mFile.match(/appmanifest_(\d+)\.acf/)?.[1]
+          const stateFlags = content.match(/"StateFlags"\s+"(\d+)"/)?.[1]
+          if (appid && stateFlags === '4') {
+            installedAppids.push(appid)
+          }
+        } catch {}
+      }
+    } catch {}
+  }
+
   // Clean up any stale entries in lastKnownBytesDownloaded
   for (const cachedAppid of lastKnownBytesDownloaded.keys()) {
     if (!seenAppids.has(cachedAppid)) {
@@ -496,7 +519,8 @@ function getSteamDownloads() {
   return {
     active,
     completed: completed.slice(0, 10),
-    totalRateMbps: active.length > 0 ? (totalActiveRate > 0 ? totalActiveRate : latestRate) : 0
+    totalRateMbps: active.length > 0 ? (totalActiveRate > 0 ? totalActiveRate : latestRate) : 0,
+    installedAppids
   }
 }
 
@@ -650,6 +674,29 @@ function steamProcessPlugin(): Plugin {
                   JSON.stringify({
                     success: true,
                     message: `Assistant d'installation Steam ouvert pour AppID ${appid}`,
+                    appid
+                  })
+                )
+                return
+              }
+
+              if (req.url === '/api/steam/uninstall') {
+                if (!appid) {
+                  res.statusCode = 400
+                  res.end(JSON.stringify({ success: false, error: 'AppID manquant' }))
+                  return
+                }
+                console.info(`[Loom::Steam] Lancement de l'assistant de désinstallation Steam pour AppID ${appid}...`)
+                exec(`xdg-open steam://uninstall/${appid}`, (err) => {
+                  if (err) {
+                    exec(`steam "steam://uninstall/${appid}"`)
+                  }
+                })
+
+                res.end(
+                  JSON.stringify({
+                    success: true,
+                    message: `Assistant de désinstallation Steam ouvert pour AppID ${appid}`,
                     appid
                   })
                 )
