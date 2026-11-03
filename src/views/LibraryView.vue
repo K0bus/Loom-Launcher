@@ -8,7 +8,6 @@ import type { Game, GameFilter } from '@/models/game'
 import GameCard from '@/components/games/GameCard.vue'
 import GameFilterModal from '@/components/games/GameFilterModal.vue'
 import GameRunnerModal from '@/components/games/GameRunnerModal.vue'
-import GameInstallModal from '@/components/games/GameInstallModal.vue'
 import IgdbSearchModal from '@/components/igdb/IgdbSearchModal.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiBadge from '@/components/ui/UiBadge.vue'
@@ -23,8 +22,6 @@ const toast = useToastStore()
 const filterModalOpen = ref(false)
 const runnerModalOpen = ref(false)
 const igdbModalOpen = ref(false)
-const installModalOpen = ref(false)
-const selectedGameForInstall = ref<Game | null>(null)
 const selectedGameForRunner = ref<Game | null>(null)
 
 // Chargement progressif au scroll (évite d'instancier 800+ composants d'un coup)
@@ -82,8 +79,8 @@ async function handlePlayHero() {
   if (!heroGame.value) return
   if (!isHeroRunning.value) {
     if (!heroGame.value.installed) {
-      selectedGameForInstall.value = heroGame.value
-      installModalOpen.value = true
+      toast.show(`Ouverture de l'assistant d'installation Steam pour ${heroGame.value.title}...`, 'info')
+      await gamesStore.installGame(heroGame.value.id)
       return
     }
     await gamesStore.launchGame(heroGame.value.id)
@@ -721,14 +718,6 @@ function scrollToCatalog() {
       :open="igdbModalOpen"
       @close="igdbModalOpen = false"
       @imported="(id) => router.push(`/games/${id}`)"
-    />
-
-    <GameInstallModal
-      v-if="selectedGameForInstall"
-      :game="selectedGameForInstall"
-      :is-open="installModalOpen"
-      @close="installModalOpen = false"
-      @installed="installModalOpen = false"
     />
   </div>
 </template>

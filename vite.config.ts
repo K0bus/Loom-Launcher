@@ -360,45 +360,18 @@ function steamProcessPlugin(): Plugin {
                   res.end(JSON.stringify({ success: false, error: 'AppID manquant' }))
                   return
                 }
-                const folderIdx = data.folderIndex !== undefined ? data.folderIndex : 0
-                console.info(`[Loom::Steam] Installation silencieuse Steam AppID ${appid} dans volume ${folderIdx}...`)
-
-                // 1. Transmission directe au pipe console Steam
-                let pipeSent = false
-                try {
-                  const pipePath = path.join(os.homedir(), '.steam/steam.pipe')
-                  if (fs.existsSync(pipePath)) {
-                    const fd = fs.openSync(pipePath, fs.constants.O_WRONLY | fs.constants.O_NONBLOCK)
-                    fs.writeSync(fd, `app_install ${appid} ${folderIdx}\n`)
-                    fs.closeSync(fd)
-                    pipeSent = true
-                    console.info(`[Loom::Steam] Commande app_install transmise avec succès au pipe Steam`)
+                console.info(`[Loom::Steam] Lancement de l'assistant d'installation Steam pour AppID ${appid}...`)
+                exec(`xdg-open steam://install/${appid}`, (err) => {
+                  if (err) {
+                    exec(`steam "steam://install/${appid}"`)
                   }
-                } catch (pipeErr) {
-                  console.warn(`[Loom::Steam] Erreur steam.pipe (fallback steam-remote):`, pipeErr)
-                }
-
-                // 2. Transmission en arrière-plan sans xdg-open (ne vole pas le focus du bureau)
-                const remotePath = path.join(
-                  os.homedir(),
-                  '.steam/root/ubuntu12_32/steam-runtime/amd64/usr/bin/steam-runtime-steam-remote'
-                )
-                if (fs.existsSync(remotePath)) {
-                  exec(`"${remotePath}" "steam://install/${appid}"`, (err) => {
-                    if (err) console.warn('[Loom::Steam] steam-remote error:', err)
-                  })
-                } else {
-                  exec(`steam "steam://install/${appid}"`)
-                }
+                })
 
                 res.end(
                   JSON.stringify({
                     success: true,
-                    message: `Installation transmise silencieusement à Steam pour AppID ${appid}`,
-                    appid,
-                    folderIndex: folderIdx,
-                    pipeSent,
-                    silent: true
+                    message: `Assistant d'installation Steam ouvert pour AppID ${appid}`,
+                    appid
                   })
                 )
                 return

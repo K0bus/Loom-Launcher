@@ -8,7 +8,6 @@ import UiModal from '@/components/ui/UiModal.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import IgdbSearchModal from '@/components/igdb/IgdbSearchModal.vue'
 import AchievementsModal from '@/components/games/AchievementsModal.vue'
-import GameInstallModal from '@/components/games/GameInstallModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -18,7 +17,6 @@ const toast = useToastStore()
 const igdbModalOpen = ref(false)
 const buyModalOpen = ref(false)
 const achievementsModalOpen = ref(false)
-const installModalOpen = ref(false)
 const isLoadingAchievements = ref(false)
 const selectedScreenshot = ref<string | null>(null)
 const isLoadingGame = ref(false)
@@ -93,7 +91,8 @@ async function handlePlay() {
   if (!game.value) return
   if (!isRunning.value) {
     if (!game.value.installed) {
-      installModalOpen.value = true
+      toast.show(`Ouverture de l'assistant d'installation Steam pour ${game.value.title}...`, 'info')
+      await gamesStore.installGame(game.value.id)
       return
     }
     await gamesStore.launchGame(game.value.id)
@@ -895,15 +894,6 @@ const achievementPercent = computed(() => {
       :achievements="game.achievements || []"
       :loading="isLoadingAchievements"
       @close="achievementsModalOpen = false"
-    />
-
-    <!-- Modal d'Installation Silencieuse Native Loom -->
-    <GameInstallModal
-      v-if="game"
-      :game="game"
-      :is-open="installModalOpen"
-      @close="installModalOpen = false"
-      @installed="installModalOpen = false"
     />
   </div>
 
