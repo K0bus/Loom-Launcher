@@ -3,6 +3,7 @@ pub mod commands;
 pub mod db;
 pub mod minecraft;
 pub mod modding;
+pub mod monitoring;
 pub mod process_guard;
 
 use battlenet::BattleNetLauncherState;
