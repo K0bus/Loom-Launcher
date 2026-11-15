@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { ipc } from '@/services/ipc'
+import { useSettingsStore } from '@/stores/settingsStore'
 
 export const useToastStore = defineStore('toast', () => {
   const visible = ref(false)
@@ -11,6 +13,13 @@ export const useToastStore = defineStore('toast', () => {
     message.value = msg
     type.value = toastType
     visible.value = true
+
+    try {
+      const settingsStore = useSettingsStore()
+      if (settingsStore.settings.desktopNotifications) {
+        ipc.sendDesktopNotification('Loom Launcher', msg).catch(() => {})
+      }
+    } catch {}
 
     if (timer) clearTimeout(timer)
     timer = setTimeout(() => {

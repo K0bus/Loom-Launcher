@@ -1,37 +1,82 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, watch } from 'vue'
 import DesktopWindowHeader from '@/components/layout/DesktopWindowHeader.vue'
 import { useSystemStore } from '@/stores/systemStore'
+import { useSettingsStore } from '@/stores/settingsStore'
 import { useToastStore } from '@/stores/toastStore'
+import { ipc } from '@/services/ipc'
 
 const systemStore = useSystemStore()
+const settingsStore = useSettingsStore()
 const toast = useToastStore()
 
-onMounted(() => {
+watch(
+  () => settingsStore.settings.themeAccent,
+  (val) => {
+    settingsStore.applyThemeAccent(val)
+  },
+  { immediate: true }
+)
+
+onMounted(async () => {
   systemStore.refreshStats()
+
+  // 1. Gestion du démarrage minimisé
+  try {
+    const shouldStartMinimized = await ipc.isStartMinimized()
+    if (shouldStartMinimized || settingsStore.settings.startMinimized) {
+      if (ipc.isTauri()) {
+        const { getCurrentWindow } = await import('@tauri-apps/api/window')
+        getCurrentWindow().minimize().catch(() => {})
+      }
+    }
+  } catch {}
+
+  // 2. Initialisation des instances externes configurées pour l'autostart (Steam, Battle.net, Epic, GOG)
+  settingsStore.runAutostartInstances()
+
+  // 3. Détection et écoute de l'état maximisé de la fenêtre pour adapter les bordures arrondies
+  if (ipc.isTauri()) {
+    try {
+      const { getCurrentWindow } = await import('@tauri-apps/api/window')
+      const win = getCurrentWindow()
+      systemStore.setMaximized(await win.isMaximized())
+      win.onResized(async () => {
+        try {
+          systemStore.setMaximized(await win.isMaximized())
+        } catch {}
+      }).catch(() => {})
+    } catch {}
+
+    // 4. Détection automatique des mises à jour sur disque pour les processus en cours
+    try {
+      const { listen } = await import('@tauri-apps/api/event')
+      await listen('loom:update-detected', () => {
+        toast.show(
+          'Une nouvelle version de Loom Launcher a été déployée sur le disque.',
+          'info'
+        )
+      })
+    } catch {}
+  }
 })
 </script>
 
 <template>
-  <div class="flex flex-col h-screen w-screen overflow-hidden bg-zinc-950 font-sans text-zinc-100 select-none">
+  <div
+    :class="[
+      'flex flex-col h-screen w-screen overflow-hidden bg-zinc-950 font-sans text-zinc-100 select-none transition-all duration-150',
+      systemStore.isMaximized
+        ? 'rounded-none border-0'
+        : 'rounded-none border border-zinc-800/80 shadow-2xl'
+    ]"
+  >
     <!-- Top Floating Desktop Titlebar & Navigation -->
     <DesktopWindowHeader />
 
-    <!-- Main Desktop Content Area -->
-    <main class="flex-1 overflow-y-auto overflow-x-hidden relative">
-      <router-view v-slot="{ Component }">
-        <Transition
-          enter-active-class="transition duration-200 ease-out"
-          enter-from-class="opacity-0 translate-y-1"
-          enter-to-class="opacity-100 translate-y-0"
-          leave-active-class="transition duration-100 ease-in"
-          leave-from-class="opacity-100 translate-y-0"
-          leave-to-class="opacity-0 -translate-y-1"
-          mode="out-in"
-        >
-          <component :is="Component" />
-        </Transition>
-      </router-view>
+    <!-- Main Desktop Content Area sans Transition (navigation instantanée sans flash) -->
+    <main class="flex-1 overflow-y-auto overflow-x-hidden relative bg-zinc-950">
+      <router-view />
     </main>
 
     <!-- Global Desktop Toast Notification Container -->

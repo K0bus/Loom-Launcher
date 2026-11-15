@@ -12,19 +12,19 @@ export const useSystemStore = defineStore('system', () => {
     networkUpKbps: 340,
     disks: [
       {
-        mountPoint: '/mnt/games-nvme',
-        label: 'NVMe Jeux (Samsung 990 Pro)',
-        freeGb: 482,
-        totalGb: 2000,
-        usedPercentage: 76,
+        mountPoint: '/home/k0bus/.local/share/Steam',
+        label: 'Disque Principal (Steam Défaut)',
+        freeGb: 389,
+        totalGb: 895,
+        usedPercentage: 57,
         isGamePartition: true
       },
       {
         mountPoint: '/',
-        label: 'Système Linux (Arch)',
-        freeGb: 124,
-        totalGb: 500,
-        usedPercentage: 75,
+        label: 'Système Linux (Racine)',
+        freeGb: 389,
+        totalGb: 895,
+        usedPercentage: 57,
         isGamePartition: false
       }
     ],
@@ -54,19 +54,78 @@ export const useSystemStore = defineStore('system', () => {
     }
   ])
 
+  const isMaximized = ref(false)
+
+  function setMaximized(value: boolean) {
+    isMaximized.value = value
+  }
+
   async function refreshStats() {
     try {
-      const data = await ipc.invoke<SystemStats>('get_system_stats')
+      const data = await ipc.invoke<any>('get_system_stats')
       if (data) {
+        const cpuUsage = data.cpuUsage ?? data.cpu_usage ?? stats.value.cpuUsage
+        const ramUsedGb = data.ramUsedGb ?? data.ram_used_gb ?? stats.value.ramUsedGb
+        const ramTotalGb = data.ramTotalGb ?? data.ram_total_gb ?? stats.value.ramTotalGb
+        const networkDown = data.networkDownKbps ?? data.networkDownKb ?? data.network_down_kb ?? stats.value.networkDownKbps
+        const networkUp = data.networkUpKbps ?? data.networkUpKb ?? data.network_up_kb ?? stats.value.networkUpKbps
+        const displayServer = data.displayServer ?? data.display_server ?? stats.value.displayServer
+        const kernelVersion = data.kernelVersion ?? data.kernel_version ?? stats.value.kernelVersion
+
+        const df = data.diskFreeGb ?? data.disk_free_gb
+        const dt = data.diskTotalGb ?? data.disk_total_gb
+        if (typeof df === 'number' && typeof dt === 'number' && dt > 0) {
+          const rootDisk = stats.value.disks.find((d) => d.mountPoint === '/')
+          if (rootDisk) {
+            rootDisk.freeGb = Math.round(df)
+            rootDisk.totalGb = Math.round(dt)
+            rootDisk.usedPercentage = Math.round(((dt - df) / dt) * 100)
+          }
+        }
+
         stats.value = {
           ...stats.value,
-          ...data,
+          cpuUsage,
+          ramUsedGb,
+          ramTotalGb,
+          networkDownKbps: networkDown,
+          networkUpKbps: networkUp,
+          displayServer,
+          kernelVersion,
           tauriDetected: ipc.isTauri()
         }
       }
     } catch (err) {
       console.warn('Could not refresh stats:', err)
     }
+  }
+
+  async function refreshDiskLibraries() {
+    try {
+      const steamLibsRes = await ipc.invoke<any>('get_steam_libraries')
+      const libs = Array.isArray(steamLibsRes) ? steamLibsRes : steamLibsRes?.libraries
+      if (Array.isArray(libs) && libs.length > 0) {
+        const availableLibs = libs.filter((l: any) => l.available !== false && l.totalGb > 0)
+        if (availableLibs.length > 0) {
+          stats.value.disks = availableLibs.map((l: any) => ({
+            mountPoint: l.path,
+            label: l.label || (l.isDefault ? 'Disque Steam Principal' : 'Bibliothèque Steam'),
+            freeGb: Math.round(l.freeGb),
+            totalGb: Math.round(l.totalGb),
+            usedPercentage: Math.round(l.usedPercent),
+            isGamePartition: true
+          }))
+        }
+      }
+    } catch {}
+  }
+
+  // Automatic real-time polling for system and resource stats (4s interval)
+  if (typeof window !== 'undefined') {
+    refreshStats()
+    refreshDiskLibraries()
+    setInterval(refreshStats, 4000)
+    setInterval(refreshDiskLibraries, 30000)
   }
 
   function markNotificationsAsRead() {
@@ -77,7 +136,10 @@ export const useSystemStore = defineStore('system', () => {
   return {
     stats,
     notifications,
+    isMaximized,
+    setMaximized,
     refreshStats,
+    refreshDiskLibraries,
     markNotificationsAsRead
   }
 })

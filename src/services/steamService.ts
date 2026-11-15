@@ -1,4 +1,6 @@
+import { ref } from 'vue'
 import type { Game } from '@/models/game'
+import { ipc } from './ipc'
 import detectedGamesRaw from './steam_detected_games.json'
 
 export interface RealSteamGame {
@@ -196,25 +198,55 @@ export function mapSteamGameToLoomGame(sGame: RealSteamGame): Game {
   }
 }
 
+export const realSteamAccountState = ref<RealSteamAccount>({ ...REAL_STEAM_DATA })
+
 class SteamService {
   public getDetectedAccount(): RealSteamAccount {
-    return REAL_STEAM_DATA
+    return realSteamAccountState.value
   }
 
   public getInstalledGames(): RealSteamGame[] {
-    return REAL_STEAM_DATA.installedGames
+    return realSteamAccountState.value.installedGames
   }
 
   public getUninstalledGames(): RealSteamGame[] {
-    return REAL_STEAM_DATA.uninstalledGames
+    return realSteamAccountState.value.uninstalledGames
   }
 
   public getAllSteamGames(): RealSteamGame[] {
-    return REAL_STEAM_DATA.allGames
+    return realSteamAccountState.value.allGames
   }
 
   public getLoomLibraryGames(): Game[] {
-    return REAL_STEAM_DATA.allGames.map(mapSteamGameToLoomGame)
+    return realSteamAccountState.value.allGames.map(mapSteamGameToLoomGame)
+  }
+
+  /**
+   * Scans live local Steam library files (libraryfolders.vdf, appmanifests, localconfig)
+   */
+  public async scanLocalSteam(): Promise<Game[]> {
+    try {
+      const scanned = await ipc.scanLocalSteamLibrary()
+      if (scanned && Array.isArray(scanned.allGames) && scanned.allGames.length > 0) {
+        realSteamAccountState.value = {
+          steamId64: scanned.steamId64 || '76561198085607978',
+          accountName: scanned.accountName || 'ik0bus',
+          personaName: scanned.personaName || 'K0bus',
+          installPath: scanned.installPath || '/home/k0bus/.local/share/Steam',
+          detected: scanned.detected ?? true,
+          installedCount: scanned.installedCount || scanned.installedGames?.length || 0,
+          uninstalledCount: scanned.uninstalledCount || scanned.uninstalledGames?.length || 0,
+          totalGamesCount: scanned.totalGamesCount || scanned.allGames.length,
+          installedGames: scanned.installedGames || [],
+          uninstalledGames: scanned.uninstalledGames || [],
+          allGames: scanned.allGames || []
+        }
+        return realSteamAccountState.value.allGames.map(mapSteamGameToLoomGame)
+      }
+    } catch (e) {
+      console.warn('[SteamService] Dynamic scan failed, falling back to cached state:', e)
+    }
+    return this.getLoomLibraryGames()
   }
 
   /**

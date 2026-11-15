@@ -27,6 +27,15 @@ const systemStore = useSystemStore()
 
 const hero = computed(() => gamesStore.heroGame)
 
+const mostActiveGame = computed(() => {
+  return [...gamesStore.games].sort((a, b) => (b.playtimeMinutes || 0) - (a.playtimeMinutes || 0))[0] || null
+})
+
+const weeklyPlaytimeHours = computed(() => {
+  const sumMinutes = gamesStore.recentGames.reduce((acc, g) => acc + (g.playtimeMinutes || 0), 0)
+  return sumMinutes > 0 ? (sumMinutes / 60).toFixed(1) : String(systemStore.stats.weeklyPlaytimeHours)
+})
+
 function openGame(game: Game) {
   router.push(`/games/${game.slug || game.id}`)
 }
@@ -236,14 +245,14 @@ function openGame(game: Game) {
         <!-- Weekly playtime -->
         <div class="p-4 rounded-xl bg-zinc-950/70 border border-zinc-800/80 space-y-1.5">
           <div class="flex items-center justify-between text-xs text-zinc-400">
-            <span>Temps de jeu cette semaine</span>
-            <span class="text-amber-400 font-bold font-mono">+4.2h vs sem. dernière</span>
+            <span>Temps cumulé sur les jeux récents</span>
+            <span class="text-amber-400 font-bold font-mono">Activité réelle</span>
           </div>
           <div class="text-2xl font-black text-zinc-100 font-display">
-            {{ systemStore.stats.weeklyPlaytimeHours }} Heures
+            {{ weeklyPlaytimeHours }} Heures
           </div>
-          <div class="text-[11px] text-zinc-500">
-            Jeu le plus actif : <span class="text-zinc-300 font-medium">Cyberpunk 2077</span>
+          <div v-if="mostActiveGame" class="text-[11px] text-zinc-500 truncate">
+            Jeu le plus joué : <span class="text-zinc-300 font-medium">{{ mostActiveGame.title }} ({{ (mostActiveGame.playtimeMinutes / 60).toFixed(0) }} h)</span>
           </div>
         </div>
 

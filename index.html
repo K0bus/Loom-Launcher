@@ -2,18 +2,153 @@
 <html lang="fr" class="dark">
   <head>
     <meta charset="UTF-8" />
+    <style>
+      /* Critical instantaneous loading screen - 0ms white flash prevention */
+      html, body {
+        background-color: #09090b !important;
+        background: #09090b !important;
+        color: #f4f4f5;
+        margin: 0;
+        padding: 0;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        user-select: none;
+        -webkit-user-select: none;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      #initial-splash {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: #09090b;
+        border-radius: 1rem;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 999999;
+      }
+      .splash-logo-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 110px;
+        height: 110px;
+      }
+      .splash-glow {
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        border-radius: 9999px;
+        background: radial-gradient(circle, rgba(245, 158, 11, 0.3) 0%, rgba(245, 158, 11, 0) 70%);
+        animation: splash-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      .splash-logo {
+        position: relative;
+        width: 80px;
+        height: 80px;
+        object-fit: contain;
+        filter: drop-shadow(0 4px 20px rgba(245, 158, 11, 0.35));
+        animation: splash-breathe 2.4s ease-in-out infinite;
+      }
+      .splash-bar-track {
+        width: 140px;
+        height: 3px;
+        background-color: #27272a;
+        border-radius: 9999px;
+        overflow: hidden;
+        margin-top: 28px;
+        position: relative;
+      }
+      .splash-bar-fill {
+        width: 45%;
+        height: 100%;
+        background: linear-gradient(90deg, #d97706, #fbbf24, #f59e0b);
+        border-radius: 9999px;
+        position: absolute;
+        animation: splash-slide 1.4s ease-in-out infinite;
+      }
+      .splash-text {
+        margin-top: 14px;
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #71717a;
+        font-weight: 500;
+        animation: splash-fade 2s ease-in-out infinite;
+      }
+      @keyframes splash-pulse {
+        0%, 100% { transform: scale(0.85); opacity: 0.35; }
+        50% { transform: scale(1.25); opacity: 0.85; }
+      }
+      @keyframes splash-breathe {
+        0%, 100% { transform: scale(0.97); opacity: 0.95; }
+        50% { transform: scale(1.03); opacity: 1; filter: drop-shadow(0 4px 26px rgba(245, 158, 11, 0.55)); }
+      }
+      @keyframes splash-slide {
+        0% { left: -45%; }
+        50% { left: 35%; width: 50%; }
+        100% { left: 100%; }
+      }
+      @keyframes splash-fade {
+        0%, 100% { opacity: 0.45; }
+        50% { opacity: 0.9; color: #a1a1aa; }
+      }
+    </style>
+    <link rel="icon" type="image/png" href="/icon.png" />
     <link rel="icon" type="image/svg+xml" href="/loom-icon.svg" />
+    <link rel="shortcut icon" href="/icon.ico" />
+    <link rel="apple-touch-icon" href="/icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Aureus / Loom Launcher — Universal Gaming Platform</title>
     <!-- Google Fonts: Inter, Cinzel & JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <!-- Phosphor Icons CDN -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
   </head>
   <body class="bg-zinc-950 text-zinc-100 font-sans antialiased select-none overflow-hidden h-screen w-screen">
-    <div id="app" class="h-full w-full"></div>
+    <div id="app" class="h-full w-full bg-zinc-950 overflow-hidden">
+      <div id="initial-splash">
+        <div class="splash-logo-wrap">
+          <div class="splash-glow"></div>
+          <img src="/logo.png" alt="Loom Logo" class="splash-logo" />
+        </div>
+        <div class="splash-bar-track">
+          <div class="splash-bar-fill"></div>
+        </div>
+        <div id="splash-status" class="splash-text">Démarrage de Loom...</div>
+        <button id="splash-reload-btn" onclick="window.location.reload()" style="display: none; margin-top: 16px; padding: 6px 14px; font-size: 12px; background: #27272a; color: #fbbf24; border: 1px solid #3f3f46; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+          Actualiser l'application
+        </button>
+      </div>
+    </div>
+    <script>
+      (function() {
+        var t1 = setTimeout(function() {
+          var el = document.getElementById('splash-status');
+          if (el) el.textContent = 'Chargement des modules...';
+        }, 2500);
+        var t2 = setTimeout(function() {
+          var el = document.getElementById('splash-status');
+          var btn = document.getElementById('splash-reload-btn');
+          if (el) el.textContent = 'Initialisation en cours...';
+          if (btn) btn.style.display = 'inline-block';
+        }, 6000);
+        window.addEventListener('error', function(e) {
+          var el = document.getElementById('splash-status');
+          var btn = document.getElementById('splash-reload-btn');
+          if (el) {
+            el.textContent = 'Erreur: ' + (e.message || 'Échec du chargement');
+            el.style.color = '#ef4444';
+          }
+          if (btn) btn.style.display = 'inline-block';
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

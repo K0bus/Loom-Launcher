@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useGamesStore } from '@/stores/gamesStore'
 import { useIgdbStore } from '@/stores/igdbStore'
@@ -24,43 +24,36 @@ const runnerModalOpen = ref(false)
 const igdbModalOpen = ref(false)
 const selectedGameForRunner = ref<Game | null>(null)
 
-// Chargement progressif au scroll (évite d'instancier 800+ composants d'un coup)
-const PAGE_SIZE = 36
+// Pagination progressive contrôlée (+24 par page)
+const PAGE_SIZE = 24
 const displayedCount = ref(PAGE_SIZE)
-const sentinelRef = ref<HTMLElement | null>(null)
-let scrollObserver: IntersectionObserver | null = null
+let isAppending = false
 
 function loadMoreGames() {
-  if (displayedCount.value < filteredGames.value.length) {
-    displayedCount.value = Math.min(displayedCount.value + PAGE_SIZE, filteredGames.value.length)
-  }
+  if (isAppending || displayedCount.value >= filteredGames.value.length) return
+  isAppending = true
+  displayedCount.value = Math.min(displayedCount.value + PAGE_SIZE, filteredGames.value.length)
+  setTimeout(() => {
+    isAppending = false
+  }, 100)
 }
 
 onMounted(() => {
-  scrollObserver = new IntersectionObserver(
-    (entries) => {
-      if (entries[0]?.isIntersecting) {
-        loadMoreGames()
-      }
-    },
-    { rootMargin: '300px' }
-  )
-
-  if (sentinelRef.value) {
-    scrollObserver.observe(sentinelRef.value)
+  const qPlatform = route.query.platform || route.query.tag
+  if (qPlatform) {
+    selectQuickTag(String(qPlatform))
   }
 })
 
-onUnmounted(() => {
-  scrollObserver?.disconnect()
-})
-
-watch(sentinelRef, (newEl) => {
-  if (scrollObserver && newEl) {
-    scrollObserver.disconnect()
-    scrollObserver.observe(newEl)
+watch(
+  () => [route.query.platform, route.query.tag],
+  ([plat, tag]) => {
+    const target = plat || tag
+    if (target) {
+      selectQuickTag(String(target))
+    }
   }
-})
+)
 
 // 1. HERO : Dernier jeu joué (null si bibliothèque vide)
 const heroGame = computed<Game | null>(() => {
@@ -118,13 +111,18 @@ const recentPlayedGames = computed(() => {
 const initialSearch = (route.query.q as string) || ''
 const selectedTag = ref<string>('all')
 
-const quickTags = computed(() => [
-  { id: 'all', label: `Tous (${gamesStore.totalCount})`, icon: 'ph-squares-four' },
-  { id: 'installed', label: `Installés (${gamesStore.installedCount})`, icon: 'ph-hard-drive' },
-  { id: 'uninstalled', label: `Non installés (${gamesStore.uninstalledCount})`, icon: 'ph-cloud-arrow-down' },
-  { id: 'favorites', label: 'Favoris ⭐', icon: 'ph-star' },
-  { id: 'steam', label: 'Steam', icon: 'ph-game-controller' }
-])
+const quickTags = computed(() => {
+  const bnetCount = gamesStore.games.filter((g) => g.platform === 'battlenet' || g.id.startsWith('bnet-')).length
+  const steamCount = gamesStore.games.filter((g) => g.platform === 'steam' || g.id.startsWith('steam-')).length
+  return [
+    { id: 'all', label: `Tous (${gamesStore.totalCount})`, icon: 'ph-squares-four' },
+    { id: 'installed', label: `Installés (${gamesStore.installedCount})`, icon: 'ph-hard-drive' },
+    { id: 'uninstalled', label: `Non installés (${gamesStore.uninstalledCount})`, icon: 'ph-cloud-arrow-down' },
+    { id: 'favorites', label: 'Favoris ⭐', icon: 'ph-star' },
+    { id: 'steam', label: `Steam (${steamCount})`, icon: 'ph-game-controller' },
+    { id: 'battlenet', label: `Battle.net (${bnetCount})`, icon: 'ph-shield-check' }
+  ]
+})
 
 const filters = ref<GameFilter>({
   search: initialSearch,
@@ -156,7 +154,7 @@ function selectQuickTag(tagId: string) {
     filters.value.runner = 'all'
   } else if (tagId === 'favorites') {
     filters.value.status = 'all'
-  } else if (tagId === 'steam') {
+  } else if (tagId === 'steam' || tagId === 'battlenet') {
     filters.value.platform = tagId
     filters.value.status = 'all'
     filters.value.genre = 'all'
@@ -170,7 +168,7 @@ function selectQuickTag(tagId: string) {
 }
 
 const filteredGames = computed(() => {
-  let list = gamesStore.filterGames(filters.value).filter((g) => g.inLibrary !== false)
+  let list = gamesStore.filterGames(filters.value)
   if (selectedTag.value === 'favorites') {
     list = list.filter((g) => g.isFavorite)
   }
@@ -253,16 +251,17 @@ function scrollToCatalog() {
       class="relative w-full h-[calc(100vh-53px)] min-h-[580px] flex flex-col justify-end overflow-hidden select-none"
     >
       <!-- Background Artwork Full-Page -->
-      <div class="absolute inset-0 z-0">
+      <div class="absolute inset-0 z-0 overflow-hidden">
         <img
           :src="heroGame.bannerUrl"
           :alt="heroGame.title"
-          class="w-full h-full object-cover object-[65%_25%] scale-105 transition-transform duration-1000 ease-out"
+          class="w-full h-full object-cover object-[65%_25%]"
+          loading="eager"
+          decoding="async"
         />
-        <!-- Ambient radial glow & dark vignettes matching Aureus reference -->
-        <div class="absolute inset-0 hero-glow mix-blend-screen pointer-events-none" />
+        <!-- Ambient dark vignettes matching Aureus reference (GPU-accelerated pure linear gradients) -->
         <div class="absolute inset-0 hero-vignette pointer-events-none" />
-        <div class="absolute inset-0 bg-[radial-gradient(#ffffff08_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
+        <div class="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent pointer-events-none" />
       </div>
 
       <!-- Hero Overlay : Appel au jeu, nombre d'heures et avancement des succès -->
@@ -318,7 +317,7 @@ function scrollToCatalog() {
             </button>
 
             <!-- Métriques groupées : Nombre d'heures & Avancement des Succès -->
-            <div class="flex flex-wrap items-center gap-6 sm:gap-8 px-6 py-3 rounded-2xl bg-zinc-900/80 border border-zinc-800/80 backdrop-blur-md">
+            <div class="flex flex-wrap items-center gap-6 sm:gap-8 px-6 py-3 rounded-2xl bg-zinc-900/90 border border-zinc-800/80">
               <!-- Nombre d'heures jouées -->
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
@@ -370,7 +369,7 @@ function scrollToCatalog() {
         class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1 text-xs text-zinc-400 hover:text-amber-400 transition-colors cursor-pointer group"
       >
         <span class="text-[10px] font-mono tracking-widest uppercase opacity-75 group-hover:opacity-100">BIBLIOTHÈQUE</span>
-        <i class="ph ph-caret-down text-base animate-bounce"></i>
+        <i class="ph ph-caret-down text-base"></i>
       </button>
     </section>
 
@@ -487,14 +486,15 @@ function scrollToCatalog() {
             v-for="game in recentPlayedGames"
             :key="game.id"
             @click="openGameDetail(game)"
-            class="group relative rounded-2xl overflow-hidden bg-zinc-900/60 border border-zinc-800/80 hover:border-amber-500/50 transition-all duration-300 cursor-pointer shadow-lg hover:-translate-y-1 select-none flex flex-col"
+            class="group relative rounded-2xl overflow-hidden bg-zinc-900/80 border border-zinc-800/80 hover:border-amber-500/50 transition-colors duration-150 cursor-pointer shadow-md hover:-translate-y-0.5 select-none flex flex-col"
           >
             <!-- 3:4 poster ratio -->
             <div class="relative w-full aspect-[3/4] overflow-hidden bg-zinc-950">
               <img
                 :src="game.coverUrl"
                 :alt="game.title"
-                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                decoding="async"
               />
               <div class="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent" />
 
@@ -510,7 +510,7 @@ function scrollToCatalog() {
                 v-if="gamesStore.runningGameId === game.id"
                 class="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-amber-500 text-zinc-950 text-[10px] font-bold font-mono uppercase flex items-center gap-1 shadow"
               >
-                <span class="w-1.5 h-1.5 rounded-full bg-zinc-950 animate-ping" />
+                <span class="w-1.5 h-1.5 rounded-full bg-zinc-950" />
                 Actif
               </div>
 
@@ -593,6 +593,20 @@ function scrollToCatalog() {
               </span>
             </UiButton>
 
+            <!-- Synchroniser Steam / Bibliothèque -->
+            <UiButton
+              variant="secondary"
+              size="md"
+              :disabled="gamesStore.isScanningLibrary"
+              @click="gamesStore.fetchLibrary()"
+              title="Resynchroniser les jeux Steam et Battle.net locaux"
+            >
+              <template #prefix>
+                <i :class="['ph ph-arrows-clockwise text-amber-400 text-base', gamesStore.isScanningLibrary ? 'animate-spin' : '']"></i>
+              </template>
+              {{ gamesStore.isScanningLibrary ? 'Scan...' : 'Synchroniser' }}
+            </UiButton>
+
             <!-- Découvrir Hors Bibliothèque (IGDB) Button -->
             <UiButton
               variant="primary"
@@ -641,20 +655,45 @@ function scrollToCatalog() {
             v-for="game in displayedGames"
             :key="game.id"
             :game="game"
+            :is-running="gamesStore.runningGameId === game.id"
+            :is-starting="gamesStore.launchingGameId === game.id"
             @select="openGameDetail"
             @configure="configureRunner"
           />
         </div>
 
-        <!-- Scroll Sentinel & Chargement progressif -->
+        <!-- Pagination / Chargement manuel ou au clic -->
         <div
           v-if="hasMoreGames"
-          ref="sentinelRef"
-          class="w-full py-10 flex flex-col items-center justify-center gap-2.5 text-zinc-400 select-none"
+          class="w-full py-8 flex flex-col items-center justify-center gap-3 text-zinc-400 select-none"
         >
-          <div class="w-7 h-7 rounded-full border-2 border-amber-500/30 border-t-amber-500 animate-spin" />
-          <p class="text-xs text-zinc-400 font-mono tracking-wide">
-            {{ displayedGames.length }} sur {{ filteredGames.length }} jeux chargés • Défilez pour afficher la suite
+          <div class="flex flex-wrap items-center justify-center gap-3">
+            <UiButton
+              variant="secondary"
+              size="md"
+              @click="loadMoreGames"
+            >
+              <template #prefix>
+                <i class="ph ph-plus-circle text-amber-400 text-base"></i>
+              </template>
+              Afficher plus de jeux (+24)
+            </UiButton>
+
+            <UiButton
+              v-if="displayedGames.length > PAGE_SIZE"
+              variant="outline"
+              size="md"
+              @click="scrollToCatalog"
+              title="Remonter en haut du catalogue de jeux"
+            >
+              <template #prefix>
+                <i class="ph ph-arrow-up text-amber-400 text-base"></i>
+              </template>
+              Remonter en haut
+            </UiButton>
+          </div>
+          <p class="text-xs text-zinc-500 font-mono tracking-wide">
+            {{ displayedGames.length }} sur {{ filteredGames.length }} jeux affichés
           </p>
         </div>
 

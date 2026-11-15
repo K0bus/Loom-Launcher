@@ -7,20 +7,25 @@
     "dev": "vite",
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
-    "desktop": "electron desktop/main.cjs"
+    "tauri": "tauri",
+    "desktop": "__NV_DISABLE_EXPLICIT_SYNC=1 PKG_CONFIG_PATH=$HOME/.local/share/pkgconfig LIBRARY_PATH=$HOME/.local/lib:/usr/lib64:/usr/lib tauri dev",
+    "desktop:build": "__NV_DISABLE_EXPLICIT_SYNC=1 PKG_CONFIG_PATH=$HOME/.local/share/pkgconfig LIBRARY_PATH=$HOME/.local/lib:/usr/lib64:/usr/lib tauri build"
   },
   "dependencies": {
+    "@phosphor-icons/web": "^2.1.2",
     "@tauri-apps/api": "^2.2.0",
+    "@types/marked": "^5.0.2",
     "lucide-vue-next": "^0.469.0",
+    "marked": "^18.1.3",
     "pinia": "^2.3.0",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0",
     "@types/node": "^22.10.2",
     "@vitejs/plugin-vue": "^5.2.1",
     "autoprefixer": "^10.4.20",
-    "electron": "^45.2.1",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.2",

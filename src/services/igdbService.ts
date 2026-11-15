@@ -1128,32 +1128,42 @@ const MOCK_IGDB_CATALOG: IGDBGame[] = [
     ]
   },
   {
-    id: 121,
+    id: 135400,
     name: 'Minecraft',
-    slug: 'minecraft',
+    slug: 'minecraft--1',
     summary:
-      'Explorez des mondes infinis générés aléatoirement et construisez tout ce qui vous passe par la tête, du modeste abri au plus grandiose des châteaux.',
+      'Explorez des mondes infinis générés aléatoirement et construisez tout ce qui vous passe par la tête, du modeste abri au plus grandiose des châteaux. Jouez en mode créatif avec des ressources illimitées, ou creusez jusqu\'au centre de la Terre en mode survie.',
     first_release_date: 1321574400,
     total_rating: 91,
     total_rating_count: 32000,
     category: 0,
     cover: {
-      id: 105,
-      image_id: 'co807s',
-      url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co807s.jpg'
+      id: 135400,
+      image_id: 'co8fu7',
+      url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co8fu7.jpg'
     },
     artworks: [
       {
-        id: 207,
-        image_id: 'ar442',
-        url: 'https://images.unsplash.com/photo-1627856013091-fed6e4e30025?q=80&w=2070&auto=format&fit=crop'
+        id: 135401,
+        image_id: 'co8fu7',
+        url: 'https://images.igdb.com/igdb/image/upload/t_1080p/co8fu7.jpg'
+      },
+      {
+        id: 135402,
+        image_id: 'co807s',
+        url: 'https://images.igdb.com/igdb/image/upload/t_1080p/co807s.jpg'
       }
     ],
     screenshots: [
       {
-        id: 311,
-        image_id: 'sc4h1',
-        url: 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?q=80&w=1200&auto=format&fit=crop'
+        id: 135403,
+        image_id: 'co8fu7',
+        url: 'https://images.igdb.com/igdb/image/upload/t_1080p/co8fu7.jpg'
+      },
+      {
+        id: 135404,
+        image_id: 'co807s',
+        url: 'https://images.igdb.com/igdb/image/upload/t_screenshot_huge/co807s.jpg'
       }
     ],
     genres: [
@@ -1175,7 +1185,8 @@ const MOCK_IGDB_CATALOG: IGDBGame[] = [
       }
     ],
     websites: [
-      { id: 1, category: 1, url: 'https://www.minecraft.net' }
+      { id: 1, category: 1, url: 'https://www.minecraft.net' },
+      { id: 2, category: 13, url: 'https://www.igdb.com/games/minecraft--1' }
     ]
   },
   {
@@ -1327,6 +1338,330 @@ const MOCK_IGDB_CATALOG: IGDBGame[] = [
         company: { id: 1015, name: 'Bethesda Softworks', slug: 'bethesda' }
       }
     ]
+  },
+  {
+    id: 417650,
+    name: 'World of Warcraft: Forever',
+    slug: 'world-of-warcraft-forever',
+    summary:
+      "World of Warcraft: Forever est une expérience permanente inspirée de l'ère classique niveau 60 (Classic+) avec de nouveaux donjons, quêtes, rééquilibrages de classes et zones inexplorées sous Linux.",
+    storyline:
+      "Redécouvrez Azeroth dans sa version originelle sublimée. De nouvelles menaces émergent dans les zones classiques alors que les héros de l'Alliance et de la Horde s'affrontent pour le contrôle des terres ancestrales.",
+    first_release_date: 1793836800,
+    total_rating: 94,
+    total_rating_count: 1420,
+    category: 0,
+    cover: {
+      id: 417650,
+      image_id: 'co7bkq',
+      url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co7bkq.jpg'
+    },
+    artworks: [
+      {
+        id: 4176501,
+        image_id: 'ar_wowf',
+        url: 'https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/bltfe806acfa8672377/6a87bb854b66aa218691cf56/BG_Masthead_2600_Desktop.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 4176502,
+        image_id: 'sc_wowf_1',
+        url: 'https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/bltfe806acfa8672377/6a87bb854b66aa218691cf56/BG_Masthead_2600_Desktop.jpg'
+      }
+    ],
+    genres: [
+      { id: 12, name: 'MMORPG', slug: 'role-playing-rpg' },
+      { id: 31, name: 'Aventure', slug: 'adventure' }
+    ],
+    platforms: [{ id: 6, name: 'PC (Linux / Wine)', abbreviation: 'PC' }],
+    themes: [
+      { id: 17, name: 'Fantasy', slug: 'fantasy' },
+      { id: 38, name: 'Monde Ouvert', slug: 'open-world' }
+    ],
+    game_modes: [
+      { id: 2, name: 'Multijoueur en ligne', slug: 'multiplayer' },
+      { id: 3, name: 'Coopération', slug: 'co-op' }
+    ],
+    involved_companies: [
+      {
+        id: 10,
+        developer: true,
+        publisher: true,
+        company: { id: 1, name: 'Blizzard Entertainment', slug: 'blizzard' }
+      }
+    ],
+    websites: [
+      { id: 1, category: 1, url: 'https://worldofwarcraft.blizzard.com' },
+      { id: 2, category: 14, url: 'https://www.igdb.com/games/world-of-warcraft-forever' }
+    ]
+  },
+  {
+    id: 75379,
+    name: 'World of Warcraft Classic',
+    slug: 'world-of-warcraft-classic',
+    summary:
+      "World of Warcraft Classic est une recréation fidèle du WoW originel tel qu'il existait au moment de la mise à jour 'Tambours de guerre' (patch 1.12.0) en 2006.",
+    storyline:
+      "Quatre années se sont écoulées depuis les événements de Warcraft III: Reign of Chaos. Une paix fragile règne sur un monde dévasté par la guerre, alors que l'Alliance et la Horde reconstruisent leurs royaumes respectifs.",
+    first_release_date: 1566864000,
+    total_rating: 91,
+    total_rating_count: 5200,
+    category: 0,
+    cover: {
+      id: 75379,
+      image_id: 'co1trz',
+      url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1trz.jpg'
+    },
+    artworks: [
+      {
+        id: 753791,
+        image_id: 'ar_wowc',
+        url: 'https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/bltfe806acfa8672377/6a87bb854b66aa218691cf56/BG_Masthead_2600_Desktop.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 753792,
+        image_id: 'sc_wowc_1',
+        url: 'https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/bltfe806acfa8672377/6a87bb854b66aa218691cf56/BG_Masthead_2600_Desktop.jpg'
+      }
+    ],
+    genres: [
+      { id: 12, name: 'MMORPG', slug: 'role-playing-rpg' },
+      { id: 31, name: 'Aventure', slug: 'adventure' }
+    ],
+    platforms: [{ id: 6, name: 'PC (Linux / Wine)', abbreviation: 'PC' }],
+    themes: [
+      { id: 17, name: 'Fantasy', slug: 'fantasy' },
+      { id: 38, name: 'Monde Ouvert', slug: 'open-world' }
+    ],
+    game_modes: [
+      { id: 2, name: 'Multijoueur en ligne', slug: 'multiplayer' },
+      { id: 3, name: 'Coopération', slug: 'co-op' }
+    ],
+    involved_companies: [
+      {
+        id: 10,
+        developer: true,
+        publisher: true,
+        company: { id: 1, name: 'Blizzard Entertainment', slug: 'blizzard' }
+      }
+    ],
+    websites: [
+      { id: 1, category: 1, url: 'https://worldofwarcraft.blizzard.com' },
+      { id: 2, category: 14, url: 'https://www.igdb.com/games/world-of-warcraft-classic' }
+    ]
+  },
+  {
+    id: 275175,
+    name: 'World of Warcraft Classic: Season of Discovery',
+    slug: 'world-of-warcraft-classic-season-of-discovery',
+    summary:
+      "La Saison de la Découverte apporte une touche inédite à WoW Classic : un système expérimental de runes de classe conférant de nouvelles compétences (paladins tanks, mages soigneurs), des paliers de niveau progressifs et des raids 10 joueurs revisités.",
+    storyline:
+      "Partez à la recherche des runes anciennes disséminées dans les recoins les plus sombres et mystérieux d'Azeroth pour transcender les limites de votre classe et redéfinir la guerre.",
+    first_release_date: 1701388800,
+    total_rating: 89,
+    total_rating_count: 2100,
+    category: 0,
+    cover: {
+      id: 275175,
+      image_id: 'co7bkt',
+      url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co7bkt.jpg'
+    },
+    artworks: [
+      {
+        id: 2751751,
+        image_id: 'ar_sod',
+        url: 'https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/bltfe806acfa8672377/6a87bb854b66aa218691cf56/BG_Masthead_2600_Desktop.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 2751752,
+        image_id: 'sc_sod_1',
+        url: 'https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/bltfe806acfa8672377/6a87bb854b66aa218691cf56/BG_Masthead_2600_Desktop.jpg'
+      }
+    ],
+    genres: [
+      { id: 12, name: 'MMORPG', slug: 'role-playing-rpg' },
+      { id: 31, name: 'Aventure', slug: 'adventure' }
+    ],
+    platforms: [{ id: 6, name: 'PC (Linux / Wine)', abbreviation: 'PC' }],
+    themes: [
+      { id: 17, name: 'Fantasy', slug: 'fantasy' },
+      { id: 38, name: 'Monde Ouvert', slug: 'open-world' }
+    ],
+    game_modes: [
+      { id: 2, name: 'Multijoueur en ligne', slug: 'multiplayer' },
+      { id: 3, name: 'Coopération', slug: 'co-op' }
+    ],
+    involved_companies: [
+      {
+        id: 10,
+        developer: true,
+        publisher: true,
+        company: { id: 1, name: 'Blizzard Entertainment', slug: 'blizzard' }
+      }
+    ],
+    websites: [
+      { id: 1, category: 1, url: 'https://worldofwarcraft.blizzard.com' },
+      {
+        id: 2,
+        category: 14,
+        url: 'https://www.igdb.com/games/world-of-warcraft-classic-season-of-discovery'
+      }
+    ]
+  },
+  {
+    id: 123,
+    name: 'World of Warcraft',
+    slug: 'world-of-warcraft',
+    summary:
+      "World of Warcraft est le MMORPG acclamé par la critique qui a défini tout un genre. Explorez Azeroth à travers l'extension The War Within, plongez sous la surface de Khaz Algar et unissez les factions face aux ténèbres du Vide.",
+    storyline:
+      "Des profondeurs d'Azeroth résonnent les murmures du messager du Vide, Xal'atath. Descendez dans les cavernes oubliées et combattez aux côtés des Terrestres pour préserver l'âme-monde.",
+    first_release_date: 1101168000,
+    total_rating: 95,
+    total_rating_count: 24000,
+    category: 0,
+    cover: {
+      id: 123,
+      image_id: 'co8b7k',
+      url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co8b7k.jpg'
+    },
+    artworks: [
+      {
+        id: 1231,
+        image_id: 'ar_wow',
+        url: 'https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/bltfe806acfa8672377/6a87bb854b66aa218691cf56/BG_Masthead_2600_Desktop.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 1232,
+        image_id: 'sc_wow_1',
+        url: 'https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/bltfe806acfa8672377/6a87bb854b66aa218691cf56/BG_Masthead_2600_Desktop.jpg'
+      }
+    ],
+    genres: [
+      { id: 12, name: 'MMORPG', slug: 'role-playing-rpg' },
+      { id: 31, name: 'Aventure', slug: 'adventure' }
+    ],
+    platforms: [{ id: 6, name: 'PC (Linux / Wine)', abbreviation: 'PC' }],
+    themes: [
+      { id: 17, name: 'Fantasy', slug: 'fantasy' },
+      { id: 38, name: 'Monde Ouvert', slug: 'open-world' }
+    ],
+    game_modes: [
+      { id: 2, name: 'Multijoueur en ligne', slug: 'multiplayer' },
+      { id: 3, name: 'Coopération', slug: 'co-op' }
+    ],
+    involved_companies: [
+      {
+        id: 10,
+        developer: true,
+        publisher: true,
+        company: { id: 1, name: 'Blizzard Entertainment', slug: 'blizzard' }
+      }
+    ],
+    websites: [
+      { id: 1, category: 1, url: 'https://worldofwarcraft.blizzard.com' },
+      { id: 2, category: 14, url: 'https://www.igdb.com/games/world-of-warcraft' }
+    ]
+  },
+  {
+    id: 119177,
+    name: 'Diablo IV',
+    slug: 'diablo-iv',
+    summary:
+      "Diablo IV est l'expérience ultime de jeu de rôle et d'action de nouvelle génération avec un mal infini à massacrer et d'innombrables capacités à maîtriser.",
+    first_release_date: 1686009600,
+    total_rating: 88,
+    total_rating_count: 6700,
+    category: 0,
+    cover: {
+      id: 119177,
+      image_id: 'co69sm',
+      url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co69sm.jpg'
+    },
+    artworks: [
+      {
+        id: 1191771,
+        image_id: 'ar_d4',
+        url: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2344520/library_hero.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 1191772,
+        image_id: 'sc_d4',
+        url: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2344520/library_hero.jpg'
+      }
+    ],
+    genres: [
+      { id: 12, name: 'Action-RPG', slug: 'role-playing-rpg' },
+      { id: 25, name: "Hack'n'Slash", slug: 'hack-and-slash-beat-em-up' }
+    ],
+    platforms: [{ id: 6, name: 'PC (Linux / Proton)', abbreviation: 'PC' }],
+    themes: [{ id: 17, name: 'Dark Fantasy', slug: 'dark-fantasy' }],
+    game_modes: [{ id: 2, name: 'Multijoueur en ligne', slug: 'multiplayer' }],
+    involved_companies: [
+      {
+        id: 10,
+        developer: true,
+        publisher: true,
+        company: { id: 1, name: 'Blizzard Entertainment', slug: 'blizzard' }
+      }
+    ],
+    websites: [{ id: 1, category: 1, url: 'https://diablo4.blizzard.com' }]
+  },
+  {
+    id: 125166,
+    name: 'Overwatch 2',
+    slug: 'overwatch-2',
+    summary:
+      "Overwatch 2 est un jeu de tir par équipe bourré d'action qui se déroule dans un avenir optimiste, où chaque match est le champ de bataille 5c5 ultime.",
+    first_release_date: 1664841600,
+    total_rating: 82,
+    total_rating_count: 7800,
+    category: 0,
+    cover: {
+      id: 125166,
+      image_id: 'co885f',
+      url: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co885f.jpg'
+    },
+    artworks: [
+      {
+        id: 1251661,
+        image_id: 'ar_ow2',
+        url: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2357570/library_hero.jpg'
+      }
+    ],
+    screenshots: [
+      {
+        id: 1251662,
+        image_id: 'sc_ow2',
+        url: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2357570/library_hero.jpg'
+      }
+    ],
+    genres: [
+      { id: 5, name: 'FPS', slug: 'shooter' },
+      { id: 1, name: 'Hero Shooter', slug: 'action' }
+    ],
+    platforms: [{ id: 6, name: 'PC (Linux / Proton)', abbreviation: 'PC' }],
+    themes: [{ id: 18, name: 'Science-Fiction', slug: 'sci-fi' }],
+    game_modes: [{ id: 2, name: 'Multijoueur en ligne', slug: 'multiplayer' }],
+    involved_companies: [
+      {
+        id: 10,
+        developer: true,
+        publisher: true,
+        company: { id: 1, name: 'Blizzard Entertainment', slug: 'blizzard' }
+      }
+    ],
+    websites: [{ id: 1, category: 1, url: 'https://overwatch.blizzard.com' }]
   }
 ]
 
@@ -1469,7 +1804,9 @@ class IgdbService {
     const idMatch = apicalypseQuery.match(/where\s+id\s*=\s*(\d+)/i)
     if (idMatch) {
       const id = parseInt(idMatch[1], 10)
-      const found = MOCK_IGDB_CATALOG.find((g) => g.id === id)
+      const found = MOCK_IGDB_CATALOG.find(
+        (g) => g.id === id || ((id === 121 || id === 135400) && (g.id === 121 || g.id === 135400))
+      )
       return (found ? [found] : []) as unknown as T
     }
 
@@ -1480,7 +1817,12 @@ class IgdbService {
       const found = MOCK_IGDB_CATALOG.find((g) => {
         const s1 = g.slug.toLowerCase().replace(/[^a-z0-9]/g, '')
         const s2 = slug.replace(/[^a-z0-9]/g, '')
-        return g.slug.toLowerCase() === slug || s1 === s2
+        return (
+          g.slug.toLowerCase() === slug ||
+          s1 === s2 ||
+          ((g.slug.includes('minecraft') || g.name.toLowerCase() === 'minecraft') &&
+            (slug.includes('minecraft') || slug === 'minecraft--1'))
+        )
       })
       return (found ? [found] : []) as unknown as T
     }

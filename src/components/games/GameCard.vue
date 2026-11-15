@@ -8,9 +8,14 @@ import UiBadge from '@/components/ui/UiBadge.vue'
 
 interface Props {
   game: Game
+  isRunning?: boolean
+  isStarting?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  isRunning: undefined,
+  isStarting: undefined
+})
 
 const emit = defineEmits<{
   (e: 'select', game: Game): void
@@ -19,21 +24,31 @@ const emit = defineEmits<{
 
 const gamesStore = useGamesStore()
 
-const isRunning = computed(() => props.game.id === gamesStore.runningGameId)
-const isStarting = computed(() => props.game.id === gamesStore.launchingGameId)
+// Découplage de la réactivité : utilise les props fournies par le parent (LibraryView)
+// pour éviter que chaque carte n'écoute individuellement le store lors des polls réguliers
+const isRunning = computed(() => {
+  if (props.isRunning !== undefined) return props.isRunning
+  return props.game.id === gamesStore.runningGameId
+})
+
+const isStarting = computed(() => {
+  if (props.isStarting !== undefined) return props.isStarting
+  return props.game.id === gamesStore.launchingGameId
+})
 
 const platformBadgeColor = {
   steam: 'sky',
   epic: 'purple',
   gog: 'rose',
   minecraft: 'emerald',
+  battlenet: 'amber',
   manual: 'zinc'
 } as const
 </script>
 
 <template>
   <div
-    class="group relative rounded-2xl overflow-hidden bg-zinc-900/60 border border-zinc-800/80 hover:border-amber-500/50 transition-all duration-300 flex flex-col cursor-pointer shadow-lg hover:shadow-2xl hover:shadow-amber-500/10 hover:-translate-y-1 select-none"
+    class="game-card-contain group relative rounded-2xl overflow-hidden bg-zinc-900/80 border border-zinc-800/80 hover:border-amber-500/50 transition-colors duration-150 flex flex-col cursor-pointer shadow-md hover:-translate-y-0.5 select-none"
     @click="emit('select', game)"
   >
     <!-- 3:4 Poster Image Container -->
@@ -42,10 +57,11 @@ const platformBadgeColor = {
         :src="game.coverUrl"
         :alt="game.title"
         :class="[
-          'w-full h-full object-cover transition-all duration-500 group-hover:scale-105',
-          !game.installed ? 'opacity-85 grayscale-[15%] group-hover:grayscale-0 group-hover:opacity-100' : 'opacity-100'
+          'w-full h-full object-cover transition-transform duration-200 group-hover:scale-105',
+          !game.installed ? 'opacity-70 group-hover:opacity-100' : 'opacity-100'
         ]"
         loading="lazy"
+        decoding="async"
       />
 
       <!-- Dark Gradient Overlay -->
@@ -66,7 +82,7 @@ const platformBadgeColor = {
           <!-- Installed status pill -->
           <span
             v-if="game.installed"
-            class="px-1.5 py-0.5 rounded-md text-[9px] font-bold font-mono uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shadow-sm backdrop-blur-md"
+            class="px-1.5 py-0.5 rounded-md text-[9px] font-bold font-mono uppercase bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shadow-sm"
             title="Installé sur votre machine"
           >
             <HardDrive class="w-2.5 h-2.5" />
@@ -74,8 +90,8 @@ const platformBadgeColor = {
           </span>
           <span
             v-else
-            class="px-1.5 py-0.5 rounded-md text-[9px] font-medium font-mono uppercase bg-zinc-900/80 text-zinc-400 border border-zinc-700/60 backdrop-blur-md"
-            title="Dans votre bibliothèque Steam (non installé)"
+            class="px-1.5 py-0.5 rounded-md text-[9px] font-medium font-mono uppercase bg-zinc-950/90 text-zinc-400 border border-zinc-700/60"
+            :title="game.platform === 'battlenet' ? 'Dans votre compte Blizzard (non installé)' : 'Dans votre bibliothèque Steam (non installé)'"
           >
             Bibliothèque
           </span>
@@ -84,7 +100,7 @@ const platformBadgeColor = {
         <button
           type="button"
           @click.stop="gamesStore.toggleFavorite(game.id)"
-          class="pointer-events-auto p-1.5 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 hover:text-amber-400 backdrop-blur-md transition-colors"
+          class="pointer-events-auto p-1.5 rounded-full bg-zinc-950/90 hover:bg-zinc-800 text-zinc-400 hover:text-amber-400 transition-colors"
           title="Favori"
         >
           <Star
@@ -107,13 +123,13 @@ const platformBadgeColor = {
           <Square class="w-6 h-6 fill-current" />
         </button>
 
-        <!-- Starting indicator if Steam is launching -->
+        <!-- Starting indicator if Steam or Battle.net is launching -->
         <div
           v-else-if="isStarting"
           class="flex items-center gap-2 px-4 py-2.5 rounded-full bg-amber-500 text-zinc-950 font-bold text-xs shadow-xl shadow-amber-500/40"
         >
           <span class="w-3.5 h-3.5 rounded-full border-2 border-zinc-950 border-t-transparent animate-spin" />
-          <span>Lancement Steam...</span>
+          <span>{{ game.platform === 'battlenet' ? 'Lancement Battle.net...' : 'Lancement Steam...' }}</span>
         </div>
 
         <!-- Play Button for Installed -->
@@ -132,11 +148,16 @@ const platformBadgeColor = {
           v-else
           type="button"
           @click.stop="gamesStore.installGame(game.id)"
-          class="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#1a9fff] hover:bg-[#158ce0] text-white font-bold text-xs shadow-xl shadow-[#1a9fff]/40 hover:scale-105 active:scale-95 transition-all"
-          title="Installer via Steam"
+          :class="[
+            'flex items-center gap-2 px-4 py-2.5 rounded-full font-bold text-xs shadow-xl hover:scale-105 active:scale-95 transition-all text-white',
+            game.platform === 'battlenet'
+              ? 'bg-amber-600 hover:bg-amber-500 shadow-amber-600/40'
+              : 'bg-[#1a9fff] hover:bg-[#158ce0] shadow-[#1a9fff]/40'
+          ]"
+          :title="game.platform === 'battlenet' ? 'Installer via Battle.net' : 'Installer via Steam'"
         >
           <Download class="w-4 h-4" />
-          <span>Installer</span>
+          <span>{{ game.platform === 'battlenet' ? 'Installer (Battle.net)' : 'Installer' }}</span>
         </button>
       </div>
 
@@ -145,8 +166,8 @@ const platformBadgeColor = {
         v-if="isRunning"
         class="absolute bottom-3 left-3 px-2 py-1 rounded-md bg-emerald-500 text-zinc-950 text-[10px] font-bold font-mono uppercase tracking-wider flex items-center gap-1.5 shadow-md"
       >
-        <span class="w-1.5 h-1.5 rounded-full bg-zinc-950 animate-ping" />
-        En jeu (Steam)
+        <span class="w-1.5 h-1.5 rounded-full bg-zinc-950" />
+        {{ game.platform === 'battlenet' ? 'En jeu (Battle.net)' : 'En jeu (Steam)' }}
       </div>
 
       <div
@@ -188,3 +209,16 @@ const platformBadgeColor = {
     </div>
   </div>
 </template>
+
+<style scoped>
+.game-card-contain {
+  /*
+   * Confinement CSS natif : zappe le calcul de mise en page, de style et de peinture
+   * pour toutes les cartes de jeux situées hors du viewport actif.
+   * contain-intrinsic-size maintient la hauteur approximative de la carte dans le layout
+   * afin d'éviter tout saut ou artefact sur la barre de défilement.
+   */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 380px;
+}
+</style>

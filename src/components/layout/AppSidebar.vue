@@ -4,7 +4,6 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   LayoutDashboard,
   Gamepad2,
-  Box,
   UserCheck,
   Settings,
   ArrowDownUp,
@@ -22,7 +21,7 @@ const systemStore = useSystemStore()
 const navItems = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
   { name: 'Bibliothèque', path: '/library', icon: Gamepad2 },
-  { name: 'Minecraft Studio', path: '/minecraft', icon: Box, badge: 'PRO' },
+  { name: 'Modding', path: '/modding', icon: Layers, badge: 'PRO' },
   { name: 'Comptes', path: '/accounts', icon: UserCheck },
   { name: 'Paramètres', path: '/settings', icon: Settings },
 ]
@@ -42,10 +41,8 @@ const networkFormatted = computed(() => {
   <aside class="w-64 h-screen flex flex-col bg-zinc-950 border-r border-zinc-800/80 select-none z-30">
     <!-- Brand Header -->
     <div class="h-20 flex items-center px-6 gap-3.5 border-b border-zinc-800/80">
-      <div class="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700/80 shadow-md">
-        <div class="w-5 h-5 bg-gradient-to-tr from-amber-500 to-amber-300 rounded-lg transform rotate-12 flex items-center justify-center shadow-[0_0_12px_rgba(245,158,11,0.5)]">
-          <Layers class="w-3.5 h-3.5 text-zinc-950 transform -rotate-12" />
-        </div>
+      <div class="relative flex items-center justify-center w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-700/80 shadow-md">
+        <img src="/logo.png" alt="Loom" class="w-7 h-7 object-contain drop-shadow-[0_0_10px_rgba(245,158,11,0.4)]" />
       </div>
       <div>
         <div class="flex items-center gap-1.5">

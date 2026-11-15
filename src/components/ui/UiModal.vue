@@ -83,7 +83,7 @@ const maxWidthClasses = {
             ]"
           >
             <!-- Header -->
-            <div class="px-6 py-4.5 border-b border-zinc-800/80 flex items-center justify-between bg-zinc-900/60">
+            <div class="px-6 py-4 border-b border-zinc-800/80 flex items-center justify-between bg-zinc-900/60">
               <div>
                 <h3 v-if="title" class="text-lg font-bold text-zinc-100 tracking-tight flex items-center gap-2">
                   <slot name="title">{{ title }}</slot>

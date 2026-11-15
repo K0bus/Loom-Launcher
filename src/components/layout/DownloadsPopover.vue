@@ -18,13 +18,21 @@ const gamesStore = useGamesStore()
 const toast = useToastStore()
 
 function formatBytes(bytes: number): string {
-  if (!bytes || bytes <= 0) return '0 Go'
+  if (!bytes || bytes <= 0) return '0 Mo'
   const gb = bytes / (1024 ** 3)
   if (gb < 0.1) {
     const mb = bytes / (1024 ** 2)
-    return `${mb.toFixed(0)} Mo`
+    return `${mb.toFixed(1)} Mo`
   }
   return `${gb.toFixed(1)} Go`
+}
+
+function formatModRate(bytesPerSec: number): string {
+  if (!bytesPerSec || bytesPerSec <= 0) return '0 Ko/s'
+  const mb = bytesPerSec / (1024 * 1024)
+  if (mb >= 1) return `${mb.toFixed(1)} Mo/s`
+  const kb = bytesPerSec / 1024
+  return `${kb.toFixed(0)} Ko/s`
 }
 
 function formatDate(timestamp?: number): string {
@@ -64,7 +72,7 @@ async function handleLaunch(item: SteamDownloadItem, event: Event) {
         <svg class="header-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
         </svg>
-        <span class="header-title">Téléchargements Steam</span>
+        <span class="header-title">Téléchargements</span>
         <span v-if="downloadsStore.isDownloading" class="active-badge">
           {{ downloadsStore.activeCount }} actif{{ downloadsStore.activeCount > 1 ? 's' : '' }}
         </span>
@@ -87,7 +95,67 @@ async function handleLaunch(item: SteamDownloadItem, event: Event) {
 
     <!-- Body -->
     <div class="popover-body">
-      <!-- Section 1 : Téléchargements Actifs -->
+      <!-- Section : Mods Minecraft Actifs -->
+      <div v-if="downloadsStore.activeModDownloads.length > 0" class="downloads-section">
+        <div class="section-label flex items-center justify-between">
+          <span>Mods Minecraft ({{ downloadsStore.activeModDownloads.length }})</span>
+          <span class="text-amber-400 font-mono text-[10px] animate-pulse">En cours</span>
+        </div>
+
+        <div class="items-list">
+          <div
+            v-for="item in downloadsStore.activeModDownloads"
+            :key="item.id"
+            class="download-card active-card"
+          >
+            <div class="card-thumb">
+              <img v-if="item.iconUrl" :src="item.iconUrl" :alt="item.name" class="thumb-img" />
+              <div v-else class="w-full h-full flex items-center justify-center bg-zinc-800 text-sm">🧩</div>
+              <div class="thumb-pulse" />
+            </div>
+
+            <div class="card-content">
+              <div class="card-top">
+                <div class="min-w-0 pr-2">
+                  <span class="game-name block truncate" :title="item.name">{{ item.name }}</span>
+                  <div class="text-[10px] font-mono text-zinc-500 truncate">
+                    {{ item.instanceName || 'Instance Minecraft' }}
+                  </div>
+                </div>
+                <span class="percent-text font-mono shrink-0">{{ item.progressPercent }}%</span>
+              </div>
+
+              <!-- Animated Progress Bar -->
+              <div class="progress-track">
+                <div
+                  class="progress-fill"
+                  :style="{ width: `${item.progressPercent}%` }"
+                  :class="{ staging: item.status === 'installing' }"
+                />
+              </div>
+
+              <div class="card-bottom">
+                <span class="bytes-text truncate pr-1" :title="item.fileName">
+                  <template v-if="item.remoteModId?.startsWith('pack') || item.id?.startsWith('pack')">
+                    {{ item.fileName || `${item.bytesDownloaded}/${item.bytesTotal}` }}
+                  </template>
+                  <template v-else>
+                    {{ formatBytes(item.bytesDownloaded) }} / {{ formatBytes(item.bytesTotal) }}
+                  </template>
+                </span>
+                <span v-if="item.downloadRateBytesPerSec > 0" class="rate-badge shrink-0">
+                  ⚡ {{ formatModRate(item.downloadRateBytesPerSec) }}
+                </span>
+                <span class="state-pill shrink-0" :class="item.status === 'installing' ? 'staging' : 'downloading'">
+                  {{ item.status === 'installing' ? 'Installation...' : 'Téléchargement...' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 1 : Téléchargements Steam Actifs -->
       <div v-if="downloadsStore.activeDownloads.length > 0" class="downloads-section">
         <div class="section-label">En cours</div>
 
@@ -135,10 +203,47 @@ async function handleLaunch(item: SteamDownloadItem, event: Event) {
       </div>
 
       <!-- Section 2 : Récemment Terminés -->
-      <div v-if="downloadsStore.completedDownloads.length > 0" class="downloads-section">
+      <div
+        v-if="downloadsStore.completedDownloads.length > 0 || downloadsStore.completedModDownloads.length > 0"
+        class="downloads-section"
+      >
         <div class="section-label">Récemment installés</div>
 
         <div class="items-list">
+          <!-- Mods Minecraft terminés -->
+          <div
+            v-for="item in downloadsStore.completedModDownloads"
+            :key="item.id"
+            class="download-card completed-card"
+          >
+            <div class="card-thumb small">
+              <img v-if="item.iconUrl" :src="item.iconUrl" :alt="item.name" class="thumb-img" />
+              <div v-else class="w-full h-full flex items-center justify-center bg-zinc-800 text-xs">🧩</div>
+              <div class="done-check">
+                <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor">
+                  <polyline points="20 6 9 17 4 12" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </div>
+            </div>
+
+            <div class="card-content">
+              <div class="card-top">
+                <div class="min-w-0 pr-2">
+                  <span class="game-name block truncate" :title="item.name">{{ item.name }}</span>
+                  <div class="text-[10px] font-mono text-zinc-500 truncate">
+                    {{ item.instanceName || 'Mod Minecraft' }}
+                  </div>
+                </div>
+                <span class="date-text shrink-0">{{ formatDate(item.completedAt) }}</span>
+              </div>
+              <div class="card-bottom">
+                <span class="bytes-text">{{ formatBytes(item.bytesTotal) }}</span>
+                <span class="text-[10px] font-mono font-bold text-emerald-400">✓ Installé</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Jeux Steam terminés -->
           <div
             v-for="item in downloadsStore.completedDownloads"
             :key="item.appid"
@@ -175,7 +280,7 @@ async function handleLaunch(item: SteamDownloadItem, event: Event) {
 
       <!-- Empty State -->
       <div
-        v-if="downloadsStore.activeDownloads.length === 0 && downloadsStore.completedDownloads.length === 0"
+        v-if="downloadsStore.activeDownloads.length === 0 && downloadsStore.completedDownloads.length === 0 && downloadsStore.activeModDownloads.length === 0 && downloadsStore.completedModDownloads.length === 0"
         class="empty-state"
       >
         <div class="empty-icon-wrap">
@@ -184,7 +289,7 @@ async function handleLaunch(item: SteamDownloadItem, event: Event) {
           </svg>
         </div>
         <p class="empty-title">Aucun téléchargement actif</p>
-        <p class="empty-subtitle">Les jeux lancés en téléchargement depuis Steam ou Loom s'afficheront ici en direct.</p>
+        <p class="empty-subtitle">Les jeux Steam et mods Minecraft en cours de téléchargement s'afficheront ici en direct.</p>
       </div>
     </div>
   </div>

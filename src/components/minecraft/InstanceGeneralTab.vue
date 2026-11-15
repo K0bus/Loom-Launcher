@@ -61,7 +61,7 @@ defineProps<Props>()
         >
           <div>
             <div class="font-semibold text-xs text-zinc-100">{{ shader.name }}</div>
-            <div class="text-[11px] text-zinc-400 mt-0.5">Par {{ shader.authors }} • Profil {{ shader.profile }}</div>
+            <div class="text-[11px] text-zinc-400 mt-0.5">Par {{ shader.author || 'Inconnu' }} • {{ shader.version || 'v1.0' }}</div>
           </div>
           <UiBadge :variant="shader.enabled ? 'emerald' : 'zinc'" size="xs">
             {{ shader.enabled ? 'Actif' : 'Désactivé' }}
@@ -75,10 +75,10 @@ defineProps<Props>()
         >
           <div>
             <div class="font-semibold text-xs text-zinc-100">{{ rp.name }}</div>
-            <div class="text-[11px] text-zinc-400 mt-0.5">{{ rp.description }}</div>
+            <div class="text-[11px] text-zinc-400 mt-0.5">{{ rp.description || 'Pack de ressources' }}</div>
           </div>
-          <UiBadge :variant="rp.enabled ? 'amber' : 'zinc'" size="xs">
-            Format v{{ rp.formatVersion }}
+          <UiBadge :variant="rp.enabled ? 'emerald' : 'zinc'" size="xs">
+            {{ rp.enabled ? 'Actif' : 'Désactivé' }}
           </UiBadge>
         </div>
 

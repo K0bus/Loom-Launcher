@@ -33,6 +33,9 @@ export default {
         cinzel: ['Cinzel', 'serif'],
         mono: ['"JetBrains Mono"', 'monospace'],
       },
+      spacing: {
+        4.5: '1.125rem',
+      },
       boxShadow: {
         'glow-gold': '0 0 24px rgba(245, 158, 11, 0.35)',
         'glow-gold-lg': '0 0 32px rgba(245, 158, 11, 0.5)',

@@ -1,11 +1,14 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { Game, GameFilter, RunnerType, GameConfig, Achievement } from '@/models/game'
 import { mapIGDBGameToLoomGame } from '@/models/igdb'
 import { MOCK_IGDB_CATALOG, igdbService } from '@/services/igdbService'
 import { steamService } from '@/services/steamService'
 import { achievementService } from '@/services/achievementService'
 import { ipc } from '@/services/ipc'
+import { useBattleNetStore, BLIZZARD_ARTWORK_MAP } from '@/stores/useBattleNetStore'
+import { useSettingsStore } from '@/stores/settingsStore'
+import { useToastStore } from '@/stores/toastStore'
 
 export interface SteamLibraryFolder {
   index: number
@@ -60,6 +63,9 @@ export const useGamesStore = defineStore('games', () => {
   }
 
   function enrichWithCatalogIfAvailable(game: Game) {
+    if (game.platform === 'battlenet' || game.id.startsWith('bnet-')) {
+      return
+    }
     if (game.igdbId && game.developer !== 'Valve / Steam Partner') {
       return
     }
@@ -91,9 +97,10 @@ export const useGamesStore = defineStore('games', () => {
         const parsed = JSON.parse(saved)
         if (Array.isArray(parsed) && parsed.length > 0) {
           const now = Math.floor(Date.now() / 1000)
-          // Refresh if library count expanded (e.g. from 294 to 860), has future timestamps, or missing IGDB match for known games
+          // Refresh if library count expanded, order changed, has future timestamps, or missing IGDB match
           if (
-            parsed.length < fresh.length ||
+            parsed.length !== fresh.length ||
+            parsed[0]?.id !== fresh[0]?.id ||
             parsed.some((g) => g.platform === 'steam' && g.lastPlayedTimestamp === undefined) ||
             parsed.some((g) => (g.lastPlayedTimestamp || 0) > now) ||
             parsed.some(
@@ -112,7 +119,25 @@ export const useGamesStore = defineStore('games', () => {
             } catch {}
             return fresh
           }
-          parsed.forEach(enrichWithCatalogIfAvailable)
+          parsed.forEach((g) => {
+            if (g.platform === 'battlenet' || g.id?.startsWith('bnet-')) {
+              if (g.title?.includes('Forever') && g.id === 'bnet-wow') {
+                g.id = 'bnet-wowf'
+                g.slug = 'bnet-wowf'
+              }
+              const uid = g.id.replace('bnet-', '').toLowerCase()
+              const art = BLIZZARD_ARTWORK_MAP[uid]
+              if (art) {
+                g.coverUrl = art.cover
+                g.bannerUrl = art.banner
+                g.genre = art.genre
+                g.description = art.desc
+                if (art.igdbId) g.igdbId = art.igdbId
+              }
+            } else {
+              enrichWithCatalogIfAvailable(g)
+            }
+          })
           return parsed
         }
       }
@@ -128,12 +153,26 @@ export const useGamesStore = defineStore('games', () => {
     }
   }
 
-  function saveLibrary() {
-    try {
-      localStorage.setItem(STORAGE_KEY_LIBRARY, JSON.stringify(games.value))
-    } catch (e) {
-      console.warn('[gamesStore] Failed to save library:', e)
+  let saveDebounceTimer: any = null
+  function saveLibrary(immediate = false) {
+    if (immediate) {
+      if (saveDebounceTimer) clearTimeout(saveDebounceTimer)
+      try {
+        localStorage.setItem(STORAGE_KEY_LIBRARY, JSON.stringify(games.value))
+      } catch (e) {
+        console.warn('[gamesStore] Failed to save library:', e)
+      }
+      return
     }
+
+    if (saveDebounceTimer) clearTimeout(saveDebounceTimer)
+    saveDebounceTimer = setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY_LIBRARY, JSON.stringify(games.value))
+      } catch (e) {
+        console.warn('[gamesStore] Failed to save library:', e)
+      }
+    }, 1500)
   }
 
   // Real library state: populated with real detected Steam games
@@ -147,29 +186,160 @@ export const useGamesStore = defineStore('games', () => {
 
   // Current active game for details
   const activeGame = ref<Game | null>(null)
+  const bnetStore = useBattleNetStore()
+
+  function mergeBattleNetGames() {
+    const seenUids = new Set<string>()
+    const bnetLoomGames: Game[] = []
+
+    // 1. Installed Battle.net games
+    for (const bg of bnetStore.installedGames) {
+      const uid = bg.product_uid.toLowerCase()
+      seenUids.add(uid)
+      bnetLoomGames.push(bnetStore.convertToLoomGame(bg))
+    }
+
+    // 2. Cloud owned Blizzard games (if not already local)
+    for (const og of bnetStore.ownedGames) {
+      const uid = og.product_uid.toLowerCase()
+      if (!seenUids.has(uid)) {
+        seenUids.add(uid)
+        bnetLoomGames.push(bnetStore.convertToLoomGame(og))
+      }
+    }
+
+    // Merge into games.value while preserving existing non-bnet games
+    const nonBnetGames = games.value.filter((g) => g.platform !== 'battlenet' && !g.id.startsWith('bnet-'))
+
+    for (const bLoom of bnetLoomGames) {
+      const existing = games.value.find((g) => g.id === bLoom.id)
+      if (existing?.lastPlayedTimestamp && (!bLoom.lastPlayedTimestamp || existing.lastPlayedTimestamp > bLoom.lastPlayedTimestamp)) {
+        bLoom.lastPlayedTimestamp = existing.lastPlayedTimestamp
+        bLoom.lastPlayed = existing.lastPlayed
+      }
+    }
+
+    games.value = [...nonBnetGames, ...bnetLoomGames]
+    saveLibrary()
+  }
+
+  async function syncBattleNetLibrary(): Promise<void> {
+    try {
+      await bnetStore.scanLocalGames()
+      if (bnetStore.isConnected) {
+        await bnetStore.loadOwnedGames()
+      }
+      mergeBattleNetGames()
+    } catch (e) {
+      console.warn('[gamesStore] Failed to sync Battle.net library:', e)
+    }
+  }
+
+  // Reactivity: watch Battle.net installed & owned lists
+  watch(
+    () => [bnetStore.installedGames, bnetStore.ownedGames],
+    () => {
+      mergeBattleNetGames()
+    },
+    { deep: true }
+  )
+
+  let lastBnetPollTimestamp: number | null = null
+  let activeBnetProductUid: string | null = null
 
   /**
-   * Synchronise l'état réel des processus Steam
-   * Ne met JAMAIS un état factice : interroge Steam via IPC/API
+   * Synchronise l'état réel des processus Steam et Battle.net
+   * Ne met JAMAIS un état factice : interroge Steam et Battle.net via IPC/API
    */
   async function checkRunningGames(): Promise<void> {
     try {
-      const res = await ipc.invoke<{ success: boolean; runningAppId: string | null; pids?: number[] }>('get_running_games')
-      if (res && res.runningAppId) {
-        const fullId = `steam-${res.runningAppId}`
-        runningGameId.value = fullId
+      await bnetStore.checkRunningGames().catch(() => {})
+      let bnetGameRunning = false
+
+      // 1. Check Battle.net processes first
+      if (bnetStore.runningGames && bnetStore.runningGames.length > 0) {
+        const runningUid = bnetStore.runningGames[0]
+        const fullBnetId = `bnet-${runningUid}`
+        runningGameId.value = fullBnetId
         launchingGameId.value = null
-        const game = getGameById(fullId)
+        bnetGameRunning = true
+        const bGame = getGameById(fullBnetId)
+        const now = Date.now()
+        const nowSec = Math.floor(now / 1000)
+
+        if (activeBnetProductUid === runningUid && lastBnetPollTimestamp) {
+          const deltaSec = Math.max(0, Math.floor((now - lastBnetPollTimestamp) / 1000))
+          if (deltaSec > 0 && deltaSec < 30) {
+            // Persist delta to DB and update memory state
+            ipc.updateBattleNetGamePlaytime(runningUid, deltaSec, nowSec).catch(() => {})
+            const ig = bnetStore.installedGames.find(
+              (g) => g.product_uid.toLowerCase() === runningUid.toLowerCase()
+            )
+            if (ig) {
+              ig.playtime_seconds = (ig.playtime_seconds || 0) + deltaSec
+              ig.last_played = nowSec
+            }
+            if (bGame) {
+              const totalSec = ig?.playtime_seconds || ((bGame.playtimeMinutes || 0) * 60 + deltaSec)
+              bGame.playtimeMinutes = Math.floor(totalSec / 60)
+            }
+          }
+        }
+
+        activeBnetProductUid = runningUid
+        lastBnetPollTimestamp = now
+
+        if (bGame) {
+          bGame.lastPlayed = "En cours d'exécution (Battle.net)"
+          bGame.lastPlayedTimestamp = nowSec
+        }
+      } else if (activeBnetProductUid) {
+        // Battle.net game just stopped running
+        const nowSec = Math.floor(Date.now() / 1000)
+        ipc.updateBattleNetGamePlaytime(activeBnetProductUid, 0, nowSec).catch(() => {})
+        const fullBnetId = `bnet-${activeBnetProductUid}`
+        const bGame = getGameById(fullBnetId)
+        if (bGame) {
+          bGame.lastPlayed = "À l'instant"
+          bGame.lastPlayedTimestamp = nowSec
+          saveLibrary()
+        }
+        activeBnetProductUid = null
+        lastBnetPollTimestamp = null
+        if (runningGameId.value?.startsWith('bnet-')) {
+          runningGameId.value = null
+        }
+        restoreLoomWindow()
+      }
+
+      // 2. Check Steam processes
+      const res = await ipc.invoke<{ success: boolean; runningAppId: string | null; running_app_id?: string | null; pids?: number[] }>('get_running_games')
+      const currentRunningAppId = res?.runningAppId || (res as any)?.running_app_id || null
+      if (res && currentRunningAppId) {
+        const fullId = `steam-${currentRunningAppId}`
+        if (!bnetGameRunning) {
+          runningGameId.value = fullId
+          launchingGameId.value = null
+        }
+        let game = getGameById(fullId)
+        if (!game) {
+          await fetchLibrary()
+          game = getGameById(fullId)
+        }
         if (game) {
           game.lastPlayed = 'En cours d\'exécution'
+          game.lastPlayedTimestamp = Math.floor(Date.now() / 1000)
         }
       } else {
-        if (runningGameId.value) {
+        if (runningGameId.value && runningGameId.value.startsWith('steam-')) {
           const prev = getGameById(runningGameId.value)
           if (prev) {
             prev.lastPlayed = 'À l\'instant'
+            prev.lastPlayedTimestamp = Math.floor(Date.now() / 1000)
+            saveLibrary()
           }
           runningGameId.value = null
+          restoreLoomWindow()
         }
       }
     } catch (e) {
@@ -177,20 +347,37 @@ export const useGamesStore = defineStore('games', () => {
     }
   }
 
-  // Polling automatique de l'état réel de Steam et chargement des succès
+  // Polling automatique de l'état réel de Steam & Battle.net et chargement des succès
   if (typeof window !== 'undefined') {
+    fetchLibrary()
     checkRunningGames()
     setInterval(checkRunningGames, 2000)
     syncAchievementSummaries()
+    syncBattleNetLibrary()
   }
 
   // Getters
+  // Le jeu en cours d'exécution est FORCÉMENT considéré comme le dernier jeu joué dans 100% des cas
   const heroGame = computed<Game | null>(() => {
+    if (runningGameId.value) {
+      const running = getGameById(runningGameId.value)
+      if (running) return running
+    }
     return recentGames.value[0] || games.value[0] || null
   })
 
   const recentGames = computed(() => {
-    return [...games.value]
+    const list = [...games.value]
+    if (runningGameId.value) {
+      const running = getGameById(runningGameId.value)
+      const others = list
+        .filter((g) => g.id !== runningGameId.value && (g.lastPlayedTimestamp || 0) > 0)
+        .sort((a, b) => (b.lastPlayedTimestamp || 0) - (a.lastPlayedTimestamp || 0))
+      if (running) {
+        return [running, ...others].slice(0, 8)
+      }
+    }
+    return list
       .filter((g) => (g.lastPlayedTimestamp || 0) > 0)
       .sort((a, b) => (b.lastPlayedTimestamp || 0) - (a.lastPlayedTimestamp || 0))
       .slice(0, 8)
@@ -338,6 +525,20 @@ export const useGamesStore = defineStore('games', () => {
         : gameOrSlug
     if (!game) return undefined
 
+    // Les jeux Battle.net ont déjà leurs visuels officiels Blizzard haute définition
+    if (game.platform === 'battlenet' || game.id.startsWith('bnet-')) {
+      const uid = game.id.replace('bnet-', '').toLowerCase()
+      const art = BLIZZARD_ARTWORK_MAP[uid]
+      if (art) {
+        game.coverUrl = art.cover
+        game.bannerUrl = art.banner
+        game.genre = art.genre
+        game.description = art.desc
+        if (art.igdbId) game.igdbId = art.igdbId
+      }
+      return game
+    }
+
     // Si le jeu est déjà enrichi avec IGDB
     if (game.igdbId && game.developer !== 'Valve / Steam Partner') {
       return game
@@ -483,10 +684,12 @@ export const useGamesStore = defineStore('games', () => {
   async function fetchLibrary(): Promise<void> {
     isScanningLibrary.value = true
     try {
-      const realGames = steamService.getLoomLibraryGames()
+      const realGames = await steamService.scanLocalSteam()
+      realGames.forEach(enrichWithCatalogIfAvailable)
       games.value = realGames
+      await syncBattleNetLibrary()
       await syncAchievementSummaries()
-      saveLibrary()
+      saveLibrary(true)
       lastScannedAt.value = new Date()
     } finally {
       isScanningLibrary.value = false
@@ -514,6 +717,13 @@ export const useGamesStore = defineStore('games', () => {
       })
       return res
     }
+
+    if (game.platform === 'battlenet' || id.startsWith('bnet-')) {
+      const uid = id.replace(/^bnet-/, '')
+      await bnetStore.launchGame(uid)
+      return { success: true }
+    }
+
     return { success: true }
   }
 
@@ -529,12 +739,49 @@ export const useGamesStore = defineStore('games', () => {
       })
       return res
     }
+
+    if (game.platform === 'battlenet' || id.startsWith('bnet-')) {
+      const uid = id.replace(/^bnet-/, '')
+      await bnetStore.killGame(uid)
+      return { success: true }
+    }
+
     return { success: true }
+  }
+
+  function handleGameLaunchWindowAction() {
+    try {
+      const settingsStore = useSettingsStore()
+      if (settingsStore.settings.afterGameLaunch === 'minimize') {
+        if (ipc.isTauri()) {
+          import('@tauri-apps/api/window').then(({ getCurrentWindow }) => {
+            getCurrentWindow().minimize().catch(() => {})
+          })
+        }
+      } else if (settingsStore.settings.afterGameLaunch === 'hide') {
+        ipc.hideWindow().catch(() => {})
+      }
+    } catch {}
+  }
+
+  function restoreLoomWindow() {
+    try {
+      const settingsStore = useSettingsStore()
+      if (settingsStore.settings.afterGameLaunch !== 'keep') {
+        ipc.showWindow().catch(() => {})
+      }
+      if (settingsStore.settings.autoSyncCloudSaves) {
+        const toast = useToastStore()
+        toast.show('Sauvegardes locales & Cloud synchronisées avec succès', 'success')
+      }
+    } catch {}
   }
 
   async function launchGame(id: string) {
     const game = getGameById(id)
     if (!game) return
+
+    const settingsStore = useSettingsStore()
 
     // If game is not installed, trigger install flow
     if (!game.installed) {
@@ -542,14 +789,55 @@ export const useGamesStore = defineStore('games', () => {
       return
     }
 
+    if (settingsStore.settings.autoSyncCloudSaves) {
+      const toast = useToastStore()
+      toast.show(`Préparation & synchronisation de ${game.title}...`, 'info')
+    }
+
+    handleGameLaunchWindowAction()
+
+    if (game.platform === 'battlenet' || id.startsWith('bnet-')) {
+      const uid = id.replace(/^bnet-/, '')
+      isLaunching.value = true
+      launchingGameId.value = id
+      try {
+        await bnetStore.launchGame(uid)
+        const nowSec = Math.floor(Date.now() / 1000)
+        game.lastPlayedTimestamp = nowSec
+        game.lastPlayed = "À l'instant"
+        saveLibrary()
+
+        // Check real Battle.net process state
+        setTimeout(checkRunningGames, 1500)
+        setTimeout(checkRunningGames, 3500)
+        setTimeout(checkRunningGames, 6000)
+
+        setTimeout(() => {
+          if (launchingGameId.value === id && runningGameId.value !== id) {
+            launchingGameId.value = null
+          }
+        }, 15000)
+      } catch (err) {
+        console.error('Failed to launch game via Battle.net:', err)
+        launchingGameId.value = null
+      } finally {
+        isLaunching.value = false
+      }
+      return
+    }
+
     isLaunching.value = true
     launchingGameId.value = id
     try {
+      const runner = game.config.runner || (settingsStore.settings.defaultRunner as any)
+      const gamemode = typeof game.config.gamemode === 'boolean' ? game.config.gamemode : settingsStore.settings.globalGamemode
+      const mangohud = typeof game.config.mangohud === 'boolean' ? game.config.mangohud : settingsStore.settings.globalMangohud
+
       await ipc.invoke('launch_game', {
         gameId: id,
-        runner: game.config.runner,
-        gamemode: game.config.gamemode,
-        mangohud: game.config.mangohud
+        runner,
+        gamemode,
+        mangohud
       })
 
       // Check real Steam process state after slight delays
@@ -573,6 +861,15 @@ export const useGamesStore = defineStore('games', () => {
 
   async function stopGame(id: string) {
     try {
+      if (id.startsWith('bnet-') || getGameById(id)?.platform === 'battlenet') {
+        const uid = id.replace(/^bnet-/, '')
+        await bnetStore.killGame(uid)
+        if (runningGameId.value === id) {
+          runningGameId.value = null
+        }
+        return
+      }
+
       await ipc.invoke('stop_game', { gameId: id })
       setTimeout(checkRunningGames, 800)
       setTimeout(checkRunningGames, 2000)
@@ -602,8 +899,13 @@ export const useGamesStore = defineStore('games', () => {
     }
   }
 
+  const titleCollator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true })
+
   function filterGames(filters: GameFilter): Game[] {
     return games.value.filter((game) => {
+      // Exclure les jeux hors bibliothèque
+      if (game.inLibrary === false) return false
+
       // Installation status filter
       if (filters.status && filters.status !== 'all') {
         if (filters.status === 'installed' && !game.installed) return false
@@ -635,25 +937,41 @@ export const useGamesStore = defineStore('games', () => {
 
       return true
     }).sort((a, b) => {
-      let result = 0
+      // 1. Le jeu en cours d'exécution doit FORCÉMENT être considéré comme le premier dans 100% des cas
+      if (runningGameId.value) {
+        if (a.id === runningGameId.value) return -1
+        if (b.id === runningGameId.value) return 1
+      }
+
       if (filters.sortBy === 'title') {
         const order = filters.sortOrder === 'desc' ? -1 : 1
-        return a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }) * order
+        return titleCollator.compare(a.title, b.title) * order
       } else if (filters.sortBy === 'playtime') {
-        result = (b.playtimeMinutes || 0) - (a.playtimeMinutes || 0)
+        const order = filters.sortOrder === 'desc' ? 1 : -1
+        const diff = (b.playtimeMinutes || 0) - (a.playtimeMinutes || 0)
+        return diff !== 0 ? diff * order : titleCollator.compare(a.title, b.title)
       } else if (filters.sortBy === 'size') {
-        result = (b.sizeGb || 0) - (a.sizeGb || 0)
+        const order = filters.sortOrder === 'desc' ? 1 : -1
+        const diff = (b.sizeGb || 0) - (a.sizeGb || 0)
+        return diff !== 0 ? diff * order : titleCollator.compare(a.title, b.title)
       } else {
-        // 'lastPlayed' : tri par date réelle de dernier lancement (lastPlayedTimestamp)
+        // 'lastPlayed' : tri par date réelle de dernier lancement
+        // Les jeux installés viennent en priorité si le statut est 'all'
+        if (filters.status === 'all' && a.installed !== b.installed) {
+          return a.installed ? -1 : 1
+        }
+
         const aTime = a.lastPlayedTimestamp || 0
         const bTime = b.lastPlayedTimestamp || 0
+        let result = 0
         if (aTime !== bTime) {
           result = bTime - aTime
         } else {
-          result = (b.playtimeMinutes || 0) - (a.playtimeMinutes || 0)
+          const pDiff = (b.playtimeMinutes || 0) - (a.playtimeMinutes || 0)
+          result = pDiff !== 0 ? pDiff : titleCollator.compare(a.title, b.title)
         }
+        return filters.sortOrder === 'desc' ? result : -result
       }
-      return filters.sortOrder === 'desc' ? result : -result
     })
   }
 
@@ -680,6 +998,8 @@ export const useGamesStore = defineStore('games', () => {
     fetchAndRegisterGame,
     enrichGameWithIGDB,
     fetchLibrary,
+    syncBattleNetLibrary,
+    mergeBattleNetGames,
     syncAchievementSummaries,
     loadGameAchievements,
     getSteamLibraries,

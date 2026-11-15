@@ -19,6 +19,8 @@ export interface SystemStats {
   notificationsCount: number
   appVersion: string
   tauriDetected: boolean
+  displayServer?: string
+  kernelVersion?: string
 }
 
 export interface AppNotification {

@@ -45,7 +45,7 @@ export interface Game {
   bannerUrl: string // 21:9 format
   coverUrl: string  // 3:4 poster format
   iconUrl?: string
-  platform: 'steam' | 'epic' | 'gog' | 'minecraft' | 'manual'
+  platform: 'steam' | 'epic' | 'gog' | 'minecraft' | 'manual' | 'battlenet'
   genre: string[]
   playtimeMinutes: number
   lastPlayed?: string

@@ -3,6 +3,8 @@ import { ref } from 'vue'
 import type { ConnectedAccount, AccountPlatform } from '@/models/account'
 import { steamService } from '@/services/steamService'
 import { ipc } from '@/services/ipc'
+import { useMinecraftStore } from '@/stores/minecraftStore'
+import { useBattleNetStore } from '@/stores/useBattleNetStore'
 
 export const useAccountsStore = defineStore('accounts', () => {
   const realSteam = steamService.getDetectedAccount()
@@ -61,71 +63,85 @@ export const useAccountsStore = defineStore('accounts', () => {
     }
   ])
 
-  const deviceCodeModalOpen = ref(false)
-  const isAuthorizing = ref(false)
-  const currentDeviceCode = ref<{
-    userCode: string
-    verificationUri: string
-    expiresIn: number
-  } | null>(null)
-
   function getAccount(platform: AccountPlatform) {
     return accounts.value.find((a) => a.platform === platform)
   }
 
-  async function startMicrosoftDeviceCodeFlow() {
-    isAuthorizing.value = true
+  async function syncMicrosoftAccount() {
     try {
-      const res = await ipc.invoke<{
-        userCode: string
-        verificationUri: string
-        expiresIn: number
-      }>('initiate_microsoft_device_code')
-
-      currentDeviceCode.value = res
-      deviceCodeModalOpen.value = true
-    } catch (err) {
-      console.error('Error starting MS OAuth flow:', err)
-    } finally {
-      isAuthorizing.value = false
-    }
-  }
-
-  async function confirmMicrosoftDeviceCode() {
-    isAuthorizing.value = true
-    try {
-      const res = await ipc.invoke<{
-        authenticated: boolean
-        gamertag: string
-        uuid: string
-      }>('poll_microsoft_device_code', {
-        userCode: currentDeviceCode.value?.userCode
-      })
-
-      if (res.authenticated) {
-        const msAcc = getAccount('xbox') || getAccount('microsoft')
-        if (msAcc) {
-          msAcc.connected = true
-          msAcc.displayName = `${res.gamertag} (Xbox)`
-          msAcc.connectedAt = 'À l\'instant'
+      const ms = await ipc.getMinecraftAuth()
+      const xboxAcc = getAccount('xbox')
+      if (xboxAcc) {
+        if (ms) {
+          xboxAcc.connected = true
+          xboxAcc.username = ms.name
+          xboxAcc.displayName = `${ms.name} (Xbox Live)`
+          xboxAcc.avatarUrl = ms.uuid ? `https://mc-heads.net/avatar/${ms.uuid}/64` : (ms.skin_url || '')
+          xboxAcc.connectedAt = 'Session active'
+        } else {
+          xboxAcc.connected = false
+          xboxAcc.username = ''
+          xboxAcc.displayName = 'Xbox / Microsoft'
+          xboxAcc.avatarUrl = ''
         }
-        deviceCodeModalOpen.value = false
-        currentDeviceCode.value = null
       }
-    } finally {
-      isAuthorizing.value = false
-    }
+    } catch {}
   }
+
+  async function syncBattleNetAccount() {
+    try {
+      const bnetStore = useBattleNetStore()
+      const acc = await bnetStore.loadAccount()
+      const bnetCard = getAccount('battlenet')
+      if (bnetCard) {
+        if (acc) {
+          bnetCard.connected = true
+          bnetCard.username = acc.battletag
+          bnetCard.displayName = `${acc.battletag} (Blizzard)`
+          bnetCard.avatarUrl = acc.avatar_url || ''
+          bnetCard.connectedAt = 'Session Battle.net liée'
+          bnetCard.gamesCount = bnetStore.totalGamesCount
+        } else {
+          bnetCard.connected = false
+          bnetCard.username = ''
+          bnetCard.displayName = 'Battle.net'
+          bnetCard.avatarUrl = ''
+          bnetCard.connectedAt = undefined
+          bnetCard.gamesCount = bnetStore.installedCount
+        }
+      }
+    } catch {}
+  }
+
+  syncMicrosoftAccount()
+  syncBattleNetAccount()
 
   function toggleConnection(platform: AccountPlatform) {
     const acc = getAccount(platform)
     if (!acc) return
 
     if (acc.connected) {
-      acc.connected = false
+      if (platform === 'xbox' || platform === 'microsoft') {
+        ipc.logoutMinecraftAuth().then(() => syncMicrosoftAccount())
+      } else if (platform === 'battlenet') {
+        const bnetStore = useBattleNetStore()
+        bnetStore.logoutBlizzard().then(() => syncBattleNetAccount())
+      } else {
+        acc.connected = false
+      }
     } else {
       if (platform === 'microsoft' || platform === 'xbox') {
-        startMicrosoftDeviceCodeFlow()
+        const mcStore = useMinecraftStore()
+        mcStore.startMicrosoftLogin().then(() => {
+          setTimeout(syncMicrosoftAccount, 3000)
+        })
+      } else if (platform === 'battlenet') {
+        const bnetStore = useBattleNetStore()
+        if (!bnetStore.credentialsConfigured) {
+          bnetStore.openAuthModal()
+        } else {
+          bnetStore.loginBlizzard().then(() => syncBattleNetAccount()).catch(() => {})
+        }
       } else {
         acc.connected = true
         acc.connectedAt = 'À l\'instant'
@@ -135,12 +151,9 @@ export const useAccountsStore = defineStore('accounts', () => {
 
   return {
     accounts,
-    deviceCodeModalOpen,
-    isAuthorizing,
-    currentDeviceCode,
     getAccount,
-    startMicrosoftDeviceCodeFlow,
-    confirmMicrosoftDeviceCode,
+    syncMicrosoftAccount,
+    syncBattleNetAccount,
     toggleConnection
   }
 })

@@ -5,20 +5,21 @@
   "identifier": "com.loom.launcher",
   "build": {
     "beforeDevCommand": "npm run dev",
-    "devUrl": "http://localhost:5173",
+    "devUrl": "http://127.0.0.1:5173",
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
   },
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "Loom Launcher",
         "width": 1360,
         "height": 860,
         "minWidth": 1024,
         "minHeight": 700,
         "resizable": true,
-        "decorations": true,
+        "decorations": false,
         "transparent": false
       }
     ],

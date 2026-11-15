@@ -74,20 +74,25 @@ function handleGlobalSearch() {
       </div>
 
       <!-- User Profile Badge -->
-      <div
+      <button
+        type="button"
+        role="button"
         @click="router.push('/accounts')"
-        class="flex items-center gap-3 pl-2 py-1 pr-1 rounded-full bg-zinc-900/60 hover:bg-zinc-800/80 border border-zinc-800 transition-colors cursor-pointer"
+        class="flex items-center gap-3 pl-2 py-1 pr-1 rounded-full bg-zinc-900/60 hover:bg-zinc-800/80 border border-zinc-800 transition-colors cursor-pointer select-none no-drag focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+        style="-webkit-app-region: no-drag;"
+        data-tauri-drag-region="false"
+        title="Accéder aux différents comptes"
       >
-        <div class="flex flex-col text-right">
+        <div class="flex flex-col text-right pointer-events-none">
           <span class="text-xs font-semibold text-zinc-200">K0bus</span>
           <span class="text-[10px] text-amber-400/90 font-mono">Arch Linux x86_64</span>
         </div>
         <img
           src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=120&auto=format&fit=crop"
           alt="Avatar"
-          class="w-8 h-8 rounded-full border border-amber-500/40 object-cover"
+          class="w-8 h-8 rounded-full border border-amber-500/40 object-cover pointer-events-none"
         />
-      </div>
+      </button>
     </div>
   </header>
 </template>

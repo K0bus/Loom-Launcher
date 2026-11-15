@@ -1,23 +1,103 @@
 [
   {
-    "appid": "1817800",
-    "name": "Oddsparks: An Automation Adventure",
-    "slug": "oddsparks-an-automation-adventure",
+    "appid": "945360",
+    "name": "Among Us",
+    "slug": "among-us",
     "installed": true,
-    "playtimeMinutes": 1494,
-    "lastPlayedTimestamp": 1793661367,
-    "sizeGb": 3.1,
-    "installDir": "Oddsparks"
+    "playtimeMinutes": 809,
+    "lastPlayedTimestamp": 1794697801,
+    "sizeGb": 1.1,
+    "installDir": "Among Us"
+  },
+  {
+    "appid": "431240",
+    "name": "Golf With Your Friends",
+    "slug": "golf-with-your-friends",
+    "installed": true,
+    "playtimeMinutes": 114,
+    "lastPlayedTimestamp": 1794680999,
+    "sizeGb": 5.6,
+    "installDir": "Golf With Your Friends"
+  },
+  {
+    "appid": "4000",
+    "name": "Garry's Mod",
+    "slug": "garry's-mod",
+    "installed": true,
+    "playtimeMinutes": 48966,
+    "lastPlayedTimestamp": 1794666722,
+    "sizeGb": 6.8,
+    "installDir": "GarrysMod"
   },
   {
     "appid": "594650",
     "name": "Hunt: Showdown 1896",
     "slug": "hunt-showdown-1896",
     "installed": true,
-    "playtimeMinutes": 22645,
-    "lastPlayedTimestamp": 1793653015,
-    "sizeGb": 0.1,
+    "playtimeMinutes": 22865,
+    "lastPlayedTimestamp": 1794612919,
+    "sizeGb": 94.1,
     "installDir": "Hunt Showdown 1896"
+  },
+  {
+    "appid": "876900",
+    "name": "Climb",
+    "slug": "climb",
+    "installed": true,
+    "playtimeMinutes": 0,
+    "lastPlayedTimestamp": 1794603472,
+    "sizeGb": 0.4,
+    "installDir": "Climb"
+  },
+  {
+    "appid": "4704690",
+    "name": "MECCHA CHAMELEON",
+    "slug": "meccha-chameleon",
+    "installed": true,
+    "playtimeMinutes": 213,
+    "lastPlayedTimestamp": 1794602904,
+    "sizeGb": 3.5,
+    "installDir": "MECCHA CHAMELEON"
+  },
+  {
+    "appid": "1445790",
+    "name": "Make Way",
+    "slug": "make-way",
+    "installed": true,
+    "playtimeMinutes": 10,
+    "lastPlayedTimestamp": 1794598855,
+    "sizeGb": 1.6,
+    "installDir": "Make Way"
+  },
+  {
+    "appid": "200170",
+    "name": "Worms Revolution",
+    "slug": "worms-revolution",
+    "installed": true,
+    "playtimeMinutes": 6,
+    "lastPlayedTimestamp": 1794598199,
+    "sizeGb": 1.6,
+    "installDir": "WormsRevolution"
+  },
+  {
+    "appid": "674940",
+    "name": "Stick Fight: The Game",
+    "slug": "stick-fight-the-game",
+    "installed": true,
+    "playtimeMinutes": 2,
+    "lastPlayedTimestamp": 1794597803,
+    "sizeGb": 0.4,
+    "installDir": "StickFightTheGame"
+  },
+  {
+    "appid": "1817800",
+    "name": "Oddsparks: An Automation Adventure",
+    "slug": "oddsparks-an-automation-adventure",
+    "installed": true,
+    "playtimeMinutes": 1494,
+    "lastPlayedTimestamp": 1793665202,
+    "sizeGb": 6.3,
+    "installDir": "Oddsparks"
   },
   {
     "appid": "739630",
@@ -26,7 +106,7 @@
     "installed": true,
     "playtimeMinutes": 13399,
     "lastPlayedTimestamp": 1793489888,
-    "sizeGb": 16,
+    "sizeGb": 41.6,
     "installDir": "Phasmophobia"
   },
   {
@@ -36,10 +116,8 @@
     "installed": true,
     "playtimeMinutes": 1143,
     "lastPlayedTimestamp": 1793479957,
-    "sizeGb": 0.4,
-    "installDir": "We Were Here Tomorrow",
-    "coverUrl": "/steam-assets/2315050/library_capsule.jpg",
-    "bannerUrl": "/steam-assets/2315050/library_hero.jpg"
+    "sizeGb": 21.5,
+    "installDir": "We Were Here Tomorrow"
   },
   {
     "appid": "1203620",
@@ -48,20 +126,8 @@
     "installed": true,
     "playtimeMinutes": 7163,
     "lastPlayedTimestamp": 1792433337,
-    "sizeGb": 0.4,
+    "sizeGb": 48.3,
     "installDir": "Enshrouded"
-  },
-  {
-    "appid": "4126040",
-    "name": "Aniimo",
-    "slug": "aniimo",
-    "installed": true,
-    "playtimeMinutes": 2388,
-    "lastPlayedTimestamp": 1791149837,
-    "sizeGb": 0.3,
-    "installDir": "Aniimo",
-    "coverUrl": "/steam-assets/4126040/library_capsule.jpg",
-    "bannerUrl": "/steam-assets/4126040/library_hero.jpg"
   },
   {
     "appid": "892970",
@@ -70,7 +136,7 @@
     "installed": true,
     "playtimeMinutes": 10743,
     "lastPlayedTimestamp": 1791128063,
-    "sizeGb": 1.9,
+    "sizeGb": 3.9,
     "installDir": "Valheim"
   },
   {
@@ -80,48 +146,16 @@
     "installed": true,
     "playtimeMinutes": 41,
     "lastPlayedTimestamp": 1791054824,
-    "sizeGb": 1.6,
+    "sizeGb": 2.1,
     "installDir": "Oh Deer"
   },
   {
     "appid": "292030",
-    "name": "The Witcher 3: Wild Hunt — Remastered",
+    "name": "The Witcher 3: Wild Hunt \u2014 Remastered",
     "slug": "the-witcher-3-wild-hunt-remastered",
     "installed": false,
     "playtimeMinutes": 347,
     "lastPlayedTimestamp": 1791037377,
-    "sizeGb": 0,
-    "installDir": ""
-  },
-  {
-    "appid": "4704690",
-    "name": "MECCHA CHAMELEON",
-    "slug": "meccha-chameleon",
-    "installed": false,
-    "playtimeMinutes": 208,
-    "lastPlayedTimestamp": 1790530922,
-    "sizeGb": 0,
-    "installDir": "",
-    "coverUrl": "/steam-assets/4704690/library_capsule.jpg",
-    "bannerUrl": "/steam-assets/4704690/library_hero.jpg"
-  },
-  {
-    "appid": "4000",
-    "name": "Garry's Mod",
-    "slug": "garry-s-mod",
-    "installed": true,
-    "playtimeMinutes": 48903,
-    "lastPlayedTimestamp": 1790521977,
-    "sizeGb": 6.8,
-    "installDir": "GarrysMod"
-  },
-  {
-    "appid": "945360",
-    "name": "Among Us",
-    "slug": "among-us",
-    "installed": false,
-    "playtimeMinutes": 597,
-    "lastPlayedTimestamp": 1790374562,
     "sizeGb": 0,
     "installDir": ""
   },
@@ -154,7 +188,7 @@
     "installed": true,
     "playtimeMinutes": 676,
     "lastPlayedTimestamp": 1788564576,
-    "sizeGb": 0.4,
+    "sizeGb": 0.5,
     "installDir": "Necesse"
   },
   {
@@ -174,7 +208,7 @@
     "installed": true,
     "playtimeMinutes": 1518,
     "lastPlayedTimestamp": 1787783551,
-    "sizeGb": 9.7,
+    "sizeGb": 9.6,
     "installDir": "ProjectZomboid"
   },
   {
@@ -239,7 +273,7 @@
   },
   {
     "appid": "553850",
-    "name": "HELLDIVERS™ 2",
+    "name": "HELLDIVERS\u2122 2",
     "slug": "helldivers-2",
     "installed": false,
     "playtimeMinutes": 1825,
@@ -391,7 +425,7 @@
     "appid": "427520",
     "name": "Factorio",
     "slug": "factorio",
-    "installed": true,
+    "installed": false,
     "playtimeMinutes": 2357,
     "lastPlayedTimestamp": 1775497707,
     "sizeGb": 1.9,
@@ -401,7 +435,7 @@
     "appid": "105600",
     "name": "Terraria",
     "slug": "terraria",
-    "installed": true,
+    "installed": false,
     "playtimeMinutes": 17162,
     "lastPlayedTimestamp": 1774736971,
     "sizeGb": 0.8,
@@ -411,7 +445,7 @@
     "appid": "1281930",
     "name": "tModLoader",
     "slug": "tmodloader",
-    "installed": true,
+    "installed": false,
     "playtimeMinutes": 6568,
     "lastPlayedTimestamp": 1774736971,
     "sizeGb": 0.2,
@@ -489,7 +523,7 @@
   },
   {
     "appid": "1222670",
-    "name": "The Sims™ 4",
+    "name": "The Sims\u2122 4",
     "slug": "the-sims-4",
     "installed": false,
     "playtimeMinutes": 3075,
@@ -569,7 +603,7 @@
   },
   {
     "appid": "2807960",
-    "name": "Battlefield™ 6",
+    "name": "Battlefield\u2122 6",
     "slug": "battlefield-6",
     "installed": false,
     "playtimeMinutes": 57,
@@ -899,7 +933,7 @@
   },
   {
     "appid": "1517290",
-    "name": "Battlefield™ 2042",
+    "name": "Battlefield\u2122 2042",
     "slug": "battlefield-2042",
     "installed": false,
     "playtimeMinutes": 68,
@@ -1689,7 +1723,7 @@
   },
   {
     "appid": "42690",
-    "name": "Call of Duty®: Modern Warfare® 3 (2011) - Multiplayer",
+    "name": "Call of Duty\u00ae: Modern Warfare\u00ae 3 (2011) - Multiplayer",
     "slug": "call-of-duty-modern-warfare-3-2011-multiplayer",
     "installed": false,
     "playtimeMinutes": 103,
@@ -1799,7 +1833,7 @@
   },
   {
     "appid": "460930",
-    "name": "Tom Clancy's Ghost Recon® Wildlands",
+    "name": "Tom Clancy's Ghost Recon\u00ae Wildlands",
     "slug": "tom-clancy-s-ghost-recon-wildlands",
     "installed": false,
     "playtimeMinutes": 48,
@@ -1869,7 +1903,7 @@
   },
   {
     "appid": "614570",
-    "name": "Dishonored®: Death of the Outsider™ ",
+    "name": "Dishonored\u00ae: Death of the Outsider\u2122 ",
     "slug": "dishonored-death-of-the-outsider",
     "installed": false,
     "playtimeMinutes": 345,
@@ -1949,7 +1983,7 @@
   },
   {
     "appid": "208480",
-    "name": "Assassin's Creed® III",
+    "name": "Assassin's Creed\u00ae III",
     "slug": "assassin-s-creed-iii",
     "installed": false,
     "playtimeMinutes": 395,
@@ -2419,7 +2453,7 @@
   },
   {
     "appid": "102700",
-    "name": "A.V.A. Alliance of Valiant Arms™",
+    "name": "A.V.A. Alliance of Valiant Arms\u2122",
     "slug": "a-v-a-alliance-of-valiant-arms",
     "installed": false,
     "playtimeMinutes": 95,
@@ -2619,7 +2653,7 @@
   },
   {
     "appid": "24960",
-    "name": "Battlefield: Bad Company™ 2",
+    "name": "Battlefield: Bad Company\u2122 2",
     "slug": "battlefield-bad-company-2",
     "installed": false,
     "playtimeMinutes": 361,
@@ -2729,7 +2763,7 @@
   },
   {
     "appid": "24800",
-    "name": "Command & Conquer™ Red Alert™ 3 - Uprising",
+    "name": "Command & Conquer\u2122 Red Alert\u2122 3 - Uprising",
     "slug": "command-conquer-red-alert-3-uprising",
     "installed": false,
     "playtimeMinutes": 23,
@@ -2909,7 +2943,7 @@
   },
   {
     "appid": "384190",
-    "name": "ABZÛ",
+    "name": "ABZ\u00db",
     "slug": "abzu",
     "installed": false,
     "playtimeMinutes": 0,
@@ -3479,7 +3513,7 @@
   },
   {
     "appid": "42680",
-    "name": "Call of Duty®: Modern Warfare® 3 (2011)",
+    "name": "Call of Duty\u00ae: Modern Warfare\u00ae 3 (2011)",
     "slug": "call-of-duty-modern-warfare-3-2011",
     "installed": false,
     "playtimeMinutes": 0,
@@ -3769,7 +3803,7 @@
   },
   {
     "appid": "335300",
-    "name": "DARK SOULS™ II: Scholar of the First Sin",
+    "name": "DARK SOULS\u2122 II: Scholar of the First Sin",
     "slug": "dark-souls-ii-scholar-of-the-first-sin",
     "installed": false,
     "playtimeMinutes": 0,
@@ -3989,7 +4023,7 @@
   },
   {
     "appid": "337000",
-    "name": "Deus Ex: Mankind Divided™",
+    "name": "Deus Ex: Mankind Divided\u2122",
     "slug": "deus-ex-mankind-divided",
     "installed": false,
     "playtimeMinutes": 0,
@@ -3999,7 +4033,7 @@
   },
   {
     "appid": "2344520",
-    "name": "Diablo® IV",
+    "name": "Diablo\u00ae IV",
     "slug": "diablo-iv",
     "installed": false,
     "playtimeMinutes": 0,
@@ -4269,7 +4303,7 @@
   },
   {
     "appid": "220240",
-    "name": "Far Cry® 3",
+    "name": "Far Cry\u00ae 3",
     "slug": "far-cry-3",
     "installed": false,
     "playtimeMinutes": 0,
@@ -5029,7 +5063,7 @@
   },
   {
     "appid": "236870",
-    "name": "HITMAN™",
+    "name": "HITMAN\u2122",
     "slug": "hitman",
     "installed": false,
     "playtimeMinutes": 0,
@@ -5039,7 +5073,7 @@
   },
   {
     "appid": "863550",
-    "name": "HITMAN™ 2",
+    "name": "HITMAN\u2122 2",
     "slug": "hitman-2",
     "installed": false,
     "playtimeMinutes": 0,
@@ -5089,7 +5123,7 @@
   },
   {
     "appid": "1271700",
-    "name": "HOT WHEELS UNLEASHED™",
+    "name": "HOT WHEELS UNLEASHED\u2122",
     "slug": "hot-wheels-unleashed",
     "installed": false,
     "playtimeMinutes": 0,
@@ -5439,7 +5473,7 @@
   },
   {
     "appid": "102500",
-    "name": "Kingdoms of Amalur: Reckoning™",
+    "name": "Kingdoms of Amalur: Reckoning\u2122",
     "slug": "kingdoms-of-amalur-reckoning",
     "installed": false,
     "playtimeMinutes": 0,
@@ -5549,7 +5583,7 @@
   },
   {
     "appid": "319630",
-    "name": "Life is Strange™",
+    "name": "Life is Strange\u2122",
     "slug": "life-is-strange",
     "installed": false,
     "playtimeMinutes": 0,
@@ -5719,7 +5753,7 @@
   },
   {
     "appid": "241930",
-    "name": "Middle-earth™: Shadow of Mordor™",
+    "name": "Middle-earth\u2122: Shadow of Mordor\u2122",
     "slug": "middle-earth-shadow-of-mordor",
     "installed": false,
     "playtimeMinutes": 0,
@@ -5999,7 +6033,7 @@
   },
   {
     "appid": "244630",
-    "name": "NEOTOKYO°",
+    "name": "NEOTOKYO\u00b0",
     "slug": "neotokyo",
     "installed": false,
     "playtimeMinutes": 0,
@@ -6038,9 +6072,9 @@
     "installDir": ""
   },
   {
-    "appid": "633130",
-    "name": "Nongünz",
-    "slug": "nongunz",
+    "appid": "1304780",
+    "name": "Nongunz: Doppelganger Edition",
+    "slug": "nongunz-doppelganger-edition",
     "installed": false,
     "playtimeMinutes": 0,
     "lastPlayedTimestamp": 0,
@@ -6048,9 +6082,9 @@
     "installDir": ""
   },
   {
-    "appid": "1304780",
-    "name": "Nongunz: Doppelganger Edition",
-    "slug": "nongunz-doppelganger-edition",
+    "appid": "633130",
+    "name": "Nong\u00fcnz",
+    "slug": "nongunz",
     "installed": false,
     "playtimeMinutes": 0,
     "lastPlayedTimestamp": 0,
@@ -7429,7 +7463,7 @@
   },
   {
     "appid": "213670",
-    "name": "South Park™: The Stick of Truth™",
+    "name": "South Park\u2122: The Stick of Truth\u2122",
     "slug": "south-park-the-stick-of-truth",
     "installed": false,
     "playtimeMinutes": 0,

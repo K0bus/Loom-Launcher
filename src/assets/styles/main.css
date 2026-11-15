@@ -3,15 +3,79 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
+  :root,
+  [data-theme="amber"] {
     color-scheme: dark;
+    --accent-500: #f59e0b;
+    --accent-400: #fbbf24;
+    --accent-600: #d97706;
+    --accent-glow: rgba(245, 158, 11, 0.4);
+    --accent-glow-lg: rgba(245, 158, 11, 0.55);
+    --accent-bg-subtle: rgba(245, 158, 11, 0.15);
+    --accent-border: rgba(245, 158, 11, 0.35);
+  }
+
+  [data-theme="emerald"] {
+    --accent-500: #10b981;
+    --accent-400: #34d399;
+    --accent-600: #059669;
+    --accent-glow: rgba(16, 185, 129, 0.4);
+    --accent-glow-lg: rgba(16, 185, 129, 0.55);
+    --accent-bg-subtle: rgba(16, 185, 129, 0.15);
+    --accent-border: rgba(16, 185, 129, 0.35);
+  }
+
+  [data-theme="violet"] {
+    --accent-500: #8b5cf6;
+    --accent-400: #a78bfa;
+    --accent-600: #7c3aed;
+    --accent-glow: rgba(139, 92, 246, 0.4);
+    --accent-glow-lg: rgba(139, 92, 246, 0.55);
+    --accent-bg-subtle: rgba(139, 92, 246, 0.15);
+    --accent-border: rgba(139, 92, 246, 0.35);
+  }
+
+  [data-theme="sky"] {
+    --accent-500: #0ea5e9;
+    --accent-400: #38bdf8;
+    --accent-600: #0284c7;
+    --accent-glow: rgba(14, 165, 233, 0.4);
+    --accent-glow-lg: rgba(14, 165, 233, 0.55);
+    --accent-bg-subtle: rgba(14, 165, 233, 0.15);
+    --accent-border: rgba(14, 165, 233, 0.35);
+  }
+
+  [data-theme="rose"] {
+    --accent-500: #f43f5e;
+    --accent-400: #fb7185;
+    --accent-600: #e11d48;
+    --accent-glow: rgba(244, 63, 94, 0.4);
+    --accent-glow-lg: rgba(244, 63, 94, 0.55);
+    --accent-bg-subtle: rgba(244, 63, 94, 0.15);
+    --accent-border: rgba(244, 63, 94, 0.35);
   }
   
   body {
-    @apply bg-zinc-950 text-zinc-100 font-sans selection:bg-amber-500/30 selection:text-amber-200;
+    @apply bg-zinc-950 text-zinc-100 font-sans;
     user-select: none;
     -webkit-user-select: none;
   }
+}
+
+/* Main content scrolling GPU optimization for WebKitGTK Linux */
+main {
+  scroll-behavior: auto;
+  overscroll-behavior-y: contain;
+}
+
+/* Disable expensive backdrop-filter selectively without universal wildcard */
+.backdrop-blur-none,
+.backdrop-blur-sm,
+.backdrop-blur-md,
+.backdrop-blur-lg,
+.backdrop-blur-xl {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 /* Custom scrollbars */
@@ -48,20 +112,22 @@
   -webkit-app-region: drag;
 }
 
-button, input, a, [role="button"], select, textarea {
+button, input, a, [role="button"], select, textarea,
+button *, a *, [role="button"] *, [data-tauri-drag-region="false"], [data-tauri-drag-region="false"] *,
+.no-drag, .no-drag * {
   -webkit-app-region: no-drag;
 }
 
-/* Solid gold buttons & selected tags for crystal-clear contrast */
+/* Dynamic accent buttons & selected tags for crystal-clear contrast */
 .btn-gold {
-  background-color: #f59e0b !important;
+  background-color: var(--accent-500) !important;
   color: #09090b !important;
-  box-shadow: 0 0 24px rgba(245, 158, 11, 0.4) !important;
+  box-shadow: 0 0 24px var(--accent-glow) !important;
 }
 
 .btn-gold:hover {
-  background-color: #fbbf24 !important;
-  box-shadow: 0 0 32px rgba(245, 158, 11, 0.55) !important;
+  background-color: var(--accent-400) !important;
+  box-shadow: 0 0 32px var(--accent-glow-lg) !important;
 }
 
 .btn-gold i {
@@ -69,13 +135,50 @@ button, input, a, [role="button"], select, textarea {
 }
 
 .tag-selected {
-  background-color: #f59e0b !important;
+  background-color: var(--accent-500) !important;
   color: #09090b !important;
-  border-color: #fbbf24 !important;
-  box-shadow: 0 0 14px rgba(245, 158, 11, 0.4) !important;
+  border-color: var(--accent-400) !important;
+  box-shadow: 0 0 14px var(--accent-glow) !important;
   font-weight: 700 !important;
 }
 
 .tag-selected i, .tag-selected span {
   color: #09090b !important;
+}
+
+/* Global dynamic accent bindings */
+[data-theme] button.bg-amber-500,
+[data-theme] .btn-primary {
+  background-color: var(--accent-500) !important;
+  border-color: var(--accent-border) !important;
+  box-shadow: 0 4px 14px var(--accent-glow) !important;
+}
+
+[data-theme] button.hover\:bg-amber-400:hover {
+  background-color: var(--accent-400) !important;
+}
+
+[data-theme] .border-amber-500\/30,
+[data-theme] .border-amber-500\/40,
+[data-theme] .border-amber-500\/60 {
+  border-color: var(--accent-border) !important;
+}
+
+[data-theme] .text-amber-400,
+[data-theme] .text-amber-300 {
+  color: var(--accent-400) !important;
+}
+
+[data-theme] .bg-amber-500\/10,
+[data-theme] .bg-amber-500\/15 {
+  background-color: var(--accent-bg-subtle) !important;
+}
+
+[data-theme] .hero-glow {
+  background: radial-gradient(circle at 65% 28%, var(--accent-glow) 0%, transparent 70%) !important;
+}
+
+[data-theme] [role="switch"][aria-checked="true"] {
+  background-color: var(--accent-500) !important;
+  box-shadow: 0 0 12px var(--accent-glow) !important;
 }

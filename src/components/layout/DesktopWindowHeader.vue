@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToastStore } from '@/stores/toastStore'
 import { useGamesStore } from '@/stores/gamesStore'
 import { useDownloadsStore } from '@/stores/downloadsStore'
+import { useAccountsStore } from '@/stores/accountsStore'
+import { useSettingsStore } from '@/stores/settingsStore'
+import { useSystemStore } from '@/stores/systemStore'
 import DownloadsPopover from '@/components/layout/DownloadsPopover.vue'
 import { ipc } from '@/services/ipc'
 
@@ -12,10 +15,38 @@ const router = useRouter()
 const toast = useToastStore()
 const gamesStore = useGamesStore()
 const downloadsStore = useDownloadsStore()
+const accountsStore = useAccountsStore()
+const settingsStore = useSettingsStore()
+const systemStore = useSystemStore()
 
 const downloadsPopoverOpen = ref(false)
 const searchQuery = ref('')
 const searchInputRef = ref<HTMLInputElement | null>(null)
+const avatarImgFailed = ref(false)
+
+const userAvatar = computed(() => {
+  const bnet = accountsStore.getAccount('battlenet')
+  if (bnet?.connected && bnet.avatarUrl) return bnet.avatarUrl
+  const xbox = accountsStore.getAccount('xbox')
+  if (xbox?.connected && xbox.avatarUrl) return xbox.avatarUrl
+  const steam = accountsStore.getAccount('steam')
+  if (steam?.connected && steam.avatarUrl) return steam.avatarUrl
+  return null
+})
+
+watch(userAvatar, () => {
+  avatarImgFailed.value = false
+})
+
+const connectedCount = computed(() => {
+  return accountsStore.accounts.filter((a) => a.connected).length
+})
+
+function goToAccounts() {
+  if (route.path !== '/accounts') {
+    router.push('/accounts')
+  }
+}
 
 function goBack() {
   window.history.length > 1 ? router.back() : router.push('/')
@@ -66,24 +97,46 @@ async function minimizeWindow() {
 async function toggleMaximizeWindow() {
   if ((window as any).desktopWindow) {
     ;(window as any).desktopWindow.toggleMaximize()
+    systemStore.setMaximized(!systemStore.isMaximized)
     return
   }
   if (ipc.isTauri()) {
-    const { getCurrentWindow } = await import('@tauri-apps/api/window')
-    getCurrentWindow().toggleMaximize()
+    try {
+      const { getCurrentWindow } = await import('@tauri-apps/api/window')
+      const win = getCurrentWindow()
+      await win.toggleMaximize()
+      systemStore.setMaximized(await win.isMaximized())
+    } catch {}
   } else {
+    systemStore.setMaximized(!systemStore.isMaximized)
     toast.show('Plein écran basculé (simulation)', 'info')
   }
 }
 
 async function closeWindow() {
+  if (settingsStore.settings.closeToTray) {
+    try {
+      await ipc.hideWindow()
+      toast.show('Loom réduit dans la barre d\'état. Clic droit sur l\'icône pour quitter.', 'info')
+      return
+    } catch (err) {
+      console.warn('[DesktopWindowHeader] hideWindow failed, falling back to exit:', err)
+    }
+  }
+
   if ((window as any).desktopWindow) {
     ;(window as any).desktopWindow.close()
     return
   }
+
   if (ipc.isTauri()) {
-    const { getCurrentWindow } = await import('@tauri-apps/api/window')
-    getCurrentWindow().close()
+    try {
+      await ipc.exitApp()
+      return
+    } catch {
+      const { getCurrentWindow } = await import('@tauri-apps/api/window')
+      getCurrentWindow().close()
+    }
   } else {
     toast.show('Fermeture de l\'application (simulation)', 'info')
   }
@@ -92,11 +145,24 @@ async function closeWindow() {
 
 <template>
   <header
-    data-tauri-drag-region
-    class="relative z-30 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4 backdrop-blur-md bg-zinc-950/60 border-b border-zinc-800/60 select-none flex-shrink-0"
+    class="relative z-30 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 bg-zinc-950/90 border-b border-zinc-800/80 select-none flex-shrink-0"
   >
-    <!-- Left: Back/Forward Navigation + Clean Menu Pills (Bibliothèque, Minecraft) -->
+    <!-- Left: Brand Logo + Back/Forward Navigation + Clean Menu Pills (Bibliothèque, Minecraft) -->
     <div class="flex items-center gap-3">
+      <!-- Brand Logo -->
+      <button
+        type="button"
+        @click="router.push('/library')"
+        class="flex items-center justify-center p-0.5 rounded-lg hover:opacity-90 hover:brightness-110 active:scale-95 transition focus:outline-none"
+        title="Loom Launcher"
+      >
+        <img
+          src="/logo.png"
+          alt="Loom Logo"
+          class="w-7 h-7 object-contain drop-shadow-[0_2px_8px_rgba(245,158,11,0.25)] select-none pointer-events-none"
+        />
+      </button>
+
       <!-- History navigation -->
       <div class="flex items-center text-zinc-400 mr-1">
         <button
@@ -132,21 +198,24 @@ async function closeWindow() {
           Bibliothèque
         </button>
 
-        <!-- Special tab: Minecraft Studio integration -->
+        <!-- Special tab: Modding integration -->
         <button
           type="button"
-          @click="router.push('/minecraft')"
+          @click="router.push('/modding')"
           :class="[
             'px-3.5 py-1 rounded-full text-xs font-medium transition flex items-center gap-1.5',
-            route.path === '/minecraft'
+            route.path.startsWith('/modding')
               ? 'bg-amber-500 text-zinc-950 font-bold shadow-sm'
               : 'text-amber-400/90 hover:text-amber-300'
           ]"
         >
-          <i class="ph-fill ph-cube text-xs"></i> Minecraft
+          <i class="ph-fill ph-stack text-xs"></i> Modding
         </button>
       </nav>
     </div>
+
+    <!-- Drag region handle gauche -->
+    <div data-tauri-drag-region class="flex-1 h-8 cursor-default select-none min-w-[12px]"></div>
 
     <!-- Center: Fuzzy Search Bar with ⌘K -->
     <div class="flex-1 max-w-md hidden md:block">
@@ -166,6 +235,9 @@ async function closeWindow() {
       </div>
     </div>
 
+    <!-- Drag region handle droite -->
+    <div data-tauri-drag-region class="flex-1 h-8 cursor-default select-none min-w-[12px]"></div>
+
     <!-- Right: Downloads + Alerts + Paramètres (Écrou) + Profil (Compte) + Contrôles Fenêtre (Linux/Windows) -->
     <div class="flex items-center gap-2">
       <!-- Active Running Game Indicator if any -->
@@ -173,7 +245,7 @@ async function closeWindow() {
         v-if="gamesStore.runningGameId"
         class="hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-medium"
       >
-        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+        <span class="w-2 h-2 rounded-full bg-amber-400" />
         <span>En cours : {{ gamesStore.getGameById(gamesStore.runningGameId)?.title }}</span>
       </div>
 
@@ -188,7 +260,7 @@ async function closeWindow() {
               ? 'text-amber-400 bg-amber-500/15 border border-amber-500/30 shadow-sm'
               : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/80'
           ]"
-          :title="downloadsStore.isDownloading ? `Téléchargement Steam en cours (${downloadsStore.formattedSpeed})` : 'Gestionnaire de téléchargements'"
+          :title="downloadsStore.isDownloading ? `Téléchargements en cours (${downloadsStore.activeCount} actif${downloadsStore.activeCount > 1 ? 's' : ''} • ${downloadsStore.formattedSpeed})` : 'Gestionnaire de téléchargements'"
         >
           <i
             class="ph ph-download-simple text-base"
@@ -201,7 +273,7 @@ async function closeWindow() {
             {{ downloadsStore.activeCount }}
           </span>
           <span
-            v-else-if="downloadsStore.completedDownloads.length > 0"
+            v-else-if="downloadsStore.completedDownloads.length > 0 || downloadsStore.completedModDownloads.length > 0"
             class="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400"
           ></span>
         </button>
@@ -238,22 +310,38 @@ async function closeWindow() {
         <i class="ph ph-gear"></i>
       </button>
 
-      <!-- User profile pill (Hub de Comptes déjà accessible ici) -->
-      <div
-        @click="router.push('/accounts')"
+      <!-- User profile button (Hub de Comptes & Services liés) -->
+      <button
+        type="button"
+        role="button"
+        @click="goToAccounts"
         :class="[
-          'flex items-center gap-2 pl-1 pr-3 py-1 rounded-full transition cursor-pointer border',
+          'flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-full transition cursor-pointer border select-none focus:outline-none focus:ring-2 focus:ring-amber-500/50 active:scale-95 group no-drag',
           route.path === '/accounts'
-            ? 'bg-zinc-900 border-amber-500/50 shadow-sm'
-            : 'bg-zinc-900/80 border-zinc-800/80 hover:border-zinc-700'
+            ? 'bg-amber-500/15 border-amber-500/50 shadow-sm text-amber-300 font-semibold'
+            : 'bg-zinc-900/80 border-zinc-800/80 hover:border-amber-500/50 hover:bg-zinc-800/90 text-zinc-300 hover:text-white'
         ]"
-        title="Mon Compte & Services liés"
+        style="-webkit-app-region: no-drag;"
+        data-tauri-drag-region="false"
+        title="Mon Compte & Services liés (Accéder aux différents comptes)"
       >
-        <div class="w-6 h-6 rounded-full bg-amber-500/20 text-amber-300 font-semibold text-xs flex items-center justify-center border border-amber-500/40">
-          K
+        <div class="w-6 h-6 rounded-full bg-amber-500/20 text-amber-300 font-semibold text-xs flex items-center justify-center border border-amber-500/40 overflow-hidden flex-shrink-0 pointer-events-none">
+          <img
+            v-if="userAvatar && !avatarImgFailed"
+            :src="userAvatar"
+            alt="Avatar"
+            class="w-full h-full object-cover"
+            @error="avatarImgFailed = true"
+          />
+          <span v-else>K</span>
         </div>
-        <span class="text-xs font-medium text-zinc-300">k0bus</span>
-      </div>
+        <span class="text-xs font-medium pointer-events-none group-hover:text-amber-300 transition-colors">k0bus</span>
+        <span
+          v-if="connectedCount > 0"
+          class="w-1.5 h-1.5 rounded-full bg-emerald-400 pointer-events-none shadow-[0_0_6px_rgba(52,211,153,0.8)]"
+          :title="`${connectedCount} plateforme(s) connectée(s)`"
+        />
+      </button>
 
       <!-- Séparateur vertical -->
       <div class="h-4 w-px bg-zinc-800 mx-1 hidden sm:block" />
@@ -275,9 +363,9 @@ async function closeWindow() {
           type="button"
           @click="toggleMaximizeWindow"
           class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-zinc-800/80 text-zinc-400 hover:text-zinc-100 transition-colors"
-          title="Agrandir / Restaurer"
+          :title="systemStore.isMaximized ? 'Restaurer la fenêtre' : 'Agrandir la fenêtre'"
         >
-          <i class="ph ph-square text-xs"></i>
+          <i :class="['ph text-xs', systemStore.isMaximized ? 'ph-copy' : 'ph-square']"></i>
         </button>
 
         <!-- Fermer (Close) -->

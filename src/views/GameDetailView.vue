@@ -2,17 +2,21 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useGamesStore } from '@/stores/gamesStore'
+import { useBattleNetStore } from '@/stores/useBattleNetStore'
 import { useToastStore } from '@/stores/toastStore'
 import { useDownloadsStore } from '@/stores/downloadsStore'
+import { openExternalLink } from '@/utils/externalLinks'
 import type { Game, RunnerType } from '@/models/game'
 import UiModal from '@/components/ui/UiModal.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import IgdbSearchModal from '@/components/igdb/IgdbSearchModal.vue'
 import AchievementsModal from '@/components/games/AchievementsModal.vue'
+import WowCharactersCard from '@/components/wow/WowCharactersCard.vue'
 
 const route = useRoute()
 const router = useRouter()
 const gamesStore = useGamesStore()
+const bnetStore = useBattleNetStore()
 const toast = useToastStore()
 const downloadsStore = useDownloadsStore()
 
@@ -57,6 +61,19 @@ const game = computed<Game | undefined>(() => {
 const currentDownload = computed(() => {
   if (!game.value) return undefined
   return downloadsStore.getDownloadForGame(game.value.id, game.value.slug)
+})
+
+const blizzardStats = computed<any>(() => {
+  if (!game.value || game.value.platform !== 'battlenet') return null
+  const uid = game.value.id.replace(/^bnet-/, '')
+  const owned = bnetStore.ownedGames.find((g) => g.product_uid.toLowerCase() === uid.toLowerCase())
+  if (owned && owned.stats) return owned.stats
+  if (game.value.themes && game.value.themes[0]) {
+    try {
+      return JSON.parse(game.value.themes[0])
+    } catch {}
+  }
+  return null
 })
 
 async function loadGameDetails() {
@@ -115,6 +132,74 @@ function toggleSteam() {
   }
 }
 
+// Sub-navigation contextual external link handlers
+const steamAppId = computed(() => {
+  if (!game.value) return null
+  if (game.value.id.startsWith('steam-')) {
+    return game.value.id.replace('steam-', '')
+  }
+  const match = game.value.id.match(/^(\d+)$/)
+  if (match) return match[1]
+  const steamLink = game.value.storeLinks?.find(
+    (s) => s.store.toLowerCase().includes('steam') || s.url.includes('store.steampowered.com/app/')
+  )
+  if (steamLink) {
+    const urlMatch = steamLink.url.match(/app\/(\d+)/)
+    if (urlMatch) return urlMatch[1]
+  }
+  return null
+})
+
+function openStorePage() {
+  if (steamAppId.value) {
+    openExternalLink(`https://store.steampowered.com/app/${steamAppId.value}/`)
+  } else if (game.value?.storeLinks?.[0]?.url) {
+    openExternalLink(game.value.storeLinks[0].url)
+  } else {
+    toast.show('Aucun lien de boutique disponible pour ce jeu', 'info')
+  }
+}
+
+function openDlcPage() {
+  if (steamAppId.value) {
+    openExternalLink(`https://store.steampowered.com/dlc/${steamAppId.value}/`)
+  } else {
+    toast.show('Aucun DLC disponible pour ce jeu', 'info')
+  }
+}
+
+function openCommunityHub() {
+  if (steamAppId.value) {
+    openExternalLink(`https://steamcommunity.com/app/${steamAppId.value}`)
+  } else {
+    toast.show('Hub communautaire non disponible pour ce jeu', 'info')
+  }
+}
+
+function openDiscussions() {
+  if (steamAppId.value) {
+    openExternalLink(`https://steamcommunity.com/app/${steamAppId.value}/discussions/`)
+  } else {
+    toast.show('Discussions communautaires non disponibles', 'info')
+  }
+}
+
+function openGuides() {
+  if (steamAppId.value) {
+    openExternalLink(`https://steamcommunity.com/app/${steamAppId.value}/guides/`)
+  } else {
+    toast.show('Guides communautaires non disponibles', 'info')
+  }
+}
+
+function openSupport() {
+  if (steamAppId.value) {
+    openExternalLink(`https://help.steampowered.com/fr/wizard/HelpWithGame/?appid=${steamAppId.value}`)
+  } else {
+    toast.show('Support technique Loom : disponible dans les paramètres', 'info')
+  }
+}
+
 // Play / Stop game state
 const isRunning = computed(() => game.value && gamesStore.runningGameId === game.value.id)
 const isStarting = computed(() => game.value && gamesStore.launchingGameId === game.value.id)
@@ -135,17 +220,33 @@ async function handleUninstall() {
 
 async function handlePlay() {
   if (!game.value) return
+  const isBnet = game.value.platform === 'battlenet'
   if (!isRunning.value) {
     if (!game.value.installed) {
-      toast.show(`Ouverture de l'assistant d'installation Steam pour ${game.value.title}...`, 'info')
+      toast.show(
+        isBnet
+          ? `Lancement du client Battle.net pour installer ${game.value.title}...`
+          : `Ouverture de l'assistant d'installation Steam pour ${game.value.title}...`,
+        'info'
+      )
       await gamesStore.installGame(game.value.id)
       return
     }
     await gamesStore.launchGame(game.value.id)
-    toast.show(`Transmission de l'ordre de lancement à Steam pour ${game.value.title}...`, 'info')
+    toast.show(
+      isBnet
+        ? `Ordre de lancement transmis à Battle.net pour ${game.value.title}...`
+        : `Transmission de l'ordre de lancement à Steam pour ${game.value.title}...`,
+      'info'
+    )
   } else {
     await gamesStore.stopGame(game.value.id)
-    toast.show('Demande d\'arrêt transmise à Steam...', 'info')
+    toast.show(
+      isBnet
+        ? 'Arrêt propre du jeu et de l\'environnement Wine Battle.net...'
+        : 'Demande d\'arrêt transmise à Steam...',
+      'info'
+    )
   }
 }
 
@@ -188,7 +289,23 @@ function saveRunnerSettings() {
 
 // Minecraft Quick Jump
 function openMinecraftStudio() {
-  router.push('/minecraft')
+  router.push('/modding/minecraft')
+}
+
+// World of Warcraft Quick Jump
+const isWowGame = computed(() => {
+  if (!game.value) return false
+  const id = game.value.id.toLowerCase()
+  const title = (game.value.title || '').toLowerCase()
+  return (
+    id.startsWith('bnet-wow') ||
+    id.includes('warcraft') ||
+    title.includes('world of warcraft')
+  )
+})
+
+function openWowAddons() {
+  router.push('/modding/wow')
 }
 
 // Achievements calculation (real data only)
@@ -221,17 +338,14 @@ const achievementPercent = computed(() => {
           :alt="game.title"
           class="w-full h-full object-cover object-[65%_25%] scale-105 transition-transform duration-1000 ease-out"
         />
-        <!-- Dramatic red/gold glow layer -->
-        <div class="absolute inset-0 hero-glow mix-blend-screen pointer-events-none" />
-        <!-- Vignette and dark fade to zinc-950 -->
+        <!-- Vignette and dark fade to zinc-950 (GPU linear gradient) -->
         <div class="absolute inset-0 hero-vignette pointer-events-none" />
-        <!-- Subtle particle/dust effect hint -->
-        <div class="absolute inset-0 bg-[radial-gradient(#ffffff08_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
+        <div class="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent pointer-events-none" />
       </div>
 
       <!-- 1. STATUS BANNER (Steam status pill) -->
       <div class="relative z-20 px-6 sm:px-10 pt-4 pb-2">
-        <div class="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-zinc-900/75 border border-zinc-800/80 backdrop-blur-md text-xs text-zinc-300 shadow-lg">
+        <div class="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-zinc-900/90 border border-zinc-800/80 text-xs text-zinc-300 shadow-lg">
           <span class="flex items-center gap-2">
             <span
               :class="[
@@ -384,7 +498,9 @@ const achievementPercent = computed(() => {
                   ? 'bg-amber-500 text-zinc-950 shadow-[0_0_24px_rgba(245,158,11,0.35)]'
                   : game.installed
                     ? 'btn-gold shadow-lg'
-                    : 'bg-[#1a9fff] hover:bg-[#158ce0] text-white shadow-[0_0_24px_rgba(26,159,255,0.35)]'
+                    : game.platform === 'battlenet'
+                      ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-[0_0_24px_rgba(217,119,6,0.35)]'
+                      : 'bg-[#1a9fff] hover:bg-[#158ce0] text-white shadow-[0_0_24px_rgba(26,159,255,0.35)]'
             ]"
           >
             <i v-if="isRunning" class="ph-fill ph-stop text-lg"></i>
@@ -397,10 +513,10 @@ const achievementPercent = computed(() => {
                 isRunning
                   ? 'Arrêter'
                   : isStarting
-                    ? 'Démarrage Steam...'
+                    ? (game.platform === 'battlenet' ? 'Démarrage Battle.net...' : 'Démarrage Steam...')
                     : game.installed
-                      ? 'Lancer'
-                      : 'Installer via Steam'
+                      ? (game.platform === 'battlenet' ? 'Lancer (Battle.net)' : 'Lancer')
+                      : (game.platform === 'battlenet' ? 'Installer via Battle.net' : 'Installer via Steam')
               }}
             </span>
           </button>
@@ -425,6 +541,18 @@ const achievementPercent = computed(() => {
           >
             <i class="ph-fill ph-cube text-base text-amber-400"></i>
             <span class="hidden sm:inline">Mods & Instances</span>
+          </button>
+
+          <!-- WoW Addons Quick Jump (if World of Warcraft) -->
+          <button
+            v-if="isWowGame"
+            type="button"
+            @click="openWowAddons"
+            class="p-3 rounded-xl bg-zinc-900/80 hover:bg-amber-500/10 hover:border-amber-500/40 border border-zinc-800/80 text-zinc-300 hover:text-amber-300 transition backdrop-blur-md flex items-center gap-2 text-xs font-medium"
+            title="Gérer les AddOns World of Warcraft"
+          >
+            <i class="ph-fill ph-puzzle-piece text-base text-amber-400"></i>
+            <span class="hidden sm:inline">Gérer les AddOns</span>
           </button>
 
           <!-- IGDB Sync Button -->
@@ -504,22 +632,22 @@ const achievementPercent = computed(() => {
     <!-- 3. SUB-NAVIGATION CONTEXTUAL LINKS -->
     <section class="border-b border-zinc-800/60 bg-zinc-950 px-6 sm:px-10 lg:px-14 py-3">
       <div class="flex items-center gap-6 text-xs text-zinc-400 overflow-x-auto whitespace-nowrap">
-        <a href="#" @click.prevent="toast.show('Ouverture de la page du magasin (Steam)', 'info')" class="hover:text-zinc-200 transition flex items-center gap-1 group">
+        <a href="#" @click.prevent="openStorePage" class="hover:text-zinc-200 transition flex items-center gap-1 group">
           Store page <i class="ph ph-arrow-up-right text-[10px] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"></i>
         </a>
-        <a href="#" @click.prevent="toast.show('Aucun DLC disponible', 'info')" class="hover:text-zinc-200 transition flex items-center gap-1 group">
+        <a href="#" @click.prevent="openDlcPage" class="hover:text-zinc-200 transition flex items-center gap-1 group">
           DLC <i class="ph ph-arrow-up-right text-[10px] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"></i>
         </a>
-        <a href="#" @click.prevent="toast.show('Ouverture du hub communautaire', 'info')" class="hover:text-zinc-200 transition flex items-center gap-1 group">
+        <a href="#" @click.prevent="openCommunityHub" class="hover:text-zinc-200 transition flex items-center gap-1 group">
           Community hub <i class="ph ph-arrow-up-right text-[10px] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"></i>
         </a>
-        <a href="#" @click.prevent="toast.show('Ouverture des discussions Steam', 'info')" class="hover:text-zinc-200 transition flex items-center gap-1 group">
+        <a href="#" @click.prevent="openDiscussions" class="hover:text-zinc-200 transition flex items-center gap-1 group">
           Discussions <i class="ph ph-arrow-up-right text-[10px] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"></i>
         </a>
-        <a href="#" @click.prevent="toast.show('Guides de la communauté', 'info')" class="hover:text-zinc-200 transition flex items-center gap-1 group">
+        <a href="#" @click.prevent="openGuides" class="hover:text-zinc-200 transition flex items-center gap-1 group">
           Guides <i class="ph ph-arrow-up-right text-[10px] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"></i>
         </a>
-        <a href="#" @click.prevent="toast.show('Support technique Loom', 'info')" class="hover:text-zinc-200 transition flex items-center gap-1 group">
+        <a href="#" @click.prevent="openSupport" class="hover:text-zinc-200 transition flex items-center gap-1 group">
           Support <i class="ph ph-arrow-up-right text-[10px] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"></i>
         </a>
       </div>
@@ -680,8 +808,11 @@ const achievementPercent = computed(() => {
 
         <!-- Right Column: Achievements & Runner Info (4 cols) -->
         <aside class="lg:col-span-4 space-y-6">
-          <!-- Achievements Card -->
-          <div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800/60 space-y-5">
+          <!-- WoW Characters Card (for World of Warcraft) OR Achievements Card (for other games) -->
+          <WowCharactersCard v-if="isWowGame" :game="game" />
+
+          <!-- Achievements Card (for Steam / other titles) -->
+          <div v-else class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800/60 space-y-5">
             <div class="flex items-center justify-between">
               <h3 class="text-base font-bold text-white flex items-center gap-2">
                 <i class="ph ph-trophy text-amber-400"></i>
@@ -785,35 +916,104 @@ const achievementPercent = computed(() => {
             </div>
           </div>
 
+          <!-- Blizzard Account & Profile Stats Card (if available) -->
+          <div v-if="blizzardStats" class="p-6 rounded-2xl bg-zinc-900/50 border border-amber-500/30 space-y-4">
+            <h3 class="text-sm font-bold text-amber-400 flex items-center justify-between">
+              <span class="flex items-center gap-2">
+                <i class="ph-fill ph-shield-check text-base"></i>
+                Profil Blizzard & Personnage
+              </span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                Battle.net OAuth2
+              </span>
+            </h3>
+
+            <div class="space-y-2 text-xs">
+              <div v-if="blizzardStats.character_name" class="flex justify-between py-1.5 border-b border-zinc-800/40 text-zinc-300">
+                <span class="text-zinc-400">Personnage principal</span>
+                <span class="font-bold text-amber-300">
+                  {{ blizzardStats.character_name }} (Niv. {{ blizzardStats.level || 80 }})
+                </span>
+              </div>
+              <div v-if="blizzardStats.class || blizzardStats.race" class="flex justify-between py-1.5 border-b border-zinc-800/40 text-zinc-300">
+                <span class="text-zinc-400">Classe / Spécialisation</span>
+                <span class="font-medium">
+                  {{ blizzardStats.spec || '' }} {{ blizzardStats.class || blizzardStats.race || '' }}
+                </span>
+              </div>
+              <div v-if="blizzardStats.realm" class="flex justify-between py-1.5 border-b border-zinc-800/40 text-zinc-300">
+                <span class="text-zinc-400">Royaume / Serveur</span>
+                <span class="font-mono text-zinc-200">{{ blizzardStats.realm }}</span>
+              </div>
+              <div v-if="blizzardStats.item_level" class="flex justify-between py-1.5 border-b border-zinc-800/40 text-zinc-300">
+                <span class="text-zinc-400">Niveau d'objet (ilvl)</span>
+                <span class="font-bold text-purple-400 font-mono">{{ blizzardStats.item_level }}</span>
+              </div>
+              <div v-if="blizzardStats.mythic_plus_score" class="flex justify-between py-1.5 border-b border-zinc-800/40 text-zinc-300">
+                <span class="text-zinc-400">Score Mythique+</span>
+                <span class="font-bold text-amber-400 font-mono">{{ blizzardStats.mythic_plus_score }}</span>
+              </div>
+              <div v-if="blizzardStats.league || blizzardStats.rank" class="flex justify-between py-1.5 border-b border-zinc-800/40 text-zinc-300">
+                <span class="text-zinc-400">Classement Compétitif</span>
+                <span class="font-bold text-amber-400">{{ blizzardStats.league || blizzardStats.rank }}</span>
+              </div>
+              <div v-if="blizzardStats.mmr" class="flex justify-between py-1.5 border-b border-zinc-800/40 text-zinc-300">
+                <span class="text-zinc-400">Cote MMR</span>
+                <span class="font-mono text-emerald-400 font-bold">{{ blizzardStats.mmr }}</span>
+              </div>
+              <div v-if="blizzardStats.season" class="flex justify-between py-1.5 text-zinc-300">
+                <span class="text-zinc-400">Saison en cours</span>
+                <span class="font-medium text-zinc-300">{{ blizzardStats.season }}</span>
+              </div>
+            </div>
+          </div>
+
           <!-- System & Runner Environment Card -->
           <div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800/60 space-y-4">
             <h3 class="text-sm font-bold text-white flex items-center justify-between">
-              <span>Runner Configuration</span>
-              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">Loom Core</span>
+              <span>{{ game.platform === 'battlenet' ? 'Préfixe Wine & Environnement' : 'Runner Configuration' }}</span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">
+                {{ game.platform === 'battlenet' ? 'Loom Wine 64' : 'Loom Core' }}
+              </span>
             </h3>
 
             <div class="space-y-2 text-xs">
               <div class="flex justify-between py-1.5 border-b border-zinc-800/40 text-zinc-300">
-                <span class="text-zinc-400">Compatibility tool</span>
-                <span class="font-medium">
-                  {{ game.config.runner === 'proton-ge' ? 'GE-Proton 9-20' : game.config.runner }}
+                <span class="text-zinc-400">{{ game.platform === 'battlenet' ? 'Runner Wine' : 'Compatibility tool' }}</span>
+                <span class="font-medium text-amber-400">
+                  {{
+                    game.platform === 'battlenet'
+                      ? (bnetStore.config?.runner_executable || 'wine') + ' (Win64)'
+                      : (game.config.runner === 'proton-ge' ? 'GE-Proton 9-20' : game.config.runner)
+                  }}
                 </span>
               </div>
               <div class="flex justify-between py-1.5 border-b border-zinc-800/40 text-zinc-300">
                 <span class="text-zinc-400">GameMode / MangoHUD</span>
                 <span class="font-medium text-emerald-400">
-                  {{ game.config.gamemode ? 'Enabled' : 'Disabled' }}
+                  {{ game.config.gamemode ? 'GameMode ON' : 'GameMode OFF' }} /
+                  {{ game.config.mangohud ? 'MangoHud ON' : 'MangoHud OFF' }}
                 </span>
               </div>
               <div class="flex justify-between py-1.5 border-b border-zinc-800/40 text-zinc-300">
-                <span class="text-zinc-400">WINEPREFIX location</span>
-                <span class="font-mono text-[10px] text-zinc-400 truncate max-w-[140px]">
-                  {{ game.config.winePrefix || '~/.local/share/wine/default' }}
+                <span class="text-zinc-400">WINEPREFIX</span>
+                <span class="font-mono text-[10px] text-zinc-400 truncate max-w-[170px]" :title="game.config.winePrefix || '~/.local/share/loom/prefixes/battlenet'">
+                  {{
+                    game.platform === 'battlenet'
+                      ? (bnetStore.config?.wine_prefix_path || '~/.local/share/loom/prefixes/battlenet')
+                      : (game.config.winePrefix || '~/.local/share/wine/default')
+                  }}
                 </span>
               </div>
+              <div v-if="game.platform === 'battlenet'" class="flex justify-between py-1.5 border-b border-zinc-800/40 text-zinc-300">
+                <span class="text-zinc-400">Variables DXVK / VKD3D</span>
+                <span class="font-mono text-[10px] text-zinc-400">DXVK_ASYNC=1, DXR</span>
+              </div>
               <div class="flex justify-between py-1.5 text-zinc-300">
-                <span class="text-zinc-400">Storage Footprint</span>
-                <span class="font-medium">{{ game.sizeGb }} GB on /nvme0n1</span>
+                <span class="text-zinc-400">Emplacement disque</span>
+                <span class="font-medium truncate max-w-[180px]">
+                  {{ game.installPath || (game.sizeGb > 0 ? `${game.sizeGb} GB` : 'Non installé') }}
+                </span>
               </div>
             </div>
           </div>

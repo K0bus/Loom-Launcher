@@ -2,6 +2,9 @@ node_modules/
 dist/
 dist-ssr/
 *.local
+.env
+.env.*
+!.env.example
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -14,3 +17,16 @@ dist-ssr/
 
 # Tauri
 src-tauri/target/
+src-tauri/gen/schemas/
+
+# Local / Cargo
+.cargo/
+src-tauri/.cargo/
+
+# Minecraft runtime artifacts
+.mixin.out/
+config/
+local/
+logs/
+*.jar.log
+

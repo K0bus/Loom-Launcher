@@ -22,6 +22,7 @@ const localFilters = ref<GameFilter>({ ...props.filters })
 const platforms = [
   { id: 'all', label: 'Toutes les plateformes' },
   { id: 'steam', label: 'Steam' },
+  { id: 'battlenet', label: 'Blizzard Battle.net' },
   { id: 'epic', label: 'Epic Games' },
   { id: 'gog', label: 'GOG Galaxy' },
   { id: 'minecraft', label: 'Minecraft (Mojang)' }
