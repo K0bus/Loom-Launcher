@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { ipc } from '@/services/ipc'
+import { getCompleteGpuDiagnostic, type FullGpuDiagnostic } from '@/services/gpuDiagnostic'
 
 export interface AutostartInstances {
   steam: boolean
@@ -67,6 +68,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const settings = ref<LoomSettingsState>(loadSettings())
   const initialHwAccel = ref<boolean>(settings.value.hardwareAcceleration)
   const restartRequired = ref<boolean>(false)
+  const gpuDiagnostic = ref<FullGpuDiagnostic | null>(null)
+  const isRunningBenchmark = ref<boolean>(false)
 
   // Synchronisation initiale avec le backend Tauri
   ipc.getHardwareAcceleration().then((enabled) => {
@@ -74,7 +77,24 @@ export const useSettingsStore = defineStore('settings', () => {
       settings.value.hardwareAcceleration = enabled
       initialHwAccel.value = enabled
     }
-  }).catch(() => {})
+    // Lance une première sonde WebGL & backend
+    refreshGpuDiagnostic(false)
+  }).catch(() => {
+    refreshGpuDiagnostic(false)
+  })
+
+  async function refreshGpuDiagnostic(withBenchmark = false) {
+    if (withBenchmark) {
+      isRunningBenchmark.value = true
+    }
+    try {
+      gpuDiagnostic.value = await getCompleteGpuDiagnostic(withBenchmark)
+    } finally {
+      if (withBenchmark) {
+        isRunningBenchmark.value = false
+      }
+    }
+  }
 
   ipc.getSystemAutostart().then((enabled) => {
     if (typeof enabled === 'boolean') {
@@ -190,6 +210,9 @@ export const useSettingsStore = defineStore('settings', () => {
   return {
     settings,
     restartRequired,
+    gpuDiagnostic,
+    isRunningBenchmark,
+    refreshGpuDiagnostic,
     saveSettings,
     toggleInstance,
     resetToDefaults,

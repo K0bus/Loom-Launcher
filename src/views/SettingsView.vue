@@ -16,7 +16,11 @@ import {
   Layers,
   Sliders,
   Palette,
-  ExternalLink
+  ExternalLink,
+  Activity,
+  Gauge,
+  Monitor,
+  ShieldCheck
 } from 'lucide-vue-next'
 import { ipc } from '@/services/ipc'
 import { useSystemStore } from '@/stores/systemStore'
@@ -112,6 +116,19 @@ watch(
 )
 
 const restarting = ref(false)
+const showGpuDetails = ref(false)
+
+async function handleRunGpuBenchmark() {
+  toast.show('Mesure des performances graphiques et VSync en cours...', 'info')
+  await settingsStore.refreshGpuDiagnostic(true)
+  if (settingsStore.gpuDiagnostic?.benchmark) {
+    const fps = settingsStore.gpuDiagnostic.benchmark.fps
+    toast.show(
+      `Test terminé : ${fps} FPS mesurés (${settingsStore.gpuDiagnostic.webgl.renderer})`,
+      'success'
+    )
+  }
+}
 
 async function handleRestart() {
   restarting.value = true
@@ -268,7 +285,7 @@ async function handleTestNotification() {
 
       <div class="space-y-6">
         <!-- 1. Accélération matérielle & Moteur -->
-        <div class="p-4 rounded-xl bg-zinc-950/60 border border-zinc-800/70 space-y-3">
+        <div class="p-4 rounded-xl bg-zinc-950/60 border border-zinc-800/70 space-y-4">
           <div class="flex items-center justify-between">
             <span class="text-xs font-bold uppercase tracking-wider font-mono text-zinc-300 flex items-center gap-2">
               <Zap class="w-4 h-4 text-amber-400" />
@@ -276,20 +293,28 @@ async function handleTestNotification() {
             </span>
             <span
               :class="[
-                'text-[11px] font-mono px-2 py-0.5 rounded-full border',
-                settingsStore.settings.hardwareAcceleration
+                'text-[11px] font-mono px-2.5 py-0.5 rounded-full border flex items-center gap-1.5 transition-colors',
+                settingsStore.gpuDiagnostic?.isEffectiveGpuAccelerated
                   ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400'
-                  : 'bg-zinc-800 border-zinc-700 text-zinc-400'
+                  : 'bg-amber-500/15 border-amber-500/40 text-amber-300'
               ]"
             >
-              {{ settingsStore.settings.hardwareAcceleration ? 'GPU EGL / Vulkan Actif' : 'Rendu Logiciel (Safe)' }}
+              <span
+                class="w-1.5 h-1.5 rounded-full"
+                :class="settingsStore.gpuDiagnostic?.isEffectiveGpuAccelerated ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'"
+              />
+              {{
+                settingsStore.gpuDiagnostic?.isEffectiveGpuAccelerated
+                  ? `GPU Actif : ${settingsStore.gpuDiagnostic.webgl.renderer.split('/')[0]}`
+                  : 'Rendu Logiciel Sécurisé (llvmpipe)'
+              }}
             </span>
           </div>
 
           <UiSwitch
             v-model="settingsStore.settings.hardwareAcceleration"
-            label="Utilisation de l'accélération matérielle"
-            description="Exploite le GPU (EGL/Vulkan/DMA-BUF) pour un rendu fluide à 60 FPS des interfaces et animations. Nécessite un redémarrage de l'application pour appliquer le changement."
+            label="Accélération Matérielle GPU (EGL / DMA-BUF)"
+            description="Délègue le compositing, le scroll et les animations au GPU via DMA-BUF et Skia. Réduit la charge CPU et synchronise à la fréquence de votre écran (60+ FPS)."
           />
 
           <!-- Alerte & Bouton redémarrage contextuel -->
@@ -299,7 +324,7 @@ async function handleTestNotification() {
           >
             <div class="flex items-center gap-2">
               <AlertTriangle class="w-4 h-4 text-amber-400 shrink-0" />
-              <span>Redémarrage requis pour appliquer le nouveau mode de rendu au moteur WebKitGTK.</span>
+              <span>Redémarrage requis pour appliquer le profil de rendu au moteur WebKitGTK.</span>
             </div>
             <UiButton
               variant="primary"
@@ -313,6 +338,106 @@ async function handleTestNotification() {
               </template>
               Redémarrer pour appliquer
             </UiButton>
+          </div>
+
+          <!-- Section Diagnostic & Benchmark Graphique -->
+          <div class="pt-2 border-t border-zinc-800/60 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="text-xs font-medium text-zinc-300 flex items-center gap-2">
+                <Monitor class="w-3.5 h-3.5 text-zinc-400" />
+                <span>Sonde Graphique & Performances Réelles</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <UiButton
+                  variant="ghost"
+                  size="sm"
+                  @click="showGpuDetails = !showGpuDetails"
+                  class="text-[11px] !py-1 text-zinc-400 hover:text-zinc-200"
+                >
+                  {{ showGpuDetails ? 'Masquer détails' : 'Détails techniques' }}
+                </UiButton>
+                <UiButton
+                  variant="secondary"
+                  size="sm"
+                  :loading="settingsStore.isRunningBenchmark"
+                  @click="handleRunGpuBenchmark"
+                  class="text-[11px] !py-1 font-mono gap-1.5"
+                >
+                  <template #prefix>
+                    <Activity class="w-3.5 h-3.5 text-amber-400" />
+                  </template>
+                  Tester Framerate (FPS)
+                </UiButton>
+              </div>
+            </div>
+
+            <!-- Grille d'état rapide -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs font-mono">
+              <div class="p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800/60">
+                <div class="text-[10px] text-zinc-400 uppercase tracking-wider">Renderer Détecté</div>
+                <div class="font-bold text-zinc-200 truncate mt-0.5" :title="settingsStore.gpuDiagnostic?.webgl?.renderer">
+                  {{ settingsStore.gpuDiagnostic?.webgl?.renderer || 'Détection...' }}
+                </div>
+              </div>
+
+              <div class="p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800/60">
+                <div class="text-[10px] text-zinc-400 uppercase tracking-wider">Serveur / Protocole</div>
+                <div class="font-bold text-zinc-200 mt-0.5 flex items-center gap-1.5">
+                  <ShieldCheck class="w-3.5 h-3.5 text-amber-400" />
+                  {{ settingsStore.gpuDiagnostic?.backend?.displayServer?.toUpperCase() || 'WAYLAND' }}
+                </div>
+              </div>
+
+              <div class="p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800/60">
+                <div class="text-[10px] text-zinc-400 uppercase tracking-wider">Taux de rafraîchissement</div>
+                <div class="font-bold mt-0.5 flex items-center gap-1.5" :class="settingsStore.gpuDiagnostic?.benchmark ? 'text-emerald-400' : 'text-zinc-400'">
+                  <Gauge class="w-3.5 h-3.5" />
+                  {{
+                    settingsStore.gpuDiagnostic?.benchmark
+                      ? `${settingsStore.gpuDiagnostic.benchmark.fps} FPS (${settingsStore.gpuDiagnostic.benchmark.avgFrameTimeMs}ms)`
+                      : 'Cliquer sur Tester'
+                  }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Détails techniques complets dépliables -->
+            <div
+              v-if="showGpuDetails"
+              class="p-3 rounded-lg bg-zinc-900/40 border border-zinc-800/80 text-[11px] font-mono space-y-1.5 text-zinc-300 animate-in fade-in duration-150"
+            >
+              <div class="flex justify-between">
+                <span class="text-zinc-400">Vendor WebGL :</span>
+                <span class="text-zinc-200">{{ settingsStore.gpuDiagnostic?.webgl?.vendor || 'N/A' }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-zinc-400">Version WebGL :</span>
+                <span class="text-zinc-200">{{ settingsStore.gpuDiagnostic?.webgl?.webglVersion || 'N/A' }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-zinc-400">Taille Max Texture :</span>
+                <span class="text-zinc-200">{{ settingsStore.gpuDiagnostic?.webgl?.maxTextureSize || 0 }} px</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-zinc-400">Mode WebKit Compositor :</span>
+                <span class="text-zinc-200">
+                  {{
+                    settingsStore.gpuDiagnostic?.backend?.webkitDmabufDisabled
+                      ? 'DMA-BUF Désactivé (SHM / CPU)'
+                      : 'DMA-BUF Zero-Copy Actif'
+                  }}
+                </span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-zinc-400">Mesa Software Override :</span>
+                <span class="text-zinc-200">
+                  {{ settingsStore.gpuDiagnostic?.backend?.libglAlwaysSoftware ? 'Oui (LIBGL_ALWAYS_SOFTWARE=1)' : 'Non (GPU Natif)' }}
+                </span>
+              </div>
+              <div class="pt-1 text-[10px] text-zinc-400 border-t border-zinc-800/60">
+                Diagnostic : {{ settingsStore.gpuDiagnostic?.diagnosticMessage }}
+              </div>
+            </div>
           </div>
         </div>
 

@@ -30,6 +30,15 @@ export interface IpcResponse<T = any> {
   error?: string
 }
 
+export interface GpuBackendInfo {
+  hardwareAccelerationEnabled: boolean
+  displayServer?: string
+  webkitDmabufDisabled: boolean
+  webkitCompositingDisabled: boolean
+  libglAlwaysSoftware: boolean
+  activeMode: 'hardware_accelerated' | 'software_safe' | string
+}
+
 type EventCallback<T = any> = (event: { payload: T; event: string }) => void
 
 class IpcBridge {
@@ -878,6 +887,10 @@ class IpcBridge {
     return this.invoke<boolean>('get_hardware_acceleration')
   }
 
+  public async getGpuBackendInfo(): Promise<GpuBackendInfo> {
+    return this.invoke<GpuBackendInfo>('get_gpu_backend_info')
+  }
+
   public async restartApp(): Promise<void> {
     return this.invoke<void>('restart_application')
   }
@@ -1083,6 +1096,20 @@ class IpcBridge {
         return (val === null ? true : val === 'true') as T
       }
 
+      case 'get_gpu_backend_info': {
+        const val = localStorage.getItem('loom_hw_accel')
+        const hw = val === null ? true : val === 'true'
+        return {
+          hardwareAccelerationEnabled: hw,
+          displayServer: 'wayland',
+          webkitDmabufDisabled: !hw,
+          webkitCompositingDisabled: !hw,
+          libglAlwaysSoftware: !hw,
+          activeMode: hw ? 'hardware_accelerated' : 'software_safe'
+        } as T
+      }
+
+      case 'restart_application':
       case 'restart_app': {
         window.location.reload()
         return undefined as T

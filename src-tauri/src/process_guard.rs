@@ -292,7 +292,17 @@ pub fn restart_application() -> Result<(), String> {
         }
 
         let args: Vec<String> = std::env::args().skip(1).collect();
-        match std::process::Command::new(&executable).args(&args).spawn() {
+        let mut cmd = std::process::Command::new(&executable);
+        cmd.args(&args);
+
+        // Nettoyage explicite des variables d'environnement pour que la nouvelle instance reparte sur un état sain
+        cmd.env_remove("LIBGL_ALWAYS_SOFTWARE");
+        cmd.env_remove("GALLIUM_DRIVER");
+        cmd.env_remove("WEBKIT_DISABLE_DMABUF_RENDERER");
+        cmd.env_remove("WEBKIT_DISABLE_COMPOSITING_MODE");
+        cmd.env_remove("WEBKIT_FORCE_COMPOSITING_MODE");
+
+        match cmd.spawn() {
             Ok(_) => {
                 eprintln!("[ProcessGuard] Redémarrage effectué avec succès vers {:?}", executable);
                 std::process::exit(0);

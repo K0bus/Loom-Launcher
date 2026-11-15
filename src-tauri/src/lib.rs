@@ -1322,6 +1322,55 @@ fn logout_minecraft_auth() -> Result<(), String> {
     remove_stored_account()
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GpuBackendInfo {
+    pub hardware_acceleration_enabled: bool,
+    pub display_server: Option<String>,
+    pub webkit_dmabuf_disabled: bool,
+    pub webkit_compositing_disabled: bool,
+    pub libgl_always_software: bool,
+    pub active_mode: String,
+}
+
+#[tauri::command]
+fn get_gpu_backend_info() -> Result<GpuBackendInfo, String> {
+    let base_dir = dirs::data_local_dir()
+        .unwrap_or_else(|| PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string())).join(".local/share"))
+        .join("loom");
+    let marker = base_dir.join("disable_hw_accel");
+    let hw_enabled = !marker.exists();
+
+    let display_server = std::env::var("XDG_SESSION_TYPE").ok().or_else(|| {
+        if std::env::var("WAYLAND_DISPLAY").is_ok() {
+            Some("wayland".to_string())
+        } else if std::env::var("DISPLAY").is_ok() {
+            Some("x11".to_string())
+        } else {
+            None
+        }
+    });
+
+    let webkit_dmabuf_disabled = std::env::var("WEBKIT_DISABLE_DMABUF_RENDERER").map(|v| v == "1").unwrap_or(false);
+    let webkit_compositing_disabled = std::env::var("WEBKIT_DISABLE_COMPOSITING_MODE").map(|v| v == "1").unwrap_or(false);
+    let libgl_always_software = std::env::var("LIBGL_ALWAYS_SOFTWARE").map(|v| v == "1").unwrap_or(false);
+
+    let active_mode = if !hw_enabled || libgl_always_software {
+        "software_safe".to_string()
+    } else {
+        "hardware_accelerated".to_string()
+    };
+
+    Ok(GpuBackendInfo {
+        hardware_acceleration_enabled: hw_enabled,
+        display_server,
+        webkit_dmabuf_disabled,
+        webkit_compositing_disabled,
+        libgl_always_software,
+        active_mode,
+    })
+}
+
 #[tauri::command]
 fn set_hardware_acceleration(enabled: bool) -> Result<(), String> {
     let base_dir = dirs::data_local_dir()
@@ -1805,6 +1854,7 @@ pub fn run() {
             logout_minecraft_auth,
             set_hardware_acceleration,
             get_hardware_acceleration,
+            get_gpu_backend_info,
             restart_app,
             open_external_url,
             create_minecraft_instance_cmd,
