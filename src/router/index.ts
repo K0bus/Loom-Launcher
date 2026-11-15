@@ -62,6 +62,12 @@ const routes = [
     component: AccountsView
   },
   {
+    path: '/monitoring',
+    alias: ['/system', '/hardware'],
+    name: 'monitoring',
+    component: () => import('@/views/monitoring/SystemMonitorView.vue')
+  },
+  {
     path: '/settings',
     name: 'settings',
     component: SettingsView

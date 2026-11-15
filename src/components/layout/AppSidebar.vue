@@ -9,7 +9,8 @@ import {
   ArrowDownUp,
   Bell,
   Cpu,
-  Layers
+  Layers,
+  Activity
 } from 'lucide-vue-next'
 import { useSystemStore } from '@/stores/systemStore'
 import UiBadge from '@/components/ui/UiBadge.vue'
@@ -22,6 +23,7 @@ const navItems = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
   { name: 'Bibliothèque', path: '/library', icon: Gamepad2 },
   { name: 'Modding', path: '/modding', icon: Layers, badge: 'PRO' },
+  { name: 'Monitoring', path: '/monitoring', icon: Activity },
   { name: 'Comptes', path: '/accounts', icon: UserCheck },
   { name: 'Paramètres', path: '/settings', icon: Settings },
 ]
@@ -97,19 +99,23 @@ const networkFormatted = computed(() => {
     <!-- Bottom System Health & Status Footer -->
     <div class="p-4 border-t border-zinc-800/80 bg-zinc-950/80 space-y-3">
       <!-- Network throughput & CPU -->
-      <div class="p-2.5 rounded-xl bg-zinc-900/90 border border-zinc-800/80 text-xs space-y-2">
+      <div
+        @click="router.push('/monitoring')"
+        class="p-2.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-900 border border-zinc-800/80 hover:border-amber-500/30 text-xs space-y-2 cursor-pointer transition-all group"
+        title="Ouvrir le Monitoring Système complet"
+      >
         <div class="flex items-center justify-between text-zinc-400">
           <span class="flex items-center gap-1.5">
-            <ArrowDownUp class="w-3.5 h-3.5 text-amber-400" />
-            <span>Débit Réseau</span>
+            <ArrowDownUp class="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+            <span class="group-hover:text-zinc-200 transition-colors">Débit Réseau</span>
           </span>
           <span class="font-mono text-zinc-200 font-medium">{{ networkFormatted }}</span>
         </div>
 
         <div class="flex items-center justify-between text-zinc-400">
           <span class="flex items-center gap-1.5">
-            <Cpu class="w-3.5 h-3.5 text-zinc-400" />
-            <span>CPU Charge</span>
+            <Cpu class="w-3.5 h-3.5 text-zinc-400 group-hover:text-amber-400 transition-colors" />
+            <span class="group-hover:text-zinc-200 transition-colors">CPU Charge</span>
           </span>
           <span class="font-mono text-zinc-200 font-medium">{{ systemStore.stats.cpuUsage.toFixed(1) }}%</span>
         </div>
