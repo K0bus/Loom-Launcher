@@ -286,6 +286,14 @@ class IpcBridge {
     return this.invoke<void>('deploy_active_profile', { profileId })
   }
 
+  public async saveNexusApiKey(apiKey: string): Promise<void> {
+    return this.invoke<void>('save_nexus_api_key', { apiKey })
+  }
+
+  public async getNexusApiKeyStatus(): Promise<string | null> {
+    return this.invoke<string | null>('get_nexus_api_key_status')
+  }
+
   public async initiateMicrosoftAuth(): Promise<DeviceCodeResponse> {
     return this.invoke<DeviceCodeResponse>('initiate_microsoft_device_code_ipc')
   }

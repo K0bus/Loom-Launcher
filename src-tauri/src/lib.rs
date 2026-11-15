@@ -80,6 +80,7 @@ pub struct LoomBackendSettings {
     pub default_runner: Option<String>,
     pub global_gamemode: Option<bool>,
     pub global_mangohud: Option<bool>,
+    pub nexus_api_key: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -891,21 +892,195 @@ fn get_game_manifest(
     get_game_modding_manifest(registry, game_id)
 }
 
+pub fn get_nexus_api_key() -> Option<String> {
+    let path = get_loom_settings_path();
+    if let Ok(content) = fs::read_to_string(path) {
+        if let Ok(settings) = serde_json::from_str::<LoomBackendSettings>(&content) {
+            if let Some(key) = settings.nexus_api_key {
+                let trimmed = key.trim().to_string();
+                if !trimmed.is_empty() {
+                    return Some(trimmed);
+                }
+            }
+        }
+    }
+    None
+}
+
+#[tauri::command]
+fn save_nexus_api_key(api_key: String) -> Result<(), String> {
+    let path = get_loom_settings_path();
+    let mut settings = if path.exists() {
+        let content = fs::read_to_string(&path).unwrap_or_default();
+        serde_json::from_str::<LoomBackendSettings>(&content).unwrap_or_default()
+    } else {
+        LoomBackendSettings::default()
+    };
+    settings.nexus_api_key = Some(api_key.trim().to_string());
+    save_backend_settings(settings)
+}
+
+#[tauri::command]
+fn get_nexus_api_key_status() -> Result<Option<String>, String> {
+    Ok(get_nexus_api_key())
+}
+
+fn extract_archive_to_dir(archive_path: &std::path::Path, dest_dir: &std::path::Path) -> Result<(), String> {
+    let path_str = archive_path.to_string_lossy();
+    let dest_str = dest_dir.to_string_lossy();
+
+    // 1. Try 7z / 7za (handles .7z, .zip, .rar)
+    let status_7z = std::process::Command::new("7z")
+        .args(["x", "-y", &format!("-o{}", dest_str), &path_str])
+        .output();
+
+    if let Ok(out) = status_7z {
+        if out.status.success() {
+            return Ok(());
+        }
+    }
+
+    // 2. Try unzip if .zip
+    if path_str.ends_with(".zip") {
+        let status_unzip = std::process::Command::new("unzip")
+            .args(["-o", &path_str, "-d", &dest_str])
+            .output();
+        if let Ok(out) = status_unzip {
+            if out.status.success() {
+                return Ok(());
+            }
+        }
+    }
+
+    // 3. Try unar
+    let status_unar = std::process::Command::new("unar")
+        .args(["-f", "-o", &dest_str, &path_str])
+        .output();
+    if let Ok(out) = status_unar {
+        if out.status.success() {
+            return Ok(());
+        }
+    }
+
+    // 4. Native zip crate fallback
+    if let Ok(file) = std::fs::File::open(archive_path) {
+        if let Ok(mut archive) = zip::ZipArchive::new(file) {
+            let _ = archive.extract(dest_dir);
+            return Ok(());
+        }
+    }
+
+    Err(format!("Échec de l'extraction de l'archive : {}", archive_path.display()))
+}
+
 pub async fn handle_nxm_uri_internal(app: &tauri::AppHandle, uri: &str) -> Result<(), String> {
     use tauri::Emitter;
     let info = parse_nxm_uri(uri)?;
     println!("[NXM] Handling URI: {} for game {}", info.raw_uri, info.game_domain);
-    let client = reqwest::Client::new();
-    let links = resolve_nexus_download_links(&client, &info, None).await?;
-    let primary_link = links.first().ok_or_else(|| "No mirror links returned by Nexus".to_string())?;
-    let downloaded_path = download_nexus_file(&client, &primary_link.uri, None).await?;
-    println!("[NXM] Downloaded mod file to: {}", downloaded_path.display());
 
+    let api_key = get_nexus_api_key();
+    if api_key.is_none() {
+        eprintln!("[NXM] Aucune clé API Nexus Mods configurée !");
+        let _ = app.emit("nxm-auth-required", serde_json::json!({
+            "uri": uri,
+            "game_domain": info.game_domain,
+            "mod_id": info.mod_id,
+            "file_id": info.file_id,
+        }));
+        return Err("Clé API Nexus Mods requise. Renseignez votre clé API personnelle Nexus Mods dans Loom.".to_string());
+    }
+
+    let _ = app.emit("nxm-download-started", serde_json::json!({
+        "game_domain": info.game_domain,
+        "mod_id": info.mod_id,
+        "file_id": info.file_id,
+    }));
+
+    let client = reqwest::Client::new();
+    let links = resolve_nexus_download_links(&client, &info, api_key.as_deref()).await?;
+    let primary_link = links.first().ok_or_else(|| "Aucun miroir de téléchargement renvoyé par Nexus".to_string())?;
+    let downloaded_path = download_nexus_file(&client, &primary_link.uri, None).await?;
+    println!("[NXM] Archive téléchargée dans : {}", downloaded_path.display());
+
+    // Mapper le domaine Nexus vers l'identifiant de jeu Loom
+    let domain_lower = info.game_domain.to_lowercase();
+    let game_id = match domain_lower.as_str() {
+        "skyrimspecialedition" | "skyrimse" | "skyrim" => "skyrim_se",
+        "fallout4" => "fallout4",
+        "oblivion" => "oblivion",
+        other => other,
+    };
+
+    // Obtenir ou créer le profil de jeu
+    let conn = db::open_db().map_err(|e| e.to_string())?;
+    let profiles = db::get_profiles(&conn, Some(game_id)).unwrap_or_default();
+    let profile = if let Some(p) = profiles.into_iter().next() {
+        p
+    } else {
+        let default_record = db::GameProfileRecord {
+            id: format!("{}-default", game_id),
+            game_id: game_id.to_string(),
+            name: "Profil Principal (Par Défaut)".to_string(),
+            game_version: "1.6+".to_string(),
+            modloader: Some("skse64_loader.exe".to_string()),
+            deployment_path: None,
+            created_at: chrono::Utc::now().timestamp(),
+        };
+        let _ = db::insert_profile(&conn, &default_record);
+        default_record
+    };
+
+    // Répertoire de staging décompressé : profiles/<game_id>/<profile_id>/staged/<mod_id>_<file_id>/
+    let base_staged = dirs::data_local_dir()
+        .unwrap_or_else(|| PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string())).join(".local/share"))
+        .join("loom")
+        .join("profiles")
+        .join(game_id)
+        .join(&profile.id)
+        .join("staged")
+        .join(format!("{}_{}", info.mod_id, info.file_id));
+
+    let _ = fs::create_dir_all(&base_staged);
+
+    // Extraction de l'archive (.7z, .zip, .rar)
+    let _ = extract_archive_to_dir(&downloaded_path, &base_staged);
+
+    // Normalisation de l'archive (Aplatissement racine Data/ et détection FOMOD)
+    let adapter = BethesdaAdapter::new_skyrim_se();
+    let _ = adapter.normalize_staged_mod(&base_staged);
+
+    // Nom affiché du mod
+    let filename = downloaded_path
+        .file_name()
+        .map(|f| f.to_string_lossy().to_string())
+        .unwrap_or_else(|| format!("nexus_mod_{}", info.mod_id));
+
+    let pmod_id = format!("pmod-{}", uuid::Uuid::new_v4().simple());
+    let pmod = db::ProfileModRecord {
+        id: pmod_id.clone(),
+        profile_id: profile.id.clone(),
+        provider: "nexusmods".to_string(),
+        remote_mod_id: info.mod_id.to_string(),
+        remote_file_id: info.file_id.to_string(),
+        name: filename.clone(),
+        file_path: downloaded_path.to_string_lossy().to_string(),
+        filename: filename.clone(),
+        staged_path: Some(base_staged.to_string_lossy().to_string()),
+        load_priority: 0,
+        is_enabled: true,
+    };
+    db::insert_profile_mod(&conn, &pmod).map_err(|e| e.to_string())?;
+
+    // Déploiement automatique
+    let _ = adapter.deploy_profile(&profile.id);
+
+    // Notification et événement frontend
     let _ = app.emit("nxm-download-completed", serde_json::json!({
         "game_domain": info.game_domain,
         "mod_id": info.mod_id,
         "file_id": info.file_id,
-        "file_path": downloaded_path.to_string_lossy(),
+        "mod_name": filename,
+        "profile_id": profile.id,
     }));
 
     Ok(())
@@ -1393,10 +1568,6 @@ pub fn run() {
                 let _ = win.show();
                 let _ = win.unminimize();
                 let _ = win.set_focus();
-                #[cfg(debug_assertions)]
-                {
-                    let _ = win.eval("window.location.reload()");
-                }
             }
             for arg in args {
                 if arg.starts_with("nxm://") {
@@ -1521,6 +1692,8 @@ pub fn run() {
             get_bethesda_plugins,
             toggle_bethesda_plugin,
             deploy_active_profile,
+            save_nexus_api_key,
+            get_nexus_api_key_status,
             search_unified_mods,
             install_mod_or_pack,
             toggle_mod_state,

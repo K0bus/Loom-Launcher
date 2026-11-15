@@ -13,9 +13,14 @@ import {
   Rocket,
   Cpu,
   FileCode2,
-  Plus
+  Plus,
+  KeyRound,
+  DownloadCloud,
+  ExternalLink
 } from 'lucide-vue-next'
 import { useBethesdaStore, BETHESDA_GAMES } from '@/stores/bethesdaStore'
+import { ipc } from '@/services/ipc'
+import { safeBrowserOpen } from '@/utils/externalLinks'
 import UiBadge from '@/components/ui/UiBadge.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiModal from '@/components/ui/UiModal.vue'
@@ -31,9 +36,61 @@ const isCreateProfileModalOpen = ref(false)
 const newProfileName = ref('')
 const newProfilePath = ref('')
 
+// Nexus API Key Modal & NXM Events
+const isNexusModalOpen = ref(false)
+const nexusApiKeyInput = ref('')
+const hasNexusApiKey = ref(false)
+const pendingNxmUri = ref<string | null>(null)
+const downloadStatusMessage = ref<string | null>(null)
+
 onMounted(async () => {
   await store.loadGame(gameId.value)
+  await checkNexusApiKey()
+
+  ipc.listen('nxm-auth-required', (event: any) => {
+    pendingNxmUri.value = event.payload?.uri || null
+    isNexusModalOpen.value = true
+  })
+
+  ipc.listen('nxm-download-started', (event: any) => {
+    downloadStatusMessage.value = `Téléchargement du mod Nexus #${event.payload?.mod_id || ''} en cours...`
+  })
+
+  ipc.listen('nxm-download-completed', (event: any) => {
+    downloadStatusMessage.value = `Mod "${event.payload?.mod_name || 'Nexus'}" installé et déployé avec succès !`
+    store.refreshActiveProfileData()
+    setTimeout(() => {
+      downloadStatusMessage.value = null
+    }, 6000)
+  })
 })
+
+async function checkNexusApiKey() {
+  try {
+    const key = await ipc.getNexusApiKeyStatus()
+    hasNexusApiKey.value = !!key
+  } catch (err) {
+    hasNexusApiKey.value = false
+  }
+}
+
+async function handleSaveNexusKey() {
+  if (!nexusApiKeyInput.value.trim()) return
+  await ipc.saveNexusApiKey(nexusApiKeyInput.value.trim())
+  hasNexusApiKey.value = true
+  isNexusModalOpen.value = false
+
+  // If an NXM download was pending authentication, trigger it now
+  if (pendingNxmUri.value) {
+    const uri = pendingNxmUri.value
+    pendingNxmUri.value = null
+    await store.handleNxmUri(uri)
+  }
+}
+
+function openNexusApiKeyWebpage() {
+  safeBrowserOpen('https://www.nexusmods.com/users/myaccount?tab=api')
+}
 
 watch(
   () => route.params.gameId,
@@ -140,8 +197,20 @@ function movePlugin(index: number, direction: 'up' | 'down') {
           </div>
         </div>
 
-        <!-- Bouton Déploiement -->
-        <div class="flex items-center gap-3 w-full lg:w-auto">
+        <!-- Boutons d'action : Clé Nexus & Déploiement -->
+        <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+          <UiButton
+            variant="secondary"
+            size="lg"
+            @click="isNexusModalOpen = true"
+            class="font-mono text-xs border-zinc-700 hover:border-amber-400"
+          >
+            <template #prefix>
+              <KeyRound class="w-4 h-4 text-amber-400" />
+            </template>
+            {{ hasNexusApiKey ? 'Clé Nexus Connectée' : 'Lier Clé Nexus' }}
+          </UiButton>
+
           <UiButton
             variant="primary"
             size="lg"
@@ -157,7 +226,11 @@ function movePlugin(index: number, direction: 'up' | 'down') {
         </div>
       </div>
 
-      <!-- Messages de feedback déploiement -->
+      <!-- Messages de feedback déploiement & téléchargement -->
+      <div v-if="downloadStatusMessage" class="mt-4 p-3 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-mono flex items-center gap-2 animate-pulse">
+        <DownloadCloud class="w-4 h-4 text-amber-400" />
+        <span>{{ downloadStatusMessage }}</span>
+      </div>
       <div v-if="store.deploySuccessMessage" class="mt-4 p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-mono flex items-center gap-2">
         <CheckCircle2 class="w-4 h-4 text-emerald-400" />
         <span>{{ store.deploySuccessMessage }}</span>
@@ -489,6 +562,58 @@ function movePlugin(index: number, direction: 'up' | 'down') {
           </UiButton>
           <UiButton variant="primary" size="sm" @click="handleCreateProfile">
             Créer le Profil
+          </UiButton>
+        </div>
+      </div>
+    </UiModal>
+
+    <!-- Modal Clé API Nexus Mods -->
+    <UiModal
+      :open="isNexusModalOpen"
+      @close="isNexusModalOpen = false"
+      title="Authentification Nexus Mods (Protocole NXM)"
+      maxWidth="md"
+    >
+      <div class="space-y-4">
+        <p class="text-xs text-zinc-300 leading-relaxed">
+          Pour permettre à Loom de télécharger automatiquement les mods lorsque vous cliquez sur un lien <span class="font-mono text-amber-400">nxm://</span> sur Nexus Mods, renseignez votre clé API personnelle.
+        </p>
+
+        <div class="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2">
+          <div class="text-xs font-mono font-semibold text-zinc-300 flex items-center justify-between">
+            <span>Comment obtenir votre clé gratuite ?</span>
+            <button
+              type="button"
+              @click="openNexusApiKeyWebpage"
+              class="text-amber-400 hover:underline flex items-center gap-1 text-[11px]"
+            >
+              <span>Ouvrir Nexus Mods</span>
+              <ExternalLink class="w-3 h-3" />
+            </button>
+          </div>
+          <p class="text-[11px] text-zinc-400 leading-snug">
+            1. Connectez-vous sur Nexus Mods.<br />
+            2. Descendez en bas de la page à la section <strong>Personal API Key</strong>.<br />
+            3. Cliquez sur <strong>Request an API Key</strong> et collez-la ci-dessous.
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-mono text-zinc-400 mb-1">Clé API Personnelle Nexus Mods</label>
+          <input
+            v-model="nexusApiKeyInput"
+            type="password"
+            placeholder="Collez votre clé API Nexus Mods ici"
+            class="w-full bg-zinc-950 text-zinc-200 text-xs font-mono px-3 py-2 rounded-xl border border-zinc-800 focus:outline-none focus:border-amber-400"
+          />
+        </div>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <UiButton variant="secondary" size="sm" @click="isNexusModalOpen = false">
+            Annuler
+          </UiButton>
+          <UiButton variant="primary" size="sm" @click="handleSaveNexusKey">
+            Enregistrer la Clé
           </UiButton>
         </div>
       </div>
