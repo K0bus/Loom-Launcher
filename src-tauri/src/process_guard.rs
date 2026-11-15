@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+#[cfg(not(debug_assertions))]
 use std::time::SystemTime;
 
 /// Scans the Linux `/proc` filesystem at startup to detect and clean up:
@@ -227,8 +228,11 @@ pub fn spawn_outdated_watchdog(app: tauri::AppHandle) {
     {
         use tauri::Emitter;
 
+        #[cfg(not(debug_assertions))]
         let my_pid = std::process::id();
+        #[cfg(not(debug_assertions))]
         let appimage_path = std::env::var("APPIMAGE").ok().map(PathBuf::from);
+        #[cfg(not(debug_assertions))]
         let my_start_time = std::fs::metadata(format!("/proc/{}", my_pid))
             .ok()
             .and_then(|m| m.modified().ok())
@@ -239,10 +243,15 @@ pub fn spawn_outdated_watchdog(app: tauri::AppHandle) {
             loop {
                 interval.tick().await;
 
+                // En mode debug (cargo run / tauri dev), ignorer la détection outdated pour éviter les faux positifs lors des recompilations
+                #[cfg(debug_assertions)]
+                let is_outdated = false;
+
+                #[cfg(not(debug_assertions))]
                 let is_outdated = if let Some(ref img_path) = appimage_path {
                     if let Ok(meta) = std::fs::metadata(img_path) {
                         if let Ok(mtime) = meta.modified() {
-                            mtime > my_start_time
+                            mtime > my_start_time + std::time::Duration::from_secs(3)
                         } else {
                             false
                         }
@@ -252,7 +261,7 @@ pub fn spawn_outdated_watchdog(app: tauri::AppHandle) {
                 } else if let Ok(exe_path) = std::fs::read_link("/proc/self/exe") {
                     if let Ok(meta) = std::fs::metadata(&exe_path) {
                         if let Ok(mtime) = meta.modified() {
-                            mtime > my_start_time
+                            mtime > my_start_time + std::time::Duration::from_secs(3)
                         } else {
                             false
                         }

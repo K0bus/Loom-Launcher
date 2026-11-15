@@ -44,14 +44,8 @@ fn main() {
             eprintln!("[Loom::GPU] Démarrage avec Accélération Matérielle GPU (EGL / DMA-BUF / Native Compositor)");
             std::env::set_var("WEBKIT_FORCE_COMPOSITING_MODE", "1");
 
-            // Optionnel : l'utilisateur peut forcer la désactivation de l'explicit sync si son pilote le demande
-            if let Ok(user_disable_sync) = std::env::var("LOOM_DISABLE_EXPLICIT_SYNC") {
-                if user_disable_sync == "1" {
-                    std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
-                }
-            } else {
-                std::env::remove_var("__NV_DISABLE_EXPLICIT_SYNC");
-            }
+            // Sur NVIDIA sous Wayland, explicit sync provoque l'Erreur de Protocole Wayland 71
+            std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
         }
     }
 
