@@ -139,6 +139,11 @@ pub fn create_instance(params: CreateInstanceParams) -> Result<MinecraftInstance
         java_path: params.java_path.clone(),
         jvm_args: jvm_args_json,
         created_at: now,
+        banner_url: None,
+        cover_url: None,
+        icon: None,
+        playtime_seconds: None,
+        last_played: None,
     };
 
     let conn = db::open_db().map_err(|e| e.to_string())?;
@@ -165,24 +170,81 @@ pub fn get_instances() -> Result<Vec<MinecraftInstanceRecord>, String> {
     let conn = db::open_db().map_err(|e| e.to_string())?;
     let mut list = db::get_minecraft_instances(&conn).map_err(|e| e.to_string())?;
 
-    // If list is empty, verify if any legacy profiles exist and migrate them
-    if list.is_empty() {
-        if let Ok(profiles) = db::get_profiles(&conn, Some("minecraft")) {
-            for p in profiles {
-                let rec = MinecraftInstanceRecord {
-                    id: p.id.clone(),
-                    name: p.name.clone(),
-                    mc_version: p.game_version.clone(),
-                    modloader: p.modloader.clone().unwrap_or_else(|| "fabric".to_string()),
-                    loader_version: None,
-                    min_ram_mb: 2048,
-                    max_ram_mb: 4096,
-                    java_path: None,
-                    jvm_args: serde_json::to_string(&default_jvm_args()).unwrap_or_else(|_| "[]".to_string()),
-                    created_at: p.created_at,
-                };
-                let _ = db::insert_minecraft_instance(&conn, &rec);
-                list.push(rec);
+    // Scan instances directory on disk to automatically discover and sync all instances
+    let instances_dir = get_instances_dir();
+    if let Ok(entries) = fs::read_dir(&instances_dir) {
+        for entry in entries.flatten() {
+            let inst_dir = entry.path();
+            if !inst_dir.is_dir() {
+                continue;
+            }
+            let inst_json_path = inst_dir.join("instance.json");
+            if inst_json_path.exists() {
+                if let Ok(content) = fs::read_to_string(&inst_json_path) {
+                    if let Ok(data) = serde_json::from_str::<serde_json::Value>(&content) {
+                        let id = data["id"].as_str().unwrap_or_else(|| {
+                            inst_dir.file_name().unwrap_or_default().to_str().unwrap_or("")
+                        }).to_string();
+
+                        if id.is_empty() {
+                            continue;
+                        }
+
+                        // Check if already in list
+                        if let Some(existing) = list.iter_mut().find(|i| i.id == id) {
+                            if existing.banner_url.is_none() {
+                                existing.banner_url = data["banner_url"].as_str().map(|s| s.to_string());
+                            }
+                            if existing.cover_url.is_none() {
+                                existing.cover_url = data["cover_url"].as_str().map(|s| s.to_string());
+                            }
+                            if existing.icon.is_none() {
+                                existing.icon = data["icon"].as_str().map(|s| s.to_string());
+                            }
+                            if existing.playtime_seconds.is_none() {
+                                existing.playtime_seconds = data["playtime_seconds"].as_u64();
+                            }
+                            if existing.last_played.is_none() {
+                                existing.last_played = data["last_played"].as_u64();
+                            }
+                        } else {
+                            // Parse and add new instance from disk
+                            let rec = MinecraftInstanceRecord {
+                                id: id.clone(),
+                                name: data["name"].as_str().unwrap_or(&id).to_string(),
+                                mc_version: data["mc_version"].as_str().unwrap_or("1.20.1").to_string(),
+                                modloader: data["modloader"].as_str().unwrap_or("fabric").to_string(),
+                                loader_version: data["loader_version"].as_str().map(|s| s.to_string()),
+                                min_ram_mb: data["min_ram_mb"].as_u64().unwrap_or(2048) as u32,
+                                max_ram_mb: data["max_ram_mb"].as_u64().unwrap_or(4096) as u32,
+                                java_path: data["java_path"].as_str().map(|s| s.to_string()),
+                                jvm_args: if data["jvm_args"].is_string() {
+                                    data["jvm_args"].as_str().unwrap().to_string()
+                                } else {
+                                    serde_json::to_string(&data["jvm_args"]).unwrap_or_else(|_| "[]".to_string())
+                                },
+                                created_at: data["created_at"].as_i64().unwrap_or_else(|| chrono::Utc::now().timestamp()),
+                                banner_url: data["banner_url"].as_str().map(|s| s.to_string()),
+                                cover_url: data["cover_url"].as_str().map(|s| s.to_string()),
+                                icon: data["icon"].as_str().map(|s| s.to_string()),
+                                playtime_seconds: data["playtime_seconds"].as_u64(),
+                                last_played: data["last_played"].as_u64(),
+                            };
+
+                            let _ = db::insert_minecraft_instance(&conn, &rec);
+                            let _ = db::insert_profile(&conn, &db::GameProfileRecord {
+                                id: id.clone(),
+                                game_id: "minecraft".to_string(),
+                                name: rec.name.clone(),
+                                game_version: rec.mc_version.clone(),
+                                modloader: Some(rec.modloader.clone()),
+                                deployment_path: None,
+                                created_at: rec.created_at,
+                            });
+                            list.push(rec);
+                        }
+                    }
+                }
             }
         }
     }

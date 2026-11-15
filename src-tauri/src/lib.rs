@@ -902,7 +902,48 @@ fn delete_game_profile(profile_id: String) -> Result<(), String> {
 #[tauri::command]
 fn get_profile_mods(profile_id: String) -> Result<Vec<ProfileModRecord>, String> {
     let conn = db::open_db().map_err(|e| e.to_string())?;
-    db::get_profile_mods(&conn, &profile_id).map_err(|e| e.to_string())
+    let mut mods = db::get_profile_mods(&conn, &profile_id).map_err(|e| e.to_string())?;
+
+    if mods.is_empty() {
+        // If this is a Minecraft instance with local jars, scan .minecraft/mods
+        let inst_dir = dirs::data_local_dir()
+            .unwrap_or_else(|| PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string())).join(".local/share"))
+            .join("loom")
+            .join("instances")
+            .join(&profile_id)
+            .join(".minecraft")
+            .join("mods");
+
+        if inst_dir.is_dir() {
+            if let Ok(entries) = fs::read_dir(&inst_dir) {
+                for (idx, entry) in entries.flatten().enumerate() {
+                    let path = entry.path();
+                    let fname = path.file_name().unwrap_or_default().to_string_lossy().to_string();
+                    if fname.ends_with(".jar") || fname.ends_with(".jar.disabled") {
+                        let is_enabled = !fname.ends_with(".disabled");
+                        let clean_name = fname.trim_end_matches(".disabled").trim_end_matches(".jar").to_string();
+                        let pmod = ProfileModRecord {
+                            id: format!("local-mod-{}-{}", profile_id, idx),
+                            profile_id: profile_id.clone(),
+                            provider: "local".to_string(),
+                            remote_mod_id: fname.clone(),
+                            remote_file_id: fname.clone(),
+                            name: clean_name,
+                            file_path: path.to_string_lossy().to_string(),
+                            filename: fname,
+                            staged_path: None,
+                            load_priority: idx as i32,
+                            is_enabled,
+                        };
+                        let _ = db::insert_profile_mod(&conn, &pmod);
+                        mods.push(pmod);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(mods)
 }
 
 #[tauri::command]

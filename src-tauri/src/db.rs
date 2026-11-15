@@ -15,6 +15,16 @@ pub struct MinecraftInstanceRecord {
     pub java_path: Option<String>,
     pub jvm_args: String,
     pub created_at: i64,
+    #[serde(default)]
+    pub banner_url: Option<String>,
+    #[serde(default)]
+    pub cover_url: Option<String>,
+    #[serde(default)]
+    pub icon: Option<String>,
+    #[serde(default)]
+    pub playtime_seconds: Option<u64>,
+    #[serde(default)]
+    pub last_played: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -323,6 +333,11 @@ pub fn get_minecraft_instances(conn: &Connection) -> Result<Vec<MinecraftInstanc
             java_path: row.get(7)?,
             jvm_args: row.get(8)?,
             created_at: row.get(9)?,
+            banner_url: None,
+            cover_url: None,
+            icon: None,
+            playtime_seconds: None,
+            last_played: None,
         })
     })?;
     rows.collect()
@@ -345,6 +360,11 @@ pub fn get_minecraft_instance(conn: &Connection, id: &str) -> Result<Option<Mine
             java_path: row.get(7)?,
             jvm_args: row.get(8)?,
             created_at: row.get(9)?,
+            banner_url: None,
+            cover_url: None,
+            icon: None,
+            playtime_seconds: None,
+            last_played: None,
         })
     })?;
     if let Some(res) = rows.next() {

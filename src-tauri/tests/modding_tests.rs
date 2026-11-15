@@ -112,3 +112,13 @@ fn test_bethesda_auto_detect_and_deploy() {
     let res = adapter.deploy_profile("skyrim_se-default");
     assert!(res.is_ok(), "Deployment failed: {:?}", res.err());
 }
+
+#[test]
+fn test_minecraft_instances_auto_discovery_from_disk() {
+    let instances = loom_launcher_lib::minecraft::instance::get_instances().expect("get_instances failed");
+    println!("Found {} instances on disk/db", instances.len());
+    for inst in &instances {
+        println!(" - Instance: {} ({}) [loader: {}]", inst.name, inst.id, inst.modloader);
+    }
+    assert!(!instances.is_empty(), "Should discover instances from ~/.local/share/loom/instances");
+}
