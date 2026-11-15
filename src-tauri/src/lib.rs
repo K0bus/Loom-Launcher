@@ -31,7 +31,7 @@ use minecraft::launcher::launch_instance;
 use minecraft::modpack::ModpackInstaller;
 use modding::adapter::{GameAdapter, GameModdingManifest, ProviderKind, RemoteDependency, UnifiedModSearchResult};
 use modding::conflicts::scan_and_resolve_conflicts as scan_conflicts_impl;
-use modding::nexus::{download_nexus_file, parse_nxm_uri, resolve_nexus_download_links};
+use modding::nexus::{download_nexus_file, fetch_nexus_mod_details, parse_nxm_uri, resolve_nexus_download_links};
 use modding::providers::curseforge::CurseForgeProvider;
 use modding::providers::modrinth::ModrinthProvider;
 use modding::providers::ModProvider;
@@ -845,13 +845,50 @@ async fn start_minecraft_instance(
 #[tauri::command]
 fn get_game_profiles(game_id: Option<String>) -> Result<Vec<GameProfileRecord>, String> {
     let conn = db::open_db().map_err(|e| e.to_string())?;
-    db::get_profiles(&conn, game_id.as_deref()).map_err(|e| e.to_string())
+    let mut profiles = db::get_profiles(&conn, game_id.as_deref()).map_err(|e| e.to_string())?;
+    for p in &mut profiles {
+        if p.deployment_path.is_none() {
+            let detected = match p.game_id.as_str() {
+                "skyrim_se" => BethesdaAdapter::new_skyrim_se().auto_detect_game_directory(),
+                "fallout4" => BethesdaAdapter::new_fallout_4().auto_detect_game_directory(),
+                "oblivion" => BethesdaAdapter::new_oblivion().auto_detect_game_directory(),
+                _ => None,
+            };
+            if let Some(path) = detected {
+                p.deployment_path = Some(path.to_string_lossy().to_string());
+                let _ = db::insert_profile(&conn, p);
+            }
+        }
+    }
+    Ok(profiles)
 }
 
 #[tauri::command]
-fn create_game_profile(profile: GameProfileRecord) -> Result<(), String> {
+fn create_game_profile(mut profile: GameProfileRecord) -> Result<(), String> {
     let conn = db::open_db().map_err(|e| e.to_string())?;
+    if profile.deployment_path.is_none() {
+        let detected = match profile.game_id.as_str() {
+            "skyrim_se" => BethesdaAdapter::new_skyrim_se().auto_detect_game_directory(),
+            "fallout4" => BethesdaAdapter::new_fallout_4().auto_detect_game_directory(),
+            "oblivion" => BethesdaAdapter::new_oblivion().auto_detect_game_directory(),
+            _ => None,
+        };
+        if let Some(path) = detected {
+            profile.deployment_path = Some(path.to_string_lossy().to_string());
+        }
+    }
     db::insert_profile(&conn, &profile).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn update_profile_deployment_path(profile_id: String, deployment_path: String) -> Result<(), String> {
+    let conn = db::open_db().map_err(|e| e.to_string())?;
+    let profiles = db::get_profiles(&conn, None).map_err(|e| e.to_string())?;
+    if let Some(mut p) = profiles.into_iter().find(|p| p.id == profile_id) {
+        p.deployment_path = Some(deployment_path);
+        db::insert_profile(&conn, &p).map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -1045,15 +1082,28 @@ pub async fn handle_nxm_uri_internal(app: &tauri::AppHandle, uri: &str) -> Resul
     // Extraction de l'archive (.7z, .zip, .rar)
     let _ = extract_archive_to_dir(&downloaded_path, &base_staged);
 
-    // Normalisation de l'archive (Aplatissement racine Data/ et détection FOMOD)
-    let adapter = BethesdaAdapter::new_skyrim_se();
+    // Normalisation de l'archive selon le moteur du jeu
+    let adapter: Box<dyn GameAdapter> = match game_id {
+        "skyrim_se" => Box::new(BethesdaAdapter::new_skyrim_se()),
+        "fallout4" => Box::new(BethesdaAdapter::new_fallout_4()),
+        "oblivion" => Box::new(BethesdaAdapter::new_oblivion()),
+        _ => Box::new(BethesdaAdapter::new_skyrim_se()),
+    };
     let _ = adapter.normalize_staged_mod(&base_staged);
 
-    // Nom affiché du mod
+    // Nom affiché du mod & métadonnées Nexus
+    let mod_details = fetch_nexus_mod_details(&client, &info.game_domain, info.mod_id, api_key.as_deref()).await.ok();
     let filename = downloaded_path
         .file_name()
         .map(|f| f.to_string_lossy().to_string())
         .unwrap_or_else(|| format!("nexus_mod_{}", info.mod_id));
+
+    let display_name = mod_details
+        .as_ref()
+        .map(|d| d.name.clone())
+        .unwrap_or_else(|| {
+            filename.trim_end_matches(".zip").trim_end_matches(".7z").trim_end_matches(".rar").to_string()
+        });
 
     let pmod_id = format!("pmod-{}", uuid::Uuid::new_v4().simple());
     let pmod = db::ProfileModRecord {
@@ -1062,7 +1112,7 @@ pub async fn handle_nxm_uri_internal(app: &tauri::AppHandle, uri: &str) -> Resul
         provider: "nexusmods".to_string(),
         remote_mod_id: info.mod_id.to_string(),
         remote_file_id: info.file_id.to_string(),
-        name: filename.clone(),
+        name: display_name.clone(),
         file_path: downloaded_path.to_string_lossy().to_string(),
         filename: filename.clone(),
         staged_path: Some(base_staged.to_string_lossy().to_string()),
@@ -1079,7 +1129,7 @@ pub async fn handle_nxm_uri_internal(app: &tauri::AppHandle, uri: &str) -> Resul
         "game_domain": info.game_domain,
         "mod_id": info.mod_id,
         "file_id": info.file_id,
-        "mod_name": filename,
+        "mod_name": display_name,
         "profile_id": profile.id,
     }));
 
@@ -1700,6 +1750,7 @@ pub fn run() {
             start_minecraft_instance,
             get_game_profiles,
             create_game_profile,
+            update_profile_deployment_path,
             delete_game_profile,
             get_profile_mods,
             delete_mod,

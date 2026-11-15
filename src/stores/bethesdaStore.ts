@@ -277,6 +277,16 @@ export const useBethesdaStore = defineStore('bethesda', () => {
     }
   }
 
+  async function updateDeploymentPath(path: string) {
+    if (!activeProfileId.value) return
+    try {
+      await ipc.updateProfileDeploymentPath(activeProfileId.value, path)
+      await loadProfiles()
+    } catch (err) {
+      console.error('[BethesdaStore] Failed to update deployment path:', err)
+    }
+  }
+
   return {
     currentGameId,
     currentGame,
@@ -300,6 +310,7 @@ export const useBethesdaStore = defineStore('bethesda', () => {
     createProfile,
     selectProfile,
     refreshActiveProfileData,
+    updateDeploymentPath,
     toggleMod,
     reorderMod,
     deleteMod,

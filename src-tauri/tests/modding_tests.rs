@@ -102,3 +102,13 @@ fn test_wow_adapter_manifest() {
     assert!(!manifest.allows_conflict_override);
     assert!(manifest.supported_providers.contains(&ProviderKind::Wago));
 }
+
+#[test]
+fn test_bethesda_auto_detect_and_deploy() {
+    let adapter = BethesdaAdapter::new_skyrim_se();
+    let detected = adapter.auto_detect_game_directory();
+    assert!(detected.is_some());
+
+    let res = adapter.deploy_profile("skyrim_se-default");
+    assert!(res.is_ok(), "Deployment failed: {:?}", res.err());
+}

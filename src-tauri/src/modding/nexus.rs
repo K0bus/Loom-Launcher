@@ -25,6 +25,15 @@ pub struct NexusDownloadLink {
     pub uri: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NexusModDetails {
+    pub name: String,
+    pub summary: Option<String>,
+    pub version: Option<String>,
+    pub author: Option<String>,
+    pub picture_url: Option<String>,
+}
+
 /// Parses an NXM URI:
 /// `nxm://skyrimspecialedition/mods/2014/files/8542?key=abcdef123456&expires=1700000000&user_id=12345`
 pub fn parse_nxm_uri(uri_str: &str) -> Result<NxmUriInfo, String> {
@@ -138,6 +147,42 @@ pub async fn resolve_nexus_download_links(
     Ok(links)
 }
 
+/// Fetches metadata and display information for a mod from the Nexus API
+pub async fn fetch_nexus_mod_details(
+    client: &Client,
+    game_domain: &str,
+    mod_id: u64,
+    api_key: Option<&str>,
+) -> Result<NexusModDetails, String> {
+    let url = format!(
+        "https://api.nexusmods.com/v1/games/{}/mods/{}.json",
+        game_domain, mod_id
+    );
+
+    let mut req = client.get(&url);
+    if let Some(ak) = api_key {
+        req = req.header("apikey", ak);
+    }
+    req = req.header("Application-Name", "Loom Launcher");
+    req = req.header("Application-Version", "0.1.0");
+
+    let resp = req
+        .send()
+        .await
+        .map_err(|e| format!("Failed to call Nexus API for mod details: {}", e))?;
+
+    if !resp.status().is_success() {
+        return Err(format!("Nexus API mod details returned error {}", resp.status()));
+    }
+
+    let details: NexusModDetails = resp
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse Nexus mod details: {}", e))?;
+
+    Ok(details)
+}
+
 /// Downloads a mod file via the mirror URI, following HTTP 302 redirects into `cache/mods/`
 pub async fn download_nexus_file(
     client: &Client,
@@ -155,14 +200,31 @@ pub async fn download_nexus_file(
         return Err(format!("Nexus download server returned HTTP {}", resp.status()));
     }
 
-    // Determine filename from header, url, or fallback
+    // Determine filename from custom arg, Content-Disposition header, url, or fallback
+    let header_filename = resp
+        .headers()
+        .get(reqwest::header::CONTENT_DISPOSITION)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|cd| {
+            if let Some(idx) = cd.find("filename=") {
+                let part = cd[idx + 9..].trim();
+                let clean = part.trim_matches('"').trim_matches('\'').split(';').next().unwrap_or("").trim();
+                if !clean.is_empty() {
+                    return Some(clean.to_string());
+                }
+            }
+            None
+        });
+
     let filename = if let Some(custom) = target_filename {
         custom.to_string()
+    } else if let Some(h_fn) = header_filename {
+        h_fn
     } else {
         resp.url()
             .path_segments()
             .and_then(|mut segs| segs.next_back())
-            .filter(|s| !s.is_empty())
+            .filter(|s| !s.is_empty() && (s.ends_with(".zip") || s.ends_with(".7z") || s.ends_with(".rar")))
             .map(|s| s.to_string())
             .unwrap_or_else(|| format!("nexus_mod_{}.zip", uuid::Uuid::new_v4().simple()))
     };

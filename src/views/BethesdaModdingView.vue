@@ -16,7 +16,8 @@ import {
   Plus,
   KeyRound,
   DownloadCloud,
-  ExternalLink
+  ExternalLink,
+  Edit3
 } from 'lucide-vue-next'
 import { useBethesdaStore, BETHESDA_GAMES } from '@/stores/bethesdaStore'
 import { ipc } from '@/services/ipc'
@@ -113,6 +114,15 @@ async function handleCreateProfile() {
   isCreateProfileModalOpen.value = false
 }
 
+async function handleChangeDeploymentFolder() {
+  const current = store.activeProfile?.deployment_path
+  const chosen = await ipc.pickDirectory('Sélectionner le dossier du jeu', current)
+  if (chosen) {
+    await store.updateDeploymentPath(chosen)
+    await store.deployActiveProfile()
+  }
+}
+
 function movePlugin(index: number, direction: 'up' | 'down') {
   const current = [...store.plugins]
   const targetIndex = direction === 'up' ? index - 1 : index + 1
@@ -189,10 +199,16 @@ function movePlugin(index: number, direction: 'up' | 'down') {
                 <Cpu class="w-3.5 h-3.5 text-amber-400" />
                 Loader : {{ store.currentGame.defaultExecutable }}
               </span>
-              <span class="flex items-center gap-1.5 bg-zinc-950/80 px-2.5 py-1 rounded-lg border border-zinc-800">
-                <FolderOpen class="w-3.5 h-3.5 text-zinc-400" />
-                Dossier : {{ store.activeProfile?.deployment_path || 'Auto (Wine / Steam)' }}
-              </span>
+              <button
+                type="button"
+                @click="handleChangeDeploymentFolder"
+                class="flex items-center gap-1.5 bg-zinc-950/80 hover:bg-zinc-800 hover:border-amber-400 px-2.5 py-1 rounded-lg border border-zinc-800 transition cursor-pointer text-left group"
+                title="Cliquer pour changer le dossier du jeu"
+              >
+                <FolderOpen class="w-3.5 h-3.5 text-zinc-400 group-hover:text-amber-400" />
+                <span class="truncate max-w-xs">Dossier : {{ store.activeProfile?.deployment_path || 'Auto (Wine / Steam)' }}</span>
+                <Edit3 class="w-3 h-3 text-zinc-500 group-hover:text-amber-400 ml-1" />
+              </button>
             </div>
           </div>
         </div>

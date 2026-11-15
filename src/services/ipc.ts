@@ -203,6 +203,10 @@ class IpcBridge {
     return this.invoke<void>('create_game_profile', { profile })
   }
 
+  public async updateProfileDeploymentPath(profileId: string, deploymentPath: string): Promise<void> {
+    return this.invoke<void>('update_profile_deployment_path', { profileId, deploymentPath })
+  }
+
   public async deleteGameProfile(profileId: string): Promise<void> {
     return this.invoke<void>('delete_game_profile', { profileId })
   }

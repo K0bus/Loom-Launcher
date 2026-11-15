@@ -50,14 +50,72 @@ impl BethesdaAdapter {
         }
     }
 
+    /// Auto-detects the native Steam installation directory of the game on Linux
+    pub fn auto_detect_game_directory(&self) -> Option<PathBuf> {
+        let steam_subfolder = match self.game_id.as_str() {
+            "skyrim_se" => "Skyrim Special Edition",
+            "fallout4" => "Fallout 4",
+            "oblivion" => "Oblivion",
+            _ => return None,
+        };
+
+        let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+        let mut candidates = vec![
+            home.join(".local/share/Steam/steamapps/common").join(steam_subfolder),
+            home.join(".steam/steam/steamapps/common").join(steam_subfolder),
+            home.join(".steam/root/steamapps/common").join(steam_subfolder),
+        ];
+
+        let lib_vdf = home.join(".local/share/Steam/config/libraryfolders.vdf");
+        if let Ok(content) = fs::read_to_string(&lib_vdf) {
+            for line in content.lines() {
+                let trimmed = line.trim();
+                if trimmed.starts_with("\"path\"") {
+                    let parts: Vec<&str> = trimmed.split('"').collect();
+                    if parts.len() >= 4 {
+                        let custom_lib = PathBuf::from(parts[3]).join("steamapps/common").join(steam_subfolder);
+                        candidates.push(custom_lib);
+                    }
+                }
+            }
+        }
+
+        for path in candidates {
+            if path.is_dir() {
+                return Some(path);
+            }
+        }
+        None
+    }
+
     /// Resolves the Wine/Proton AppData directory for plugins.txt
     pub fn resolve_wine_appdata_dir(&self, deployment_dir: &Path) -> Option<PathBuf> {
+        let game_appid = match self.game_id.as_str() {
+            "skyrim_se" => "489830",
+            "fallout4" => "377160",
+            "oblivion" => "22330",
+            _ => "",
+        };
+
         // Look up standard Proton compatdata hierarchy if inside steamapps
         let dep_str = deployment_dir.to_string_lossy();
-        if let Some(idx) = dep_str.find("steamapps/common") {
+        if let Some(idx) = dep_str.find("steamapps") {
             let steamapps_dir = PathBuf::from(&dep_str[..idx + "steamapps".len()]);
-            // Search compatdata subfolders
             let compat_dir = steamapps_dir.join("compatdata");
+
+            if !game_appid.is_empty() {
+                let candidate = compat_dir
+                    .join(game_appid)
+                    .join("pfx/drive_c/users/steamuser/AppData/Local")
+                    .join(&self.appdata_folder_name);
+                if let Some(pfx_local) = candidate.parent() {
+                    if pfx_local.exists() {
+                        let _ = fs::create_dir_all(&candidate);
+                        return Some(candidate);
+                    }
+                }
+            }
+
             if compat_dir.is_dir() {
                 if let Ok(entries) = fs::read_dir(&compat_dir) {
                     for entry in entries.flatten() {
@@ -65,8 +123,11 @@ impl BethesdaAdapter {
                             .path()
                             .join("pfx/drive_c/users/steamuser/AppData/Local")
                             .join(&self.appdata_folder_name);
-                        if candidate.exists() {
-                            return Some(candidate);
+                        if let Some(pfx_local) = candidate.parent() {
+                            if pfx_local.exists() {
+                                let _ = fs::create_dir_all(&candidate);
+                                return Some(candidate);
+                            }
                         }
                     }
                 }
@@ -81,11 +142,14 @@ impl BethesdaAdapter {
             .join("AppData/Local")
             .join(&self.appdata_folder_name);
 
-        if default_wine.exists() {
-            Some(default_wine)
-        } else {
-            None
+        if let Some(pfx_local) = default_wine.parent() {
+            if pfx_local.exists() {
+                let _ = fs::create_dir_all(&default_wine);
+                return Some(default_wine);
+            }
         }
+
+        None
     }
 }
 
@@ -136,14 +200,23 @@ impl GameAdapter for BethesdaAdapter {
     fn get_deployment_directory(&self, profile_id: &str) -> PathBuf {
         if let Ok(conn) = open_db() {
             if let Ok(profiles) = get_profiles(&conn, Some(&self.game_id)) {
-                if let Some(prof) = profiles.into_iter().find(|p| p.id == profile_id) {
-                    if let Some(dep_path) = prof.deployment_path {
-                        let path = PathBuf::from(&dep_path);
-                        if path.exists() {
+                if let Some(mut prof) = profiles.into_iter().find(|p| p.id == profile_id) {
+                    if let Some(ref dep_path) = prof.deployment_path {
+                        let path = PathBuf::from(dep_path);
+                        if path.is_dir() {
                             let data_dir = path.join("Data");
                             let _ = fs::create_dir_all(&data_dir);
                             return data_dir;
                         }
+                    }
+
+                    // Auto-detect if not set or path does not exist
+                    if let Some(detected) = self.auto_detect_game_directory() {
+                        let data_dir = detected.join("Data");
+                        let _ = fs::create_dir_all(&data_dir);
+                        prof.deployment_path = Some(detected.to_string_lossy().to_string());
+                        let _ = crate::db::insert_profile(&conn, &prof);
+                        return data_dir;
                     }
                 }
             }
@@ -169,29 +242,63 @@ impl GameAdapter for BethesdaAdapter {
         // 1. Check for FOMOD
         let _ = find_fomod_dir(mod_staged_path);
 
-        // 2. Flatten root if it contains a single "Data" subfolder
-        let mut top_entries = Vec::new();
-        if let Ok(entries) = fs::read_dir(mod_staged_path) {
-            for entry in entries.flatten() {
-                top_entries.push(entry.path());
-            }
-        }
+        // 2. Unnest wrapper directories
+        let asset_dir_names: HashSet<&str> = [
+            "meshes", "textures", "scripts", "interface", "sound", "music", "video", "seq", "strings", "fomod"
+        ].iter().cloned().collect();
 
-        if top_entries.len() == 1 {
-            let single = &top_entries[0];
-            if single.is_dir() {
+        loop {
+            let mut top_entries = Vec::new();
+            if let Ok(entries) = fs::read_dir(mod_staged_path) {
+                for entry in entries.flatten() {
+                    top_entries.push(entry.path());
+                }
+            }
+
+            if top_entries.len() == 1 && top_entries[0].is_dir() {
+                let single = top_entries.remove(0);
                 let name = single.file_name().unwrap_or_default().to_string_lossy().to_lowercase();
-                if name == "data" {
-                    // Move all children of Data/ to mod_staged_path/
-                    if let Ok(children) = fs::read_dir(single) {
+
+                // If it's "data" or not a recognized standard asset directory, unnest it
+                if name == "data" || !asset_dir_names.contains(name.as_str()) {
+                    if let Ok(children) = fs::read_dir(&single) {
                         for child in children.flatten() {
                             let target = mod_staged_path.join(child.file_name());
+                            if target.exists() {
+                                let _ = fs::remove_file(&target);
+                            }
                             let _ = fs::rename(child.path(), target);
                         }
                     }
-                    let _ = fs::remove_dir_all(single);
+                    let _ = fs::remove_dir_all(&single);
+                    continue;
                 }
             }
+            break;
+        }
+
+        // 3. Flatten any nested "Data" folder alongside root files (e.g. SKSE with Data/Scripts/ and skse64_loader.exe)
+        let mut data_folder = None;
+        if let Ok(entries) = fs::read_dir(mod_staged_path) {
+            for entry in entries.flatten() {
+                if entry.path().is_dir() && entry.file_name().to_string_lossy().to_lowercase() == "data" {
+                    data_folder = Some(entry.path());
+                    break;
+                }
+            }
+        }
+
+        if let Some(data_dir) = data_folder {
+            if let Ok(children) = fs::read_dir(&data_dir) {
+                for child in children.flatten() {
+                    let target = mod_staged_path.join(child.file_name());
+                    if target.exists() {
+                        let _ = fs::remove_file(&target);
+                    }
+                    let _ = fs::rename(child.path(), target);
+                }
+            }
+            let _ = fs::remove_dir_all(&data_dir);
         }
 
         Ok(())
@@ -308,12 +415,15 @@ impl GameAdapter for BethesdaAdapter {
 
 /// Identifies files that target the root game directory instead of Data/
 fn is_root_target_file(rel_path: &str) -> bool {
+    // Files inside subdirectories (like SKSE/Plugins/foo.dll or meshes/...) belong in Data/
+    if rel_path.contains('/') || rel_path.contains('\\') {
+        return false;
+    }
     let lower = rel_path.to_lowercase();
-    lower.contains("skse64_")
-        || lower.contains("f4se_")
-        || lower.contains("obse_")
+    lower.starts_with("skse")
+        || lower.starts_with("f4se")
+        || lower.starts_with("obse")
         || lower.ends_with(".exe")
-        || lower.ends_with("d3d11.dll")
-        || lower.ends_with("dxgi.dll")
+        || lower.ends_with(".dll")
         || lower.ends_with("enbseries.ini")
 }
