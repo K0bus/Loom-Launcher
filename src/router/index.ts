@@ -4,6 +4,7 @@ import GameDetailView from '@/views/GameDetailView.vue'
 import ModdingView from '@/views/ModdingView.vue'
 import MinecraftStudioView from '@/views/MinecraftStudioView.vue'
 import WowModdingView from '@/views/WowModdingView.vue'
+import BethesdaModdingView from '@/views/BethesdaModdingView.vue'
 import AccountsView from '@/views/AccountsView.vue'
 import SettingsView from '@/views/SettingsView.vue'
 
@@ -47,6 +48,13 @@ const routes = [
     alias: ['/wow', '/modding/world-of-warcraft'],
     name: 'wow-modding',
     component: WowModdingView
+  },
+  {
+    path: '/modding/bethesda/:gameId?',
+    alias: ['/modding/skyrim', '/modding/fallout4', '/modding/oblivion', '/skyrim'],
+    name: 'bethesda-modding',
+    component: BethesdaModdingView,
+    props: true
   },
   {
     path: '/accounts',

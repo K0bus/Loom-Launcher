@@ -969,6 +969,22 @@ fn update_plugins_order(
 }
 
 #[tauri::command]
+fn get_bethesda_plugins(profile_id: String) -> Result<Vec<db::BethesdaPluginRecord>, String> {
+    let conn = db::open_db().map_err(|e| e.to_string())?;
+    db::get_bethesda_plugins(&conn, &profile_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn toggle_bethesda_plugin(
+    profile_id: String,
+    filename: String,
+    is_active: bool,
+) -> Result<(), String> {
+    let conn = db::open_db().map_err(|e| e.to_string())?;
+    db::toggle_bethesda_plugin(&conn, &profile_id, &filename, is_active).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn deploy_active_profile(
     profile_id: String,
     state: tauri::State<SharedGameRegistry>,
@@ -1498,6 +1514,8 @@ pub fn run() {
             scan_and_resolve_conflicts,
             set_conflict_winner,
             update_plugins_order,
+            get_bethesda_plugins,
+            toggle_bethesda_plugin,
             deploy_active_profile,
             search_unified_mods,
             install_mod_or_pack,

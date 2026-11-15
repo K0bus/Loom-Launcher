@@ -57,7 +57,7 @@ onMounted(() => {
 
       <div class="flex items-center gap-3">
         <UiBadge variant="amber" size="sm" class="font-mono">
-          GameRegistry V2 • 2 Adaptateurs Actifs
+          GameRegistry V2 • 5 Adaptateurs Actifs
         </UiBadge>
       </div>
     </div>
@@ -71,7 +71,7 @@ onMounted(() => {
         </div>
         <span class="text-xs font-mono text-emerald-400 flex items-center gap-1.5">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          2 adaptateurs opérationnels
+          5 adaptateurs opérationnels
         </span>
       </div>
 
@@ -349,6 +349,169 @@ onMounted(() => {
               Gestion in-place dans Interface/AddOns sans créer de profils isolés redondants.
             </p>
           </div>
+        </div>
+      </div>
+
+      <!-- CARTE 3 : THE ELDER SCROLLS V: SKYRIM SPECIAL EDITION (BETHESDA) -->
+      <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 border border-amber-500/40 p-8 shadow-2xl transition-all hover:border-amber-500/70 group">
+        <div class="absolute -right-12 -top-12 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none transition-opacity group-hover:opacity-100 opacity-60" />
+
+        <div class="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+            <div class="relative w-24 h-24 rounded-2xl bg-zinc-900 border border-zinc-700/80 flex items-center justify-center text-5xl shadow-xl flex-shrink-0 group-hover:scale-105 transition-transform">
+              🐉
+              <div class="absolute -bottom-2 -right-2 w-7 h-7 rounded-xl bg-amber-500 text-zinc-950 flex items-center justify-center text-xs font-black shadow-md">
+                TES
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <div class="flex flex-wrap items-center gap-3">
+                <h2 class="text-2xl font-black text-zinc-100 font-display">
+                  The Elder Scrolls V: Skyrim Special Edition
+                </h2>
+                <UiBadge variant="emerald" size="xs" class="font-mono">
+                  STUDIO OPÉRATIONNEL
+                </UiBadge>
+                <span class="text-xs text-zinc-500 font-mono">Bethesda Game Studios</span>
+              </div>
+
+              <p class="text-xs text-zinc-400 max-w-2xl leading-relaxed">
+                Moteur Creation Engine unifié avec support complet du protocole web <span class="font-mono text-amber-400">nxm://</span> de Nexus Mods, injection native SKSE64, détection d'installeurs FOMOD, arbitrage granulaire des collisions de fichiers et Load Order <span class="font-mono text-zinc-300">plugins.txt</span> (ESM > ESL > ESP).
+              </p>
+
+              <div class="flex flex-wrap items-center gap-4 text-xs font-mono pt-1 text-zinc-400">
+                <div class="flex items-center gap-2 bg-zinc-950/80 px-3 py-1.5 rounded-xl border border-zinc-800">
+                  <span class="text-emerald-400 font-bold">Protocole NXM</span>
+                  <span class="text-zinc-500">MIME x-scheme-handler actif</span>
+                </div>
+                <div class="flex items-center gap-2 bg-zinc-950/80 px-3 py-1.5 rounded-xl border border-zinc-800">
+                  <span class="text-amber-400 font-bold">SKSE64 Loader</span>
+                  <span class="text-zinc-500">Wine / Proton compatible</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions du Studio Skyrim -->
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto flex-shrink-0">
+            <UiButton
+              variant="primary"
+              size="lg"
+              class="shadow-lg shadow-amber-500/20"
+              @click="router.push('/modding/bethesda/skyrim_se')"
+            >
+              <template #prefix>
+                <Layers class="w-5 h-5" />
+              </template>
+              Gérer les Mods Skyrim SE
+              <template #suffix>
+                <ArrowRight class="w-4 h-4 ml-1" />
+              </template>
+            </UiButton>
+          </div>
+        </div>
+
+        <!-- Détails techniques de l'adaptateur Bethesda Skyrim -->
+        <div class="mt-8 pt-6 border-t border-zinc-800/80 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="space-y-1.5 bg-zinc-950/40 p-3.5 rounded-2xl border border-zinc-800/50">
+            <div class="text-[11px] font-mono text-zinc-400 flex items-center gap-1.5 font-semibold">
+              <Cpu class="w-3.5 h-3.5 text-amber-400" />
+              <span>Format & Exécution</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5 pt-0.5">
+              <span
+                v-for="l in ['Plugins (.esp/.esm/.esl)', 'SKSE64 (C++)', 'FOMOD XML', 'Data/']"
+                :key="l"
+                class="px-2 py-0.5 rounded-md bg-zinc-900 border border-zinc-800 text-[10px] font-mono text-zinc-300"
+              >
+                {{ l }}
+              </span>
+            </div>
+          </div>
+
+          <div class="space-y-1.5 bg-zinc-950/40 p-3.5 rounded-2xl border border-zinc-800/50">
+            <div class="text-[11px] font-mono text-zinc-400 flex items-center gap-1.5 font-semibold">
+              <Download class="w-3.5 h-3.5 text-amber-400" />
+              <span>Fournisseurs & Protocole</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5 pt-0.5">
+              <span
+                v-for="p in ['Nexus Mods (nxm://)', 'CurseForge API v1', 'Archives locales (.7z, .zip)']"
+                :key="p"
+                class="px-2 py-0.5 rounded-md bg-zinc-900 border border-zinc-800 text-[10px] font-mono text-amber-400/90"
+              >
+                {{ p }}
+              </span>
+            </div>
+          </div>
+
+          <div class="space-y-1.5 bg-zinc-950/40 p-3.5 rounded-2xl border border-zinc-800/50">
+            <div class="text-[11px] font-mono text-zinc-400 flex items-center gap-1.5 font-semibold">
+              <ShieldCheck class="w-3.5 h-3.5 text-emerald-400" />
+              <span>Collisions & Plugins.txt</span>
+            </div>
+            <p class="text-[11px] font-mono text-zinc-400 pt-0.5 leading-snug">
+              Déploiement non-destructif par symlinks sélectifs avec suivi .loom_deployed_symlinks.json.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARTE 4 : AUTRES TITRES BETHESDA (FALLOUT 4 & OBLIVION) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Fallout 4 -->
+        <div class="relative overflow-hidden rounded-3xl bg-zinc-950/80 border border-zinc-800 p-6 hover:border-zinc-700 transition group space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-xl bg-zinc-900 border border-zinc-700 flex items-center justify-center text-2xl">
+                ⚡
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-zinc-100">Fallout 4</h3>
+                <span class="text-xs text-zinc-500 font-mono">F4SE Loader • Creation Engine</span>
+              </div>
+            </div>
+            <UiBadge variant="emerald" size="xs" class="font-mono">ACTIF</UiBadge>
+          </div>
+          <p class="text-xs text-zinc-400 leading-relaxed">
+            Staging normalisé, support des archives BA2 / Loose Files, Load order plugins.txt et protocole nxm://.
+          </p>
+          <UiButton
+            variant="secondary"
+            size="sm"
+            class="w-full font-mono text-xs"
+            @click="router.push('/modding/bethesda/fallout4')"
+          >
+            Accéder au Studio Fallout 4
+          </UiButton>
+        </div>
+
+        <!-- Oblivion -->
+        <div class="relative overflow-hidden rounded-3xl bg-zinc-950/80 border border-zinc-800 p-6 hover:border-zinc-700 transition group space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-xl bg-zinc-900 border border-zinc-700 flex items-center justify-center text-2xl">
+                ⚔️
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-zinc-100">The Elder Scrolls IV: Oblivion</h3>
+                <span class="text-xs text-zinc-500 font-mono">OBSE Loader • Gamebryo Engine</span>
+              </div>
+            </div>
+            <UiBadge variant="emerald" size="xs" class="font-mono">ACTIF</UiBadge>
+          </div>
+          <p class="text-xs text-zinc-400 leading-relaxed">
+            Arbitrage de collisions de maillages et textures DDS, injection OBSE et gestionnaire de plugins .esp.
+          </p>
+          <UiButton
+            variant="secondary"
+            size="sm"
+            class="w-full font-mono text-xs"
+            @click="router.push('/modding/bethesda/oblivion')"
+          >
+            Accéder au Studio Oblivion
+          </UiButton>
         </div>
       </div>
     </div>

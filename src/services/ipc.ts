@@ -6,6 +6,7 @@ import type {
   GameProfileRecord,
   ProfileModRecord,
   FileConflict,
+  BethesdaPluginRecord,
   MinecraftAccount,
   DeviceCodeResponse,
   PollAuthResult
@@ -262,6 +263,22 @@ class IpcBridge {
     return this.invoke<void>('update_plugins_order', {
       profileId,
       orderedPluginNames
+    })
+  }
+
+  public async getBethesdaPlugins(profileId: string): Promise<BethesdaPluginRecord[]> {
+    return this.invoke<BethesdaPluginRecord[]>('get_bethesda_plugins', { profileId })
+  }
+
+  public async toggleBethesdaPlugin(
+    profileId: string,
+    filename: string,
+    isActive: boolean
+  ): Promise<void> {
+    return this.invoke<void>('toggle_bethesda_plugin', {
+      profileId,
+      filename,
+      isActive
     })
   }
 
