@@ -295,6 +295,21 @@ async function closeWindow() {
         <i class="ph ph-bell text-base"></i>
       </button>
 
+      <!-- Monitoring Système & Matériel -->
+      <button
+        type="button"
+        @click="router.push('/monitoring')"
+        :class="[
+          'p-2 rounded-full transition text-base',
+          route.path === '/monitoring'
+            ? 'text-amber-400 bg-zinc-900 border border-amber-500/40 shadow-sm'
+            : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/80'
+        ]"
+        title="Monitoring Système & Matériel"
+      >
+        <i class="ph ph-activity"></i>
+      </button>
+
       <!-- Écrou / Settings en haut à droite -->
       <button
         type="button"
