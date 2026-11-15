@@ -1,18 +1,27 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, computed } from 'vue'
 import {
   Activity,
   Play,
   Pause,
   RotateCw,
   Clock,
-  AlertCircle
+  AlertCircle,
+  LayoutDashboard,
+  Tv,
+  SlidersHorizontal,
+  ShieldCheck,
+  Package
 } from 'lucide-vue-next'
 import { useSystemMonitorStore } from '@/stores/useSystemMonitorStore'
 import CpuGpuCard from '@/components/monitoring/CpuGpuCard.vue'
 import MemoryStorageCard from '@/components/monitoring/MemoryStorageCard.vue'
 import NetworkCard from '@/components/monitoring/NetworkCard.vue'
 import ProcessTable from '@/components/monitoring/ProcessTable.vue'
+import GpuProcessesView from '@/components/monitoring/GpuProcessesView.vue'
+import AllProcessesView from '@/components/monitoring/AllProcessesView.vue'
+import SmartDisksView from '@/components/monitoring/SmartDisksView.vue'
+import DnfUpdatesView from '@/components/monitoring/DnfUpdatesView.vue'
 
 const monitorStore = useSystemMonitorStore()
 
@@ -23,8 +32,45 @@ const refreshOptions = [
   { label: '5 s', value: 5000 }
 ]
 
+const navTabs = computed(() => [
+  {
+    id: 'overview' as const,
+    label: "Vue d'ensemble",
+    icon: LayoutDashboard,
+    badge: null
+  },
+  {
+    id: 'gpu-procs' as const,
+    label: 'Processus GPU',
+    icon: Tv,
+    badge: monitorStore.gpuProcesses.length > 0 ? monitorStore.gpuProcesses.length : null
+  },
+  {
+    id: 'all-procs' as const,
+    label: 'Tous les Processus',
+    icon: SlidersHorizontal,
+    badge: monitorStore.allProcesses.length > 0 ? monitorStore.allProcesses.length : null
+  },
+  {
+    id: 'smart' as const,
+    label: 'Santé S.M.A.R.T.',
+    icon: ShieldCheck,
+    badge: monitorStore.smartDisks.length > 0 ? monitorStore.smartDisks.length : null
+  },
+  {
+    id: 'dnf' as const,
+    label: 'Mises à jour (DNF)',
+    icon: Package,
+    badge: monitorStore.dnfStatus?.upgradesCount ? monitorStore.dnfStatus.upgradesCount : null
+  }
+])
+
 onMounted(() => {
   monitorStore.startPolling()
+  // Pre-fetch tabs data
+  monitorStore.fetchGpuProcesses()
+  monitorStore.fetchSmartDisks()
+  monitorStore.fetchDnfUpdates()
 })
 
 onUnmounted(() => {
@@ -151,6 +197,36 @@ function handleKillProcess(payload: { pid: number; force: boolean }) {
       </div>
     </header>
 
+    <!-- Sub-navigation Menu bar directly under the top bar -->
+    <div class="px-6 py-2.5 bg-zinc-950/95 border-b border-zinc-800/80 sticky top-[116px] z-10 flex items-center gap-2 overflow-x-auto">
+      <button
+        v-for="tab in navTabs"
+        :key="tab.id"
+        type="button"
+        @click="monitorStore.setTab(tab.id)"
+        :class="[
+          'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap select-none',
+          monitorStore.currentTab === tab.id
+            ? 'bg-amber-500 text-zinc-950 shadow-md shadow-amber-500/10 font-bold'
+            : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 border border-transparent'
+        ]"
+      >
+        <component :is="tab.icon" class="w-4 h-4" />
+        <span>{{ tab.label }}</span>
+        <span
+          v-if="tab.badge != null"
+          :class="[
+            'text-[10px] font-mono px-1.5 py-0.5 rounded-full font-bold',
+            monitorStore.currentTab === tab.id
+              ? 'bg-zinc-950 text-amber-400'
+              : 'bg-zinc-800 text-zinc-300'
+          ]"
+        >
+          {{ tab.badge }}
+        </span>
+      </button>
+    </div>
+
     <!-- Main Content Body -->
     <main class="flex-1 p-6 space-y-6 max-w-7xl w-full mx-auto">
       <!-- Loading Skeleton State -->
@@ -175,9 +251,9 @@ function handleKillProcess(payload: { pid: number; force: boolean }) {
         </div>
       </div>
 
-      <div v-if="monitorStore.metrics" class="space-y-6">
-        <!-- 1. CPU & GPU Cards -->
-        <section>
+      <!-- TAB 1: VUE D'ENSEMBLE (Dashboard complet existant) -->
+      <div v-if="!monitorStore.isLoading && monitorStore.currentTab === 'overview'" class="space-y-6">
+        <section v-if="monitorStore.metrics">
           <CpuGpuCard
             :cpu="monitorStore.metrics.cpu"
             :gpu="monitorStore.metrics.gpu || null"
@@ -187,8 +263,7 @@ function handleKillProcess(payload: { pid: number; force: boolean }) {
           />
         </section>
 
-        <!-- 2. Memory & Storage Cards -->
-        <section>
+        <section v-if="monitorStore.metrics">
           <MemoryStorageCard
             :memory="monitorStore.metrics.memory"
             :disks="monitorStore.metrics.disks"
@@ -198,8 +273,7 @@ function handleKillProcess(payload: { pid: number; force: boolean }) {
           />
         </section>
 
-        <!-- 3. Network & Connectivity -->
-        <section>
+        <section v-if="monitorStore.metrics">
           <NetworkCard
             :network="monitorStore.metrics.network"
             :download-history="monitorStore.history.downloadMb"
@@ -207,8 +281,7 @@ function handleKillProcess(payload: { pid: number; force: boolean }) {
           />
         </section>
 
-        <!-- 4. Active Processes Task Manager Table -->
-        <section>
+        <section v-if="monitorStore.metrics">
           <ProcessTable
             :processes="monitorStore.filteredProcesses"
             :search-query="monitorStore.processFilter"
@@ -219,6 +292,44 @@ function handleKillProcess(payload: { pid: number; force: boolean }) {
             @kill="handleKillProcess"
           />
         </section>
+      </div>
+
+      <!-- TAB 2: PROCESSUS GPU -->
+      <div v-else-if="monitorStore.currentTab === 'gpu-procs'">
+        <GpuProcessesView
+          :processes="monitorStore.gpuProcesses"
+          :is-loading="monitorStore.isGpuLoading"
+          @refresh="monitorStore.fetchGpuProcesses"
+          @kill="handleKillProcess"
+        />
+      </div>
+
+      <!-- TAB 3: TOUS LES PROCESSUS -->
+      <div v-else-if="monitorStore.currentTab === 'all-procs'">
+        <AllProcessesView
+          :processes="monitorStore.allProcesses"
+          :is-loading="monitorStore.isAllProcsLoading"
+          @refresh="monitorStore.fetchAllProcesses"
+          @kill="handleKillProcess"
+        />
+      </div>
+
+      <!-- TAB 4: SANTÉ S.M.A.R.T. -->
+      <div v-else-if="monitorStore.currentTab === 'smart'">
+        <SmartDisksView
+          :disks="monitorStore.smartDisks"
+          :is-loading="monitorStore.isSmartLoading"
+          @refresh="monitorStore.fetchSmartDisks"
+        />
+      </div>
+
+      <!-- TAB 5: MISES À JOUR SYSTÈME DNF -->
+      <div v-else-if="monitorStore.currentTab === 'dnf'">
+        <DnfUpdatesView
+          :status="monitorStore.dnfStatus"
+          :is-loading="monitorStore.isDnfLoading"
+          @refresh="monitorStore.fetchDnfUpdates(true)"
+        />
       </div>
     </main>
   </div>

@@ -938,6 +938,458 @@ impl SystemMetricsCollector {
         list.truncate(50);
         list
     }
+
+    // --- All Processes (Full Task Manager) ---
+    pub fn collect_all_processes(&mut self) -> Vec<ProcessSnapshot> {
+        self.sys.refresh_processes(ProcessesToUpdate::All);
+
+        let mut list: Vec<ProcessSnapshot> = self
+            .sys
+            .processes()
+            .iter()
+            .map(|(pid, proc)| {
+                let name = proc.name().to_string_lossy().to_string();
+                let command = proc
+                    .cmd()
+                    .iter()
+                    .map(|c| c.to_string_lossy().to_string())
+                    .collect::<Vec<_>>()
+                    .join(" ");
+
+                let cmd_display = if !command.is_empty() { command } else { name.clone() };
+                let disk_usage = proc.disk_usage();
+                let status_str = format!("{:?}", proc.status());
+
+                ProcessSnapshot {
+                    pid: pid.as_u32(),
+                    name,
+                    command: cmd_display,
+                    user: proc.user_id().map(|u| u.to_string()),
+                    cpu_usage: proc.cpu_usage(),
+                    memory_bytes: proc.memory(),
+                    disk_read_bytes_per_sec: disk_usage.read_bytes,
+                    disk_write_bytes_per_sec: disk_usage.written_bytes,
+                    status: status_str,
+                }
+            })
+            .collect();
+
+        list.sort_by(|a, b| b.cpu_usage.partial_cmp(&a.cpu_usage).unwrap_or(std::cmp::Ordering::Equal));
+        list
+    }
+
+    // --- GPU Processes (VRAM, Type, PID) ---
+    pub fn collect_gpu_processes(&mut self) -> Vec<GpuProcessInfo> {
+        self.sys.refresh_processes(ProcessesToUpdate::All);
+
+        let mut gpu_procs: Vec<GpuProcessInfo> = Vec::new();
+
+        // 1. Check NVIDIA via nvidia-smi
+        if let Ok(output) = Command::new("nvidia-smi").output() {
+            if output.status.success() {
+                if let Ok(txt) = String::from_utf8(output.stdout) {
+                    let mut in_processes_section = false;
+
+                    for line in txt.lines() {
+                        if line.contains("Processes:") {
+                            in_processes_section = true;
+                            continue;
+                        }
+                        if in_processes_section {
+                            if line.contains("========") || line.contains("GPU   GI   CI") {
+                                continue;
+                            }
+                            if line.starts_with("+---") {
+                                break;
+                            }
+                            // Line like: |    0   N/A  N/A            2261    C+G   /usr/bin/kwin_wayland                   120MiB |
+                            let trimmed = line.trim_matches('|').trim();
+                            let parts: Vec<&str> = trimmed.split_whitespace().collect();
+                            if parts.len() >= 6 {
+                                // parts[3] is PID, parts[4] is Type, parts[parts.len()-1] is VRAM
+                                if let Ok(pid) = parts[3].parse::<u32>() {
+                                    let raw_type = parts[4];
+                                    let type_label = match raw_type {
+                                        "C+G" => "Calcul + Graphismes",
+                                        "G" => "Graphismes",
+                                        "C" => "Calcul (Compute)",
+                                        _ => raw_type,
+                                    };
+
+                                    let vram_str = parts[parts.len() - 1].trim_end_matches("MiB").trim_end_matches("MB");
+                                    let vram_mb = vram_str.parse::<u64>().ok();
+
+                                    let mut proc_name = parts[5].to_string();
+                                    let mut full_cmd = proc_name.clone();
+                                    let mut cpu_pct = 0.0f32;
+                                    let mut ram_bytes = 0u64;
+                                    let mut user_name = None;
+
+                                    if let Some(proc) = self.sys.process(sysinfo::Pid::from_u32(pid)) {
+                                        proc_name = proc.name().to_string_lossy().to_string();
+                                        full_cmd = proc
+                                            .cmd()
+                                            .iter()
+                                            .map(|c| c.to_string_lossy().to_string())
+                                            .collect::<Vec<_>>()
+                                            .join(" ");
+                                        if full_cmd.is_empty() {
+                                            full_cmd = proc_name.clone();
+                                        }
+                                        cpu_pct = proc.cpu_usage();
+                                        ram_bytes = proc.memory();
+                                        user_name = proc.user_id().map(|u| u.to_string());
+                                    }
+
+                                    gpu_procs.push(GpuProcessInfo {
+                                        pid,
+                                        name: proc_name,
+                                        command: full_cmd,
+                                        user: user_name,
+                                        process_type: type_label.to_string(),
+                                        vram_used_mb: vram_mb,
+                                        sm_util_percent: None,
+                                        mem_util_percent: None,
+                                        cpu_usage: cpu_pct,
+                                        ram_memory_bytes: ram_bytes,
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Query pmon if nvidia-smi succeeded to enrich with SM % utilization
+        if !gpu_procs.is_empty() {
+            if let Ok(output) = Command::new("nvidia-smi").args(["pmon", "-c", "1"]).output() {
+                if let Ok(txt) = String::from_utf8(output.stdout) {
+                    for line in txt.lines() {
+                        let parts: Vec<&str> = line.split_whitespace().collect();
+                        if parts.len() >= 6 && !line.starts_with('#') {
+                            if let Ok(pid) = parts[1].parse::<u32>() {
+                                if let Some(gp) = gpu_procs.iter_mut().find(|p| p.pid == pid) {
+                                    if let Ok(sm) = parts[3].parse::<f32>() {
+                                        gp.sm_util_percent = Some(sm);
+                                    }
+                                    if let Ok(mem) = parts[4].parse::<f32>() {
+                                        gp.mem_util_percent = Some(mem);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Sort by VRAM descending
+        gpu_procs.sort_by(|a, b| {
+            b.vram_used_mb
+                .unwrap_or(0)
+                .cmp(&a.vram_used_mb.unwrap_or(0))
+        });
+
+        gpu_procs
+    }
+
+    // --- S.M.A.R.T. Disks Health ---
+    pub fn collect_smart_disks(&self) -> Vec<SmartDiskInfo> {
+        let mut disks = Vec::new();
+
+        // 1. Scan NVMe devices (/sys/class/nvme/nvme*)
+        if let Ok(entries) = fs::read_dir("/sys/class/nvme") {
+            for entry in entries.flatten() {
+                let name = entry.file_name().to_string_lossy().to_string();
+                if name.starts_with("nvme") && !name.contains('n') {
+                    let path = entry.path();
+                    let model = fs::read_to_string(path.join("model"))
+                        .map(|s| s.trim().to_string())
+                        .unwrap_or_else(|_| "NVMe SSD".into());
+                    let serial = fs::read_to_string(path.join("serial"))
+                        .map(|s| s.trim().to_string())
+                        .unwrap_or_default();
+                    let state = fs::read_to_string(path.join("state"))
+                        .map(|s| s.trim().to_string())
+                        .unwrap_or_else(|_| "live".into());
+
+                    // Block device name e.g. nvme0n1
+                    let dev_name = format!("{}n1", name);
+                    let dev_path = format!("/dev/{}", dev_name);
+
+                    // Size in bytes
+                    let size_bytes = fs::read_to_string(format!("/sys/block/{}/size", dev_name))
+                        .ok()
+                        .and_then(|s| s.trim().parse::<u64>().ok())
+                        .map(|sectors| sectors * 512)
+                        .unwrap_or(0);
+
+                    // Temperature from hwmon
+                    let mut temp = None;
+                    if let Ok(hw_entries) = fs::read_dir(&path) {
+                        for hwe in hw_entries.flatten() {
+                            let fname = hwe.file_name().to_string_lossy().to_string();
+                            if fname.starts_with("hwmon") {
+                                if let Ok(val) = fs::read_to_string(hwe.path().join("temp1_input")) {
+                                    if let Ok(m) = val.trim().parse::<f32>() {
+                                        temp = Some(m / 1000.0);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    let mut health_status = if state == "live" { "PASSED" } else { "WARNING" }.to_string();
+                    let mut power_on_hours = None;
+                    let mut power_cycles = None;
+                    let mut percentage_used = None;
+                    let mut data_read_gb = None;
+                    let mut data_written_gb = None;
+                    let mut unsafe_shutdowns = None;
+                    let mut critical_warning = None;
+
+                    // Try smartctl JSON inspection if possible
+                    if let Ok(output) = Command::new("smartctl")
+                        .args(["--json=c", "-a", &format!("/dev/{}", name)])
+                        .output()
+                    {
+                        if let Ok(txt) = String::from_utf8(output.stdout) {
+                            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&txt) {
+                                if let Some(passed) = v.pointer("/smart_status/passed").and_then(|b| b.as_bool()) {
+                                    health_status = if passed { "PASSED".into() } else { "FAILED".into() };
+                                }
+                                power_on_hours = v.pointer("/power_on_time/hours").and_then(|h| h.as_u64());
+                                power_cycles = v.pointer("/power_cycle_count").and_then(|c| c.as_u64());
+                                percentage_used = v
+                                    .pointer("/nvme_smart_health_information_log/percentage_used")
+                                    .and_then(|p| p.as_u64())
+                                    .map(|p| p as u8);
+                                unsafe_shutdowns = v
+                                    .pointer("/nvme_smart_health_information_log/unsafe_shutdowns")
+                                    .and_then(|u| u.as_u64());
+                                data_read_gb = v
+                                    .pointer("/nvme_smart_health_information_log/data_units_read")
+                                    .and_then(|d| d.as_u64())
+                                    .map(|u| u * 512 * 1000 / (1024 * 1024 * 1024));
+                                data_written_gb = v
+                                    .pointer("/nvme_smart_health_information_log/data_units_written")
+                                    .and_then(|d| d.as_u64())
+                                    .map(|u| u * 512 * 1000 / (1024 * 1024 * 1024));
+                                critical_warning = v
+                                    .pointer("/nvme_smart_health_information_log/critical_warning")
+                                    .and_then(|w| w.as_u64())
+                                    .map(|w| if w == 0 { "Aucun (Normal)".into() } else { format!("Code {}", w) });
+                            }
+                        }
+                    }
+
+                    disks.push(SmartDiskInfo {
+                        device: dev_path,
+                        model,
+                        serial,
+                        disk_type: "NVMe PCIe SSD".into(),
+                        size_bytes,
+                        health_status,
+                        temperature_c: temp,
+                        critical_warning,
+                        power_on_hours,
+                        power_cycles,
+                        percentage_used,
+                        data_units_read_gb: data_read_gb,
+                        data_units_written_gb: data_written_gb,
+                        unsafe_shutdowns,
+                        is_live: state == "live",
+                    });
+                }
+            }
+        }
+
+        // 2. Scan SCSI/SATA devices (/sys/block/sd*)
+        if let Ok(entries) = fs::read_dir("/sys/block") {
+            for entry in entries.flatten() {
+                let name = entry.file_name().to_string_lossy().to_string();
+                if name.starts_with("sd") && name.len() == 3 {
+                    let path = entry.path();
+                    let dev_path = format!("/dev/{}", name);
+
+                    let model = fs::read_to_string(path.join("device/model"))
+                        .map(|s| s.trim().to_string())
+                        .unwrap_or_else(|_| "Disque SATA".into());
+                    let serial = fs::read_to_string(path.join("device/serial"))
+                        .map(|s| s.trim().to_string())
+                        .unwrap_or_default();
+
+                    let is_rotational = fs::read_to_string(path.join("queue/rotational"))
+                        .ok()
+                        .and_then(|s| s.trim().parse::<u8>().ok())
+                        .unwrap_or(1);
+
+                    let disk_type = if is_rotational == 0 { "SATA SSD" } else { "Disque Dur (HDD)" }.to_string();
+
+                    let size_bytes = fs::read_to_string(path.join("size"))
+                        .ok()
+                        .and_then(|s| s.trim().parse::<u64>().ok())
+                        .map(|sectors| sectors * 512)
+                        .unwrap_or(0);
+
+                    let temp = self.find_disk_temperature(&name);
+
+                    let mut health_status = "PASSED".to_string();
+                    let mut power_on_hours = None;
+                    let mut power_cycles = None;
+                    let percentage_used = None;
+                    let data_read_gb = None;
+                    let data_written_gb = None;
+                    let unsafe_shutdowns = None;
+                    let critical_warning = None;
+
+                    // Try smartctl JSON
+                    if let Ok(output) = Command::new("smartctl")
+                        .args(["--json=c", "-a", &dev_path])
+                        .output()
+                    {
+                        if let Ok(txt) = String::from_utf8(output.stdout) {
+                            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&txt) {
+                                if let Some(passed) = v.pointer("/smart_status/passed").and_then(|b| b.as_bool()) {
+                                    health_status = if passed { "PASSED".into() } else { "FAILED".into() };
+                                }
+                                power_on_hours = v.pointer("/power_on_time/hours").and_then(|h| h.as_u64());
+                                power_cycles = v.pointer("/power_cycle_count").and_then(|c| c.as_u64());
+                            }
+                        }
+                    }
+
+                    disks.push(SmartDiskInfo {
+                        device: dev_path,
+                        model,
+                        serial,
+                        disk_type,
+                        size_bytes,
+                        health_status,
+                        temperature_c: temp,
+                        critical_warning,
+                        power_on_hours,
+                        power_cycles,
+                        percentage_used,
+                        data_units_read_gb: data_read_gb,
+                        data_units_written_gb: data_written_gb,
+                        unsafe_shutdowns,
+                        is_live: true,
+                    });
+                }
+            }
+        }
+
+        disks
+    }
+
+    // --- Linux DNF Package Updates ---
+    pub fn collect_dnf_updates() -> DnfUpdateStatus {
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or(Duration::ZERO)
+            .as_millis() as u64;
+
+        // Check if dnf / dnf5 exists
+        let dnf_bin = if Command::new("which").arg("dnf5").output().map(|o| o.status.success()).unwrap_or(false) {
+            "dnf5"
+        } else if Command::new("which").arg("dnf").output().map(|o| o.status.success()).unwrap_or(false) {
+            "dnf"
+        } else {
+            return DnfUpdateStatus {
+                is_available: false,
+                last_check_timestamp: timestamp,
+                upgrades_count: 0,
+                packages: Vec::new(),
+                message: Some("Le gestionnaire de paquets DNF n'est pas installé sur cette distribution.".into()),
+            };
+        };
+
+        // Run check-update --json
+        let output = match Command::new(dnf_bin).args(["check-update", "--json"]).output() {
+            Ok(out) => out,
+            Err(e) => {
+                return DnfUpdateStatus {
+                    is_available: true,
+                    last_check_timestamp: timestamp,
+                    upgrades_count: 0,
+                    packages: Vec::new(),
+                    message: Some(format!("Échec d'exécution de {}: {}", dnf_bin, e)),
+                }
+            }
+        };
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+
+        // Try parsing JSON
+        if let Ok(v) = serde_json::from_str::<serde_json::Value>(&stdout) {
+            if let Some(upgrades) = v.get("upgrades").and_then(|u| u.as_array()) {
+                let packages: Vec<DnfPackageUpdate> = upgrades
+                    .iter()
+                    .filter_map(|item| {
+                        let name = item.get("name")?.as_str()?.to_string();
+                        let arch = item.get("arch")?.as_str()?.to_string();
+                        let evr = item.get("evr")?.as_str()?.to_string();
+                        let repository = item.get("repository")?.as_str()?.to_string();
+                        Some(DnfPackageUpdate {
+                            name,
+                            arch,
+                            evr,
+                            repository,
+                        })
+                    })
+                    .collect();
+
+                let count = packages.len();
+                return DnfUpdateStatus {
+                    is_available: true,
+                    last_check_timestamp: timestamp,
+                    upgrades_count: count,
+                    packages,
+                    message: None,
+                };
+            }
+        }
+
+        // Fallback: parse plain text output if --json wasn't parsed
+        let mut packages = Vec::new();
+        for line in stdout.lines() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') || line.starts_with("Last metadata") {
+                continue;
+            }
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() >= 3 {
+                let pkg_arch = parts[0];
+                let evr = parts[1].to_string();
+                let repository = parts[2].to_string();
+
+                let (name, arch) = if let Some((n, a)) = pkg_arch.rsplit_once('.') {
+                    (n.to_string(), a.to_string())
+                } else {
+                    (pkg_arch.to_string(), "x86_64".to_string())
+                };
+
+                packages.push(DnfPackageUpdate {
+                    name,
+                    arch,
+                    evr,
+                    repository,
+                });
+            }
+        }
+
+        let count = packages.len();
+        DnfUpdateStatus {
+            is_available: true,
+            last_check_timestamp: timestamp,
+            upgrades_count: count,
+            packages,
+            message: None,
+        }
+    }
 }
 
 pub type SharedCollector = Arc<Mutex<SystemMetricsCollector>>;

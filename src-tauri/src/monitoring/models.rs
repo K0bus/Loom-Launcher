@@ -173,3 +173,58 @@ pub struct SystemSummary {
     pub gpu_name: Option<String>,
     pub network_interfaces: Vec<String>,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GpuProcessInfo {
+    pub pid: u32,
+    pub name: String,
+    pub command: String,
+    pub user: Option<String>,
+    pub process_type: String,
+    pub vram_used_mb: Option<u64>,
+    pub sm_util_percent: Option<f32>,
+    pub mem_util_percent: Option<f32>,
+    pub cpu_usage: f32,
+    pub ram_memory_bytes: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct SmartDiskInfo {
+    pub device: String,
+    pub model: String,
+    pub serial: String,
+    pub disk_type: String,
+    pub size_bytes: u64,
+    pub health_status: String,
+    pub temperature_c: Option<f32>,
+    pub critical_warning: Option<String>,
+    pub power_on_hours: Option<u64>,
+    pub power_cycles: Option<u64>,
+    pub percentage_used: Option<u8>,
+    pub data_units_read_gb: Option<u64>,
+    pub data_units_written_gb: Option<u64>,
+    pub unsafe_shutdowns: Option<u64>,
+    pub is_live: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DnfPackageUpdate {
+    pub name: String,
+    pub arch: String,
+    pub evr: String,
+    pub repository: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DnfUpdateStatus {
+    pub is_available: bool,
+    pub last_check_timestamp: u64,
+    pub upgrades_count: usize,
+    pub packages: Vec<DnfPackageUpdate>,
+    pub message: Option<String>,
+}
+

@@ -3,7 +3,10 @@ import { ref, computed } from 'vue'
 import type {
   SystemMetricsSnapshot,
   SystemSummary,
-  ProcessSnapshot
+  ProcessSnapshot,
+  GpuProcessInfo,
+  SmartDiskInfo,
+  DnfUpdateStatus
 } from '@/models/monitoring'
 import { ipc } from '@/services/ipc'
 
@@ -74,10 +77,23 @@ export const useSystemMonitorStore = defineStore('systemMonitor', () => {
     timestamps: []
   })
 
-  // Process filtering and sorting
   const processFilter = ref<string>('')
   const processSortField = ref<'cpu' | 'memory' | 'name' | 'pid'>('cpu')
   const processSortDirection = ref<'asc' | 'desc'>('desc')
+
+  // Sub-navigation tabs
+  const currentTab = ref<'overview' | 'gpu-procs' | 'all-procs' | 'smart' | 'dnf'>('overview')
+
+  // Additional monitoring datasets
+  const gpuProcesses = ref<GpuProcessInfo[]>([])
+  const allProcesses = ref<ProcessSnapshot[]>([])
+  const smartDisks = ref<SmartDiskInfo[]>([])
+  const dnfStatus = ref<DnfUpdateStatus | null>(null)
+
+  const isGpuLoading = ref(false)
+  const isAllProcsLoading = ref(false)
+  const isSmartLoading = ref(false)
+  const isDnfLoading = ref(false)
 
   function pushHistoryPoint(snapshot: SystemMetricsSnapshot) {
     const pushFifo = (arr: number[], val: number) => {
@@ -192,6 +208,58 @@ export const useSystemMonitorStore = defineStore('systemMonitor', () => {
     }
   }
 
+  async function fetchGpuProcesses() {
+    isGpuLoading.value = true
+    try {
+      gpuProcesses.value = await ipc.getGpuProcesses()
+    } catch (err: any) {
+      console.warn('[MonitorStore] Failed to fetch GPU processes:', err)
+    } finally {
+      isGpuLoading.value = false
+    }
+  }
+
+  async function fetchAllProcesses() {
+    isAllProcsLoading.value = true
+    try {
+      allProcesses.value = await ipc.getAllSystemProcesses()
+    } catch (err: any) {
+      console.warn('[MonitorStore] Failed to fetch all processes:', err)
+    } finally {
+      isAllProcsLoading.value = false
+    }
+  }
+
+  async function fetchSmartDisks() {
+    isSmartLoading.value = true
+    try {
+      smartDisks.value = await ipc.getSmartDisksInfo()
+    } catch (err: any) {
+      console.warn('[MonitorStore] Failed to fetch SMART disks:', err)
+    } finally {
+      isSmartLoading.value = false
+    }
+  }
+
+  async function fetchDnfUpdates(refresh: boolean = false) {
+    isDnfLoading.value = true
+    try {
+      dnfStatus.value = await ipc.checkDnfUpdates(refresh)
+    } catch (err: any) {
+      console.warn('[MonitorStore] Failed to check DNF updates:', err)
+    } finally {
+      isDnfLoading.value = false
+    }
+  }
+
+  function setTab(tab: 'overview' | 'gpu-procs' | 'all-procs' | 'smart' | 'dnf') {
+    currentTab.value = tab
+    if (tab === 'gpu-procs') fetchGpuProcesses()
+    if (tab === 'all-procs') fetchAllProcesses()
+    if (tab === 'smart') fetchSmartDisks()
+    if (tab === 'dnf') fetchDnfUpdates()
+  }
+
   // Filtered and sorted processes
   const filteredProcesses = computed<ProcessSnapshot[]>(() => {
     if (!metrics.value?.topProcesses) return []
@@ -248,6 +316,20 @@ export const useSystemMonitorStore = defineStore('systemMonitor', () => {
     cpuStatus,
     ramStatus,
     gpuStatus,
+    currentTab,
+    gpuProcesses,
+    allProcesses,
+    smartDisks,
+    dnfStatus,
+    isGpuLoading,
+    isAllProcsLoading,
+    isSmartLoading,
+    isDnfLoading,
+    setTab,
+    fetchGpuProcesses,
+    fetchAllProcesses,
+    fetchSmartDisks,
+    fetchDnfUpdates,
     startPolling,
     stopPolling,
     setRefreshRate,

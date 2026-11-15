@@ -145,3 +145,50 @@ export interface SystemSummary {
   gpuName?: string
   networkInterfaces: string[]
 }
+
+export interface GpuProcessInfo {
+  pid: number
+  name: string
+  command: string
+  user?: string
+  processType: string
+  vramUsedMb?: number
+  smUtilPercent?: number
+  memUtilPercent?: number
+  cpuUsage: number
+  ramMemoryBytes: number
+}
+
+export interface SmartDiskInfo {
+  device: string
+  model: string
+  serial: string
+  diskType: string
+  sizeBytes: number
+  healthStatus: string
+  temperatureC?: number
+  criticalWarning?: string
+  powerOnHours?: number
+  powerCycles?: number
+  percentageUsed?: number
+  dataUnitsReadGb?: number
+  dataUnitsWrittenGb?: number
+  unsafeShutdowns?: number
+  isLive: boolean
+}
+
+export interface DnfPackageUpdate {
+  name: string
+  arch: string
+  evr: string
+  repository: string
+}
+
+export interface DnfUpdateStatus {
+  isAvailable: boolean
+  lastCheckTimestamp: number
+  upgradesCount: number
+  packages: DnfPackageUpdate[]
+  message?: string
+}
+

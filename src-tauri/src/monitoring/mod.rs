@@ -52,4 +52,20 @@ mod tests {
         assert!(res_own.is_err());
         assert!(res_own.unwrap_err().contains("Action interdite"));
     }
+
+    #[test]
+    fn test_all_processes_and_smart_disks() {
+        let mut collector = SystemMetricsCollector::new();
+        let all_procs = collector.collect_all_processes();
+        assert!(!all_procs.is_empty());
+
+        let smart_disks = collector.collect_smart_disks();
+        assert!(!smart_disks.is_empty());
+    }
+
+    #[test]
+    fn test_dnf_updates_query() {
+        let status = SystemMetricsCollector::collect_dnf_updates();
+        assert!(status.last_check_timestamp > 0);
+    }
 }

@@ -20,7 +20,11 @@ import type {
 } from '@/models/battlenet'
 import type {
   SystemMetricsSnapshot,
-  SystemSummary
+  SystemSummary,
+  GpuProcessInfo,
+  ProcessSnapshot,
+  SmartDiskInfo,
+  DnfUpdateStatus
 } from '@/models/monitoring'
 import type {
   WowInstance,
@@ -173,6 +177,22 @@ class IpcBridge {
 
   public async killProcess(pid: number, force: boolean = false): Promise<void> {
     return this.invoke<void>('kill_process', { pid, force })
+  }
+
+  public async getGpuProcesses(): Promise<GpuProcessInfo[]> {
+    return this.invoke<GpuProcessInfo[]>('get_gpu_processes')
+  }
+
+  public async getAllSystemProcesses(): Promise<ProcessSnapshot[]> {
+    return this.invoke<ProcessSnapshot[]>('get_all_system_processes')
+  }
+
+  public async getSmartDisksInfo(): Promise<SmartDiskInfo[]> {
+    return this.invoke<SmartDiskInfo[]>('get_smart_disks_info')
+  }
+
+  public async checkDnfUpdates(refresh: boolean = false): Promise<DnfUpdateStatus> {
+    return this.invoke<DnfUpdateStatus>('check_dnf_updates', { refresh })
   }
 
   public async getGameModdingManifest(gameId: string): Promise<GameModdingManifest> {
@@ -1264,6 +1284,170 @@ class IpcBridge {
 
       case 'kill_process': {
         return undefined as T
+      }
+
+      case 'get_gpu_processes': {
+        return [
+          {
+            pid: 2261,
+            name: 'kwin_wayland',
+            command: '/usr/bin/kwin_wayland',
+            user: 'k0bus',
+            processType: 'Calcul + Graphismes',
+            vramUsedMb: 120,
+            smUtilPercent: 8,
+            memUtilPercent: 4,
+            cpuUsage: 3.2,
+            ramMemoryBytes: 380 * 1024 * 1024
+          },
+          {
+            pid: 3854,
+            name: 'plasmashell',
+            command: '/usr/bin/plasmashell',
+            user: 'k0bus',
+            processType: 'Graphismes',
+            vramUsedMb: 271,
+            smUtilPercent: 12,
+            memUtilPercent: 6,
+            cpuUsage: 4.1,
+            ramMemoryBytes: 620 * 1024 * 1024
+          },
+          {
+            pid: 4559,
+            name: 'python',
+            command: 'python /opt/ai/model_inference.py',
+            user: 'k0bus',
+            processType: 'Calcul (Compute)',
+            vramUsedMb: 712,
+            smUtilPercent: 35,
+            memUtilPercent: 18,
+            cpuUsage: 14.5,
+            ramMemoryBytes: 1400 * 1024 * 1024
+          },
+          {
+            pid: 111594,
+            name: 'steam',
+            command: '/usr/lib/steam/steam',
+            user: 'k0bus',
+            processType: 'Graphismes',
+            vramUsedMb: 85,
+            smUtilPercent: 2,
+            memUtilPercent: 1,
+            cpuUsage: 1.8,
+            ramMemoryBytes: 450 * 1024 * 1024
+          }
+        ] as T
+      }
+
+      case 'get_all_system_processes': {
+        return [
+          {
+            pid: 1,
+            name: 'systemd',
+            command: '/sbin/init',
+            user: 'root',
+            cpuUsage: 0.1,
+            memoryBytes: 25 * 1024 * 1024,
+            diskReadBytesPerSec: 0,
+            diskWriteBytesPerSec: 0,
+            status: 'Sleep'
+          },
+          {
+            pid: 2261,
+            name: 'kwin_wayland',
+            command: '/usr/bin/kwin_wayland',
+            user: 'k0bus',
+            cpuUsage: 3.2,
+            memoryBytes: 380 * 1024 * 1024,
+            diskReadBytesPerSec: 1024 * 10,
+            diskWriteBytesPerSec: 0,
+            status: 'Run'
+          },
+          {
+            pid: 3854,
+            name: 'plasmashell',
+            command: '/usr/bin/plasmashell',
+            user: 'k0bus',
+            cpuUsage: 4.1,
+            memoryBytes: 620 * 1024 * 1024,
+            diskReadBytesPerSec: 1024 * 5,
+            diskWriteBytesPerSec: 0,
+            status: 'Run'
+          },
+          {
+            pid: 111594,
+            name: 'steam',
+            command: '/usr/lib/steam/steam',
+            user: 'k0bus',
+            cpuUsage: 1.8,
+            memoryBytes: 450 * 1024 * 1024,
+            diskReadBytesPerSec: 1024 * 200,
+            diskWriteBytesPerSec: 1024 * 50,
+            status: 'Sleep'
+          }
+        ] as T
+      }
+
+      case 'get_smart_disks_info': {
+        return [
+          {
+            device: '/dev/nvme0n1',
+            model: 'Samsung SSD 970 EVO Plus 1TB',
+            serial: 'S4EWNX0NB28801Z',
+            diskType: 'NVMe PCIe SSD',
+            sizeBytes: 1000 * 1024 * 1024 * 1024,
+            healthStatus: 'PASSED',
+            temperatureC: 42.0,
+            criticalWarning: 'Aucun (Normal)',
+            powerOnHours: 6420,
+            powerCycles: 580,
+            percentageUsed: 4,
+            dataUnitsReadGb: 28450,
+            dataUnitsWrittenGb: 21890,
+            unsafeShutdowns: 18,
+            isLive: true
+          },
+          {
+            device: '/dev/sda',
+            model: 'Crucial CT750MX3',
+            serial: '1728189A4B',
+            diskType: 'SATA SSD',
+            sizeBytes: 750 * 1024 * 1024 * 1024,
+            healthStatus: 'PASSED',
+            temperatureC: 36.0,
+            powerOnHours: 12500,
+            powerCycles: 1420,
+            isLive: true
+          }
+        ] as T
+      }
+
+      case 'check_dnf_updates': {
+        return {
+          isAvailable: true,
+          lastCheckTimestamp: Date.now(),
+          upgradesCount: 3,
+          packages: [
+            {
+              name: 'brave-browser',
+              arch: 'x86_64',
+              evr: '1.99.57-1',
+              repository: 'brave-browser'
+            },
+            {
+              name: 'discord',
+              arch: 'x86_64',
+              evr: '1.0.169-1.fc44',
+              repository: 'terra'
+            },
+            {
+              name: 'pipewire',
+              arch: 'x86_64',
+              evr: '1.6.11-1.fc44',
+              repository: 'nobara-updates'
+            }
+          ]
+        } as T
       }
 
       case 'open_external_url': {
