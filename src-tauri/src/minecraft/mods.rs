@@ -306,6 +306,7 @@ pub async fn install_mod(
         name: display_name,
         file_path: safe_filename.clone(),
         filename: safe_filename,
+        staged_path: None,
         load_priority: 0,
         is_enabled: true,
     };
@@ -411,6 +412,7 @@ pub fn install_local_mod(
         name,
         file_path: safe_filename.clone(),
         filename: safe_filename,
+        staged_path: None,
         load_priority: 0,
         is_enabled: true,
     };

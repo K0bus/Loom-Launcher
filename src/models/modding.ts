@@ -1,20 +1,40 @@
-export type ProviderKind = 'modrinth' | 'curseforge' | 'local' | 'nexus'
+export type ProviderKind =
+  | 'modrinth'
+  | 'curseforge'
+  | 'local'
+  | 'nexus'
+  | 'nexusmods'
+  | 'wago'
+  | 'steamworkshop'
+  | 'Modrinth'
+  | 'CurseForge'
+  | 'NexusMods'
+  | 'Wago'
+  | 'SteamWorkshop'
+  | 'LocalArchive'
 
 export interface LaunchExecutable {
   id: string
-  label: string
+  name: string
+  label?: string
   description?: string
+  relative_path?: string
   is_default: boolean
+  requires_steamworks?: boolean
 }
 
 export interface GameModdingManifest {
   game_id: string
-  game_name: string
+  display_name?: string
+  game_name?: string
   supported_providers: ProviderKind[]
-  supports_load_order: boolean
-  supports_conflict_resolution: boolean
-  mods_directory: string
-  file_extensions: string[]
+  allows_load_order?: boolean
+  supports_load_order?: boolean
+  allows_conflict_override?: boolean
+  supports_conflict_resolution?: boolean
+  supports_modpacks?: boolean
+  mods_directory?: string
+  file_extensions?: string[]
   executables: LaunchExecutable[]
 }
 
@@ -69,6 +89,7 @@ export interface GameProfileRecord {
   name: string
   game_version: string
   modloader?: string
+  deployment_path?: string
   created_at: number
 }
 
@@ -81,6 +102,7 @@ export interface ProfileModRecord {
   name: string
   file_path: string
   filename?: string
+  staged_path?: string
   load_priority: number
   is_enabled: boolean
   version?: string
@@ -92,6 +114,27 @@ export interface ProfileModRecord {
   new_version?: string
   new_file_id?: string
   new_download_url?: string
+}
+
+export interface ConflictingMod {
+  mod_id: string
+  mod_name: string
+  load_priority: number
+}
+
+export interface FileConflict {
+  relative_path: string
+  conflicting_mods: ConflictingMod[]
+  current_winner_mod_id: string
+}
+
+export interface BethesdaPluginRecord {
+  id: string
+  profile_id: string
+  mod_id?: string
+  filename: string
+  load_order_index: number
+  is_active: boolean
 }
 
 export interface UnifiedModGalleryItem {

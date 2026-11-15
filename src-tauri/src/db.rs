@@ -24,6 +24,8 @@ pub struct GameProfileRecord {
     pub name: String,
     pub game_version: String,
     pub modloader: Option<String>,
+    #[serde(default)]
+    pub deployment_path: Option<String>,
     pub created_at: i64,
 }
 
@@ -31,12 +33,14 @@ pub struct GameProfileRecord {
 pub struct ProfileModRecord {
     pub id: String,
     pub profile_id: String,
-    pub provider: String, // 'modrinth', 'curseforge', 'local'
+    pub provider: String, // 'modrinth', 'curseforge', 'nexus', 'wago', 'local'
     pub remote_mod_id: String,
     pub remote_file_id: String,
     pub name: String,
     pub file_path: String,
     pub filename: String,
+    #[serde(default)]
+    pub staged_path: Option<String>,
     pub load_priority: i32,
     pub is_enabled: bool,
 }
@@ -53,6 +57,30 @@ pub struct FileConflictRuleRecord {
     pub profile_id: String,
     pub relative_path: String,
     pub winning_mod_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConflictingMod {
+    pub mod_id: String,
+    pub mod_name: String,
+    pub load_priority: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FileConflict {
+    pub relative_path: String,
+    pub conflicting_mods: Vec<ConflictingMod>,
+    pub current_winner_mod_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BethesdaPluginRecord {
+    pub id: String,
+    pub profile_id: String,
+    pub mod_id: Option<String>,
+    pub filename: String,
+    pub load_order_index: i32,
+    pub is_active: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -114,6 +142,7 @@ pub fn init_schema(conn: &Connection) -> Result<()> {
             name TEXT NOT NULL,
             game_version TEXT NOT NULL,
             modloader TEXT,
+            deployment_path TEXT,
             created_at INTEGER NOT NULL
         );
 
@@ -139,6 +168,7 @@ pub fn init_schema(conn: &Connection) -> Result<()> {
             name TEXT NOT NULL,
             file_path TEXT NOT NULL DEFAULT '',
             filename TEXT NOT NULL DEFAULT '',
+            staged_path TEXT,
             load_priority INTEGER NOT NULL DEFAULT 0,
             is_enabled INTEGER NOT NULL DEFAULT 1
         );
@@ -155,6 +185,18 @@ pub fn init_schema(conn: &Connection) -> Result<()> {
             relative_path TEXT NOT NULL,
             winning_mod_id TEXT NOT NULL,
             PRIMARY KEY(profile_id, relative_path)
+        );
+
+        -- Plugins spécifiques aux moteurs Bethesda (.esp, .esm, .esl)
+        CREATE TABLE IF NOT EXISTS bethesda_plugins (
+            id TEXT PRIMARY KEY,
+            profile_id TEXT NOT NULL,
+            mod_id TEXT,
+            filename TEXT NOT NULL,
+            load_order_index INTEGER NOT NULL,
+            is_active INTEGER NOT NULL DEFAULT 1,
+            FOREIGN KEY(profile_id) REFERENCES game_profiles(id) ON DELETE CASCADE,
+            FOREIGN KEY(mod_id) REFERENCES profile_mods(id) ON DELETE SET NULL
         );
 
         -- Configuration du runner et de l'environnement Wine Battle.net
@@ -201,9 +243,11 @@ pub fn init_schema(conn: &Connection) -> Result<()> {
         "#,
     )?;
 
-    // Safe migration: add filename column if it doesn't exist
+    // Safe migration: add columns if they don't exist
+    let _ = conn.execute("ALTER TABLE game_profiles ADD COLUMN deployment_path TEXT;", []);
     let _ = conn.execute("ALTER TABLE profile_mods ADD COLUMN filename TEXT NOT NULL DEFAULT '';", []);
     let _ = conn.execute("ALTER TABLE profile_mods ADD COLUMN file_path TEXT NOT NULL DEFAULT '';", []);
+    let _ = conn.execute("ALTER TABLE profile_mods ADD COLUMN staged_path TEXT;", []);
     let _ = conn.execute("ALTER TABLE battlenet_games ADD COLUMN playtime_seconds INTEGER NOT NULL DEFAULT 0;", []);
 
     Ok(())
@@ -211,7 +255,7 @@ pub fn init_schema(conn: &Connection) -> Result<()> {
 
 pub fn get_profiles(conn: &Connection, game_id: Option<&str>) -> Result<Vec<GameProfileRecord>> {
     if let Some(gid) = game_id {
-        let mut s = conn.prepare("SELECT id, game_id, name, game_version, modloader, created_at FROM game_profiles WHERE game_id = ? ORDER BY created_at DESC")?;
+        let mut s = conn.prepare("SELECT id, game_id, name, game_version, modloader, deployment_path, created_at FROM game_profiles WHERE game_id = ? ORDER BY created_at DESC")?;
         let rows = s.query_map([gid], |row| {
             Ok(GameProfileRecord {
                 id: row.get(0)?,
@@ -219,12 +263,13 @@ pub fn get_profiles(conn: &Connection, game_id: Option<&str>) -> Result<Vec<Game
                 name: row.get(2)?,
                 game_version: row.get(3)?,
                 modloader: row.get(4)?,
-                created_at: row.get(5)?,
+                deployment_path: row.get(5)?,
+                created_at: row.get(6)?,
             })
         })?;
         rows.collect()
     } else {
-        let mut s = conn.prepare("SELECT id, game_id, name, game_version, modloader, created_at FROM game_profiles ORDER BY created_at DESC")?;
+        let mut s = conn.prepare("SELECT id, game_id, name, game_version, modloader, deployment_path, created_at FROM game_profiles ORDER BY created_at DESC")?;
         let rows = s.query_map([], |row| {
             Ok(GameProfileRecord {
                 id: row.get(0)?,
@@ -232,7 +277,8 @@ pub fn get_profiles(conn: &Connection, game_id: Option<&str>) -> Result<Vec<Game
                 name: row.get(2)?,
                 game_version: row.get(3)?,
                 modloader: row.get(4)?,
-                created_at: row.get(5)?,
+                deployment_path: row.get(5)?,
+                created_at: row.get(6)?,
             })
         })?;
         rows.collect()
@@ -241,13 +287,14 @@ pub fn get_profiles(conn: &Connection, game_id: Option<&str>) -> Result<Vec<Game
 
 pub fn insert_profile(conn: &Connection, profile: &GameProfileRecord) -> Result<()> {
     conn.execute(
-        "INSERT OR REPLACE INTO game_profiles (id, game_id, name, game_version, modloader, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        "INSERT OR REPLACE INTO game_profiles (id, game_id, name, game_version, modloader, deployment_path, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
         params![
             profile.id,
             profile.game_id,
             profile.name,
             profile.game_version,
             profile.modloader,
+            profile.deployment_path,
             profile.created_at
         ],
     )?;
@@ -335,11 +382,11 @@ pub fn delete_minecraft_instance(conn: &Connection, id: &str) -> Result<()> {
 
 pub fn get_profile_mods(conn: &Connection, profile_id: &str) -> Result<Vec<ProfileModRecord>> {
     let mut stmt = conn.prepare(
-        "SELECT id, profile_id, provider, remote_mod_id, remote_file_id, name, COALESCE(file_path, ''), COALESCE(filename, ''), load_priority, is_enabled
+        "SELECT id, profile_id, provider, remote_mod_id, remote_file_id, name, COALESCE(file_path, ''), COALESCE(filename, ''), staged_path, load_priority, is_enabled
          FROM profile_mods WHERE profile_id = ? ORDER BY load_priority ASC, name ASC",
     )?;
     let rows = stmt.query_map([profile_id], |row| {
-        let is_enabled_int: i32 = row.get(9)?;
+        let is_enabled_int: i32 = row.get(10)?;
         let mut file_path: String = row.get(6)?;
         let mut filename: String = row.get(7)?;
         if filename.is_empty() && !file_path.is_empty() {
@@ -361,7 +408,8 @@ pub fn get_profile_mods(conn: &Connection, profile_id: &str) -> Result<Vec<Profi
             name: row.get(5)?,
             file_path,
             filename,
-            load_priority: row.get(8)?,
+            staged_path: row.get(8)?,
+            load_priority: row.get(9)?,
             is_enabled: is_enabled_int == 1,
         })
     })?;
@@ -381,8 +429,8 @@ pub fn insert_profile_mod(conn: &Connection, pmod: &ProfileModRecord) -> Result<
     };
 
     conn.execute(
-        "INSERT OR REPLACE INTO profile_mods (id, profile_id, provider, remote_mod_id, remote_file_id, name, file_path, filename, load_priority, is_enabled)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+        "INSERT OR REPLACE INTO profile_mods (id, profile_id, provider, remote_mod_id, remote_file_id, name, file_path, filename, staged_path, load_priority, is_enabled)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
         params![
             pmod.id,
             pmod.profile_id,
@@ -392,6 +440,7 @@ pub fn insert_profile_mod(conn: &Connection, pmod: &ProfileModRecord) -> Result<
             pmod.name,
             file_path,
             filename,
+            pmod.staged_path,
             pmod.load_priority,
             if pmod.is_enabled { 1 } else { 0 },
         ],
@@ -448,6 +497,89 @@ pub fn set_file_conflict_rule(conn: &Connection, rule: &FileConflictRuleRecord) 
     conn.execute(
         "INSERT OR REPLACE INTO file_conflict_rules (profile_id, relative_path, winning_mod_id) VALUES (?1, ?2, ?3)",
         params![rule.profile_id, rule.relative_path, rule.winning_mod_id],
+    )?;
+    Ok(())
+}
+
+pub fn get_file_conflict_rules(conn: &Connection, profile_id: &str) -> Result<Vec<FileConflictRuleRecord>> {
+    let mut stmt = conn.prepare(
+        "SELECT profile_id, relative_path, winning_mod_id FROM file_conflict_rules WHERE profile_id = ?"
+    )?;
+    let rows = stmt.query_map([profile_id], |row| {
+        Ok(FileConflictRuleRecord {
+            profile_id: row.get(0)?,
+            relative_path: row.get(1)?,
+            winning_mod_id: row.get(2)?,
+        })
+    })?;
+    rows.collect()
+}
+
+pub fn delete_file_conflict_rule(conn: &Connection, profile_id: &str, relative_path: &str) -> Result<()> {
+    conn.execute(
+        "DELETE FROM file_conflict_rules WHERE profile_id = ?1 AND relative_path = ?2",
+        params![profile_id, relative_path],
+    )?;
+    Ok(())
+}
+
+pub fn get_bethesda_plugins(conn: &Connection, profile_id: &str) -> Result<Vec<BethesdaPluginRecord>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, profile_id, mod_id, filename, load_order_index, is_active
+         FROM bethesda_plugins WHERE profile_id = ? ORDER BY load_order_index ASC"
+    )?;
+    let rows = stmt.query_map([profile_id], |row| {
+        let is_active_int: i32 = row.get(5)?;
+        Ok(BethesdaPluginRecord {
+            id: row.get(0)?,
+            profile_id: row.get(1)?,
+            mod_id: row.get(2)?,
+            filename: row.get(3)?,
+            load_order_index: row.get(4)?,
+            is_active: is_active_int == 1,
+        })
+    })?;
+    rows.collect()
+}
+
+pub fn insert_or_replace_bethesda_plugin(conn: &Connection, plugin: &BethesdaPluginRecord) -> Result<()> {
+    conn.execute(
+        "INSERT OR REPLACE INTO bethesda_plugins (id, profile_id, mod_id, filename, load_order_index, is_active)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        params![
+            plugin.id,
+            plugin.profile_id,
+            plugin.mod_id,
+            plugin.filename,
+            plugin.load_order_index,
+            if plugin.is_active { 1 } else { 0 },
+        ],
+    )?;
+    Ok(())
+}
+
+pub fn update_plugin_load_order(conn: &Connection, profile_id: &str, ordered_filenames: &[String]) -> Result<()> {
+    for (idx, filename) in ordered_filenames.iter().enumerate() {
+        conn.execute(
+            "UPDATE bethesda_plugins SET load_order_index = ?1 WHERE profile_id = ?2 AND filename = ?3",
+            params![idx as i32, profile_id, filename],
+        )?;
+    }
+    Ok(())
+}
+
+pub fn toggle_bethesda_plugin(conn: &Connection, profile_id: &str, filename: &str, is_active: bool) -> Result<()> {
+    conn.execute(
+        "UPDATE bethesda_plugins SET is_active = ?1 WHERE profile_id = ?2 AND filename = ?3",
+        params![if is_active { 1 } else { 0 }, profile_id, filename],
+    )?;
+    Ok(())
+}
+
+pub fn delete_bethesda_plugin(conn: &Connection, profile_id: &str, filename: &str) -> Result<()> {
+    conn.execute(
+        "DELETE FROM bethesda_plugins WHERE profile_id = ?1 AND filename = ?2",
+        params![profile_id, filename],
     )?;
     Ok(())
 }

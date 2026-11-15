@@ -92,6 +92,7 @@ impl ModpackInstaller {
             name: pack_name.to_string(),
             game_version: mc_version.clone(),
             modloader: Some(modloader.clone()),
+            deployment_path: None,
             created_at: chrono::Utc::now().timestamp(),
         };
         db::insert_profile(&conn, &profile_record).map_err(|e| e.to_string())?;
@@ -152,6 +153,7 @@ impl ModpackInstaller {
                         name: filename.clone(),
                         file_path: filename.clone(),
                         filename: filename.clone(),
+                        staged_path: None,
                         load_priority: idx as i32,
                         is_enabled: true,
                     };
@@ -242,6 +244,7 @@ impl ModpackInstaller {
             name: pack_name.to_string(),
             game_version: mc_version.clone(),
             modloader: Some(modloader.clone()),
+            deployment_path: None,
             created_at: chrono::Utc::now().timestamp(),
         };
         db::insert_profile(&conn, &profile_record).map_err(|e| e.to_string())?;
@@ -275,6 +278,7 @@ impl ModpackInstaller {
                                     name: f_info.filename.clone(),
                                     file_path: f_info.filename.clone(),
                                     filename: f_info.filename.clone(),
+                                    staged_path: None,
                                     load_priority: idx as i32,
                                     is_enabled: true,
                                 };

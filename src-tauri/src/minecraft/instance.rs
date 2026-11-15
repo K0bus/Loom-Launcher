@@ -153,6 +153,7 @@ pub fn create_instance(params: CreateInstanceParams) -> Result<MinecraftInstance
             name: params.name,
             game_version: params.mc_version,
             modloader: Some(params.modloader),
+            deployment_path: None,
             created_at: now,
         },
     );

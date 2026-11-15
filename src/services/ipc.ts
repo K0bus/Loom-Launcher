@@ -5,6 +5,7 @@ import type {
   RemoteDependency,
   GameProfileRecord,
   ProfileModRecord,
+  FileConflict,
   MinecraftAccount,
   DeviceCodeResponse,
   PollAuthResult
@@ -227,6 +228,45 @@ class IpcBridge {
       remoteModId,
       remoteFileId
     })
+  }
+
+  // Unified Modding Engine Commands (Section 8)
+  public async getGameManifest(gameId: string): Promise<GameModdingManifest> {
+    return this.invoke<GameModdingManifest>('get_game_manifest', { gameId })
+  }
+
+  public async handleNxmUri(uri: string): Promise<void> {
+    return this.invoke<void>('handle_nxm_uri', { uri })
+  }
+
+  public async scanAndResolveConflicts(profileId: string): Promise<FileConflict[]> {
+    return this.invoke<FileConflict[]>('scan_and_resolve_conflicts', { profileId })
+  }
+
+  public async setConflictWinner(
+    profileId: string,
+    relativePath: string,
+    winningModId: string
+  ): Promise<void> {
+    return this.invoke<void>('set_conflict_winner', {
+      profileId,
+      relativePath,
+      winningModId
+    })
+  }
+
+  public async updatePluginsOrder(
+    profileId: string,
+    orderedPluginNames: string[]
+  ): Promise<void> {
+    return this.invoke<void>('update_plugins_order', {
+      profileId,
+      orderedPluginNames
+    })
+  }
+
+  public async deployActiveProfile(profileId: string): Promise<void> {
+    return this.invoke<void>('deploy_active_profile', { profileId })
   }
 
   public async initiateMicrosoftAuth(): Promise<DeviceCodeResponse> {

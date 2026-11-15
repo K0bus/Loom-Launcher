@@ -144,8 +144,7 @@ pub async fn launch_instance(
 
     // 5. Deploy mods via symlinks into instance directory
     let adapter = MinecraftAdapter::new();
-    let profile_mods = db::get_profile_mods(&conn, &instance_id).unwrap_or_default();
-    adapter.deploy_profile(&instance_id, &profile_mods)?;
+    adapter.deploy_profile(&instance_id)?;
 
     let mc_dir = get_instance_minecraft_dir(&instance_id);
     let _ = std::fs::create_dir_all(&mc_dir);

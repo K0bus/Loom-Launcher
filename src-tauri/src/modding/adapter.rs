@@ -1,14 +1,20 @@
-use crate::db::ProfileModRecord;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
 pub enum ProviderKind {
+    #[serde(alias = "modrinth")]
     Modrinth,
+    #[serde(alias = "curseforge")]
     CurseForge,
-    Local,
-    Nexus,
+    #[serde(alias = "nexus", alias = "nexusmods")]
+    NexusMods,
+    #[serde(alias = "steam", alias = "steamworkshop")]
+    SteamWorkshop,
+    #[serde(alias = "wago")]
+    Wago,
+    #[serde(alias = "local", alias = "localarchive")]
+    LocalArchive,
 }
 
 impl ProviderKind {
@@ -16,17 +22,21 @@ impl ProviderKind {
         match self {
             ProviderKind::Modrinth => "modrinth",
             ProviderKind::CurseForge => "curseforge",
-            ProviderKind::Local => "local",
-            ProviderKind::Nexus => "nexus",
+            ProviderKind::NexusMods => "nexusmods",
+            ProviderKind::SteamWorkshop => "steamworkshop",
+            ProviderKind::Wago => "wago",
+            ProviderKind::LocalArchive => "local",
         }
     }
 
     pub fn from_str(s: &str) -> Self {
-        match s.to_lowercase().as_str() {
+        match s.to_lowercase().replace('_', "").replace('-', "").as_str() {
             "modrinth" => ProviderKind::Modrinth,
             "curseforge" => ProviderKind::CurseForge,
-            "nexus" => ProviderKind::Nexus,
-            _ => ProviderKind::Local,
+            "nexus" | "nexusmods" => ProviderKind::NexusMods,
+            "steam" | "steamworkshop" => ProviderKind::SteamWorkshop,
+            "wago" => ProviderKind::Wago,
+            _ => ProviderKind::LocalArchive,
         }
     }
 }
@@ -34,21 +44,82 @@ impl ProviderKind {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LaunchExecutable {
     pub id: String,
+    pub name: String,
+    #[serde(default)]
     pub label: String,
-    pub description: Option<String>,
+    pub relative_path: PathBuf,
     pub is_default: bool,
+    pub requires_steamworks: bool,
+}
+
+impl LaunchExecutable {
+    pub fn new(
+        id: impl Into<String>,
+        name: impl Into<String>,
+        relative_path: impl Into<PathBuf>,
+        is_default: bool,
+        requires_steamworks: bool,
+    ) -> Self {
+        let n = name.into();
+        Self {
+            id: id.into(),
+            label: n.clone(),
+            name: n,
+            relative_path: relative_path.into(),
+            is_default,
+            requires_steamworks,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameModdingManifest {
     pub game_id: String,
+    pub display_name: String,
+    #[serde(default)]
     pub game_name: String,
     pub supported_providers: Vec<ProviderKind>,
+    pub allows_load_order: bool,
+    #[serde(default)]
     pub supports_load_order: bool,
+    pub allows_conflict_override: bool,
+    #[serde(default)]
     pub supports_conflict_resolution: bool,
+    pub supports_modpacks: bool,
+    #[serde(default)]
     pub mods_directory: String,
+    #[serde(default)]
     pub file_extensions: Vec<String>,
     pub executables: Vec<LaunchExecutable>,
+}
+
+impl GameModdingManifest {
+    pub fn new(
+        game_id: impl Into<String>,
+        display_name: impl Into<String>,
+        supported_providers: Vec<ProviderKind>,
+        allows_load_order: bool,
+        allows_conflict_override: bool,
+        supports_modpacks: bool,
+        executables: Vec<LaunchExecutable>,
+    ) -> Self {
+        let gid = game_id.into();
+        let dn = display_name.into();
+        Self {
+            game_id: gid,
+            display_name: dn.clone(),
+            game_name: dn,
+            supported_providers,
+            allows_load_order,
+            supports_load_order: allows_load_order,
+            allows_conflict_override,
+            supports_conflict_resolution: allows_conflict_override,
+            supports_modpacks,
+            mods_directory: "mods".to_string(),
+            file_extensions: vec![".jar".to_string(), ".zip".to_string()],
+            executables,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -102,15 +173,20 @@ pub struct ModVersionInfo {
 }
 
 pub trait GameAdapter: Send + Sync {
-    /// Return the game's manifest (identifier, supported providers, load order, collision rules, executables)
     fn manifest(&self) -> GameModdingManifest;
 
-    /// Returns the target mods folder for a given profile
-    fn get_profile_mods_path(&self, profile_id: &str) -> PathBuf;
+    /// Répertoire où les archives sont décompressées avant activation
+    fn get_staging_directory(&self, profile_id: &str) -> PathBuf;
 
-    /// Deploys symlinks from cache into the profile's mods directory for all enabled mods
-    fn deploy_profile(&self, profile_id: &str, mods: &[ProfileModRecord]) -> Result<(), String>;
+    /// Répertoire cible réel du jeu (ex: Data/ ou Interface/AddOns/)
+    fn get_deployment_directory(&self, profile_id: &str) -> PathBuf;
 
-    /// Cleans up symlinks when changing or disabling profile mods
+    /// Normalise le contenu d'une archive téléchargée selon la structure du jeu
+    fn normalize_staged_mod(&self, mod_staged_path: &PathBuf) -> Result<(), String>;
+
+    /// Déploie l'ensemble des symlinks du profil actif vers le dossier cible
+    fn deploy_profile(&self, profile_id: &str) -> Result<(), String>;
+
+    /// Nettoie les symlinks déployés sans altérer les fichiers vanilla
     fn undeploy_profile(&self, profile_id: &str) -> Result<(), String>;
 }

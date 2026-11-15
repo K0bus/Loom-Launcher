@@ -21,7 +21,7 @@ use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::Manager;
 
-use db::{GameProfileRecord, ProfileModRecord};
+use db::{FileConflict, GameProfileRecord, ProfileModRecord};
 use minecraft::adapter::MinecraftAdapter;
 use minecraft::auth::{
     initiate_device_code, poll_device_code, remove_stored_account,
@@ -30,11 +30,14 @@ use minecraft::auth::{
 use minecraft::launcher::launch_instance;
 use minecraft::modpack::ModpackInstaller;
 use modding::adapter::{GameAdapter, GameModdingManifest, ProviderKind, RemoteDependency, UnifiedModSearchResult};
+use modding::conflicts::scan_and_resolve_conflicts as scan_conflicts_impl;
+use modding::nexus::{download_nexus_file, parse_nxm_uri, resolve_nexus_download_links};
 use modding::providers::curseforge::CurseForgeProvider;
 use modding::providers::modrinth::ModrinthProvider;
 use modding::providers::ModProvider;
 use modding::registry::{create_shared_registry, SharedGameRegistry};
 use modding::symlink::get_mods_cache_dir;
+use modding::{BethesdaAdapter, WowAdapter};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LaunchResult {
@@ -723,6 +726,7 @@ async fn install_mod_or_pack(
                 name: mod_name.unwrap_or_else(|| file_info.filename.clone()),
                 file_path: file_info.filename.clone(),
                 filename: file_info.filename.clone(),
+                staged_path: None,
                 load_priority: 0,
                 is_enabled: true,
             };
@@ -731,8 +735,7 @@ async fn install_mod_or_pack(
 
             // Deploy symlink
             let adapter = MinecraftAdapter::new();
-            let all_mods = db::get_profile_mods(&conn, &profile_id).unwrap_or_default();
-            let _ = adapter.deploy_profile(&profile_id, &all_mods);
+            let _ = adapter.deploy_profile(&profile_id);
         }
         ProviderKind::CurseForge => {
             let cf = CurseForgeProvider::new();
@@ -762,6 +765,7 @@ async fn install_mod_or_pack(
                 name: mod_name.unwrap_or_else(|| file_info.filename.clone()),
                 file_path: file_info.filename.clone(),
                 filename: file_info.filename.clone(),
+                staged_path: None,
                 load_priority: 0,
                 is_enabled: true,
             };
@@ -769,10 +773,9 @@ async fn install_mod_or_pack(
             db::insert_profile_mod(&conn, &pmod).map_err(|e| e.to_string())?;
 
             let adapter = MinecraftAdapter::new();
-            let all_mods = db::get_profile_mods(&conn, &profile_id).unwrap_or_default();
-            let _ = adapter.deploy_profile(&profile_id, &all_mods);
+            let _ = adapter.deploy_profile(&profile_id);
         }
-        ProviderKind::Local => {
+        ProviderKind::LocalArchive => {
             // Local archive path passed in file_id
             let local_path = PathBuf::from(&file_id);
             if !local_path.exists() {
@@ -802,14 +805,14 @@ async fn install_mod_or_pack(
                     name: mod_name.unwrap_or_else(|| filename.clone()),
                     file_path: filename.clone(),
                     filename: filename.clone(),
+                    staged_path: None,
                     load_priority: 0,
                     is_enabled: true,
                 };
                 db::insert_profile_mod(&conn, &pmod).map_err(|e| e.to_string())?;
 
                 let adapter = MinecraftAdapter::new();
-                let all_mods = db::get_profile_mods(&conn, &profile_id).unwrap_or_default();
-                let _ = adapter.deploy_profile(&profile_id, &all_mods);
+                let _ = adapter.deploy_profile(&profile_id);
             }
         }
         _ => return Err(format!("Unsupported provider: {}", provider)),
@@ -825,8 +828,7 @@ fn toggle_mod_state(profile_id: String, mod_id: String, enabled: bool) -> Result
 
     // Update deployed symlinks
     let adapter = MinecraftAdapter::new();
-    let all_mods = db::get_profile_mods(&conn, &profile_id).unwrap_or_default();
-    let _ = adapter.deploy_profile(&profile_id, &all_mods);
+    let _ = adapter.deploy_profile(&profile_id);
 
     Ok(())
 }
@@ -871,8 +873,7 @@ fn delete_mod(profile_id: String, mod_id: String) -> Result<(), String> {
     db::delete_profile_mod(&conn, &profile_id, &mod_id).map_err(|e| e.to_string())?;
 
     let adapter = MinecraftAdapter::new();
-    let all_mods = db::get_profile_mods(&conn, &profile_id).unwrap_or_default();
-    let _ = adapter.deploy_profile(&profile_id, &all_mods);
+    let _ = adapter.deploy_profile(&profile_id);
     Ok(())
 }
 
@@ -880,6 +881,118 @@ fn delete_mod(profile_id: String, mod_id: String) -> Result<(), String> {
 fn reorder_mod(profile_id: String, mod_id: String, priority: i32) -> Result<(), String> {
     let conn = db::open_db().map_err(|e| e.to_string())?;
     db::update_mod_priority(&conn, &profile_id, &mod_id, priority).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn get_game_manifest(
+    registry: tauri::State<SharedGameRegistry>,
+    game_id: String,
+) -> Result<GameModdingManifest, String> {
+    get_game_modding_manifest(registry, game_id)
+}
+
+pub async fn handle_nxm_uri_internal(app: &tauri::AppHandle, uri: &str) -> Result<(), String> {
+    use tauri::Emitter;
+    let info = parse_nxm_uri(uri)?;
+    println!("[NXM] Handling URI: {} for game {}", info.raw_uri, info.game_domain);
+    let client = reqwest::Client::new();
+    let links = resolve_nexus_download_links(&client, &info, None).await?;
+    let primary_link = links.first().ok_or_else(|| "No mirror links returned by Nexus".to_string())?;
+    let downloaded_path = download_nexus_file(&client, &primary_link.uri, None).await?;
+    println!("[NXM] Downloaded mod file to: {}", downloaded_path.display());
+
+    let _ = app.emit("nxm-download-completed", serde_json::json!({
+        "game_domain": info.game_domain,
+        "mod_id": info.mod_id,
+        "file_id": info.file_id,
+        "file_path": downloaded_path.to_string_lossy(),
+    }));
+
+    Ok(())
+}
+
+#[tauri::command]
+async fn handle_nxm_uri(uri: String, app_handle: tauri::AppHandle) -> Result<(), String> {
+    handle_nxm_uri_internal(&app_handle, &uri).await
+}
+
+#[tauri::command]
+fn scan_and_resolve_conflicts(
+    profile_id: String,
+    state: tauri::State<SharedGameRegistry>,
+) -> Result<Vec<FileConflict>, String> {
+    let conn = db::open_db().map_err(|e| e.to_string())?;
+    let profiles = db::get_profiles(&conn, None).map_err(|e| e.to_string())?;
+    let profile = profiles
+        .into_iter()
+        .find(|p| p.id == profile_id)
+        .ok_or_else(|| format!("Profile '{}' not found", profile_id))?;
+
+    let staging_dir = if let Ok(reg) = state.read() {
+        if let Some(adapter) = reg.get(&profile.game_id) {
+            adapter.get_staging_directory(&profile_id)
+        } else {
+            BethesdaAdapter::new_skyrim_se().get_staging_directory(&profile_id)
+        }
+    } else {
+        BethesdaAdapter::new_skyrim_se().get_staging_directory(&profile_id)
+    };
+
+    scan_conflicts_impl(&profile_id, &staging_dir)
+}
+
+#[tauri::command]
+fn set_conflict_winner(
+    profile_id: String,
+    relative_path: String,
+    winning_mod_id: String,
+) -> Result<(), String> {
+    let conn = db::open_db().map_err(|e| e.to_string())?;
+    db::set_file_conflict_rule(
+        &conn,
+        &db::FileConflictRuleRecord {
+            profile_id,
+            relative_path,
+            winning_mod_id,
+        },
+    )
+    .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn update_plugins_order(
+    profile_id: String,
+    ordered_plugin_names: Vec<String>,
+) -> Result<(), String> {
+    let conn = db::open_db().map_err(|e| e.to_string())?;
+    db::update_plugin_load_order(&conn, &profile_id, &ordered_plugin_names).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn deploy_active_profile(
+    profile_id: String,
+    state: tauri::State<SharedGameRegistry>,
+) -> Result<(), String> {
+    let conn = db::open_db().map_err(|e| e.to_string())?;
+    let profiles = db::get_profiles(&conn, None).map_err(|e| e.to_string())?;
+    let profile = profiles
+        .into_iter()
+        .find(|p| p.id == profile_id)
+        .ok_or_else(|| format!("Profile '{}' not found", profile_id))?;
+
+    if let Ok(reg) = state.read() {
+        if let Some(adapter) = reg.get(&profile.game_id) {
+            return adapter.deploy_profile(&profile_id);
+        }
+    }
+
+    match profile.game_id.as_str() {
+        "skyrim_se" => BethesdaAdapter::new_skyrim_se().deploy_profile(&profile_id),
+        "fallout4" => BethesdaAdapter::new_fallout_4().deploy_profile(&profile_id),
+        "oblivion" => BethesdaAdapter::new_oblivion().deploy_profile(&profile_id),
+        "wow" => WowAdapter::new("_retail_").deploy_profile(&profile_id),
+        _ => MinecraftAdapter::new().deploy_profile(&profile_id),
+    }
 }
 
 #[tauri::command]
@@ -1249,16 +1362,32 @@ pub fn run() {
     {
         if let Ok(mut reg) = shared_registry.write() {
             reg.register(Arc::new(MinecraftAdapter::new()));
+            reg.register(Arc::new(BethesdaAdapter::new_skyrim_se()));
+            reg.register(Arc::new(BethesdaAdapter::new_fallout_4()));
+            reg.register(Arc::new(BethesdaAdapter::new_oblivion()));
+            reg.register(Arc::new(WowAdapter::new("_retail_")));
+            reg.register(Arc::new(WowAdapter::new("_classic_")));
         }
     }
 
     // 3. Build Tauri v2 App
     tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
             if let Some(win) = app.get_webview_window("main") {
                 let _ = win.show();
                 let _ = win.unminimize();
                 let _ = win.set_focus();
+            }
+            for arg in args {
+                if arg.starts_with("nxm://") {
+                    let handle = app.clone();
+                    let uri = arg.clone();
+                    tauri::async_runtime::spawn(async move {
+                        if let Err(e) = handle_nxm_uri_internal(&handle, &uri).await {
+                            eprintln!("[NXM] Failed to handle nxm uri: {}", e);
+                        }
+                    });
+                }
             }
         }))
         .manage(shared_registry)
@@ -1318,6 +1447,7 @@ pub fn run() {
             }
 
             process_guard::spawn_outdated_watchdog(app.handle().clone());
+            let _ = modding::nexus::register_linux_desktop_mime();
 
             Ok(())
         })
@@ -1363,6 +1493,12 @@ pub fn run() {
             show_window,
             exit_app,
             get_game_modding_manifest,
+            get_game_manifest,
+            handle_nxm_uri,
+            scan_and_resolve_conflicts,
+            set_conflict_winner,
+            update_plugins_order,
+            deploy_active_profile,
             search_unified_mods,
             install_mod_or_pack,
             toggle_mod_state,
