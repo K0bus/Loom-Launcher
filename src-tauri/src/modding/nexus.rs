@@ -190,19 +190,78 @@ pub fn register_linux_desktop_mime() -> Result<(), String> {
         let apps_dir = home.join(".local/share/applications");
         let _ = fs::create_dir_all(&apps_dir);
 
+        let local_bin_dir = home.join(".local/bin");
+        let _ = fs::create_dir_all(&local_bin_dir);
+        let bin_link = local_bin_dir.join("loom-launcher");
+
+        let current_exe = std::env::current_exe()
+            .unwrap_or_else(|_| PathBuf::from("loom-launcher"));
+
+        // If in development target directory, ensure ~/.local/bin/loom-launcher points to it
+        if current_exe.exists() {
+            #[cfg(unix)]
+            {
+                let _ = fs::remove_file(&bin_link);
+                let _ = std::os::unix::fs::symlink(&current_exe, &bin_link);
+            }
+        }
+
+        let exec_target = if bin_link.exists() {
+            bin_link.to_string_lossy().to_string()
+        } else {
+            current_exe.to_string_lossy().to_string()
+        };
+
         let desktop_file = apps_dir.join("loom-launcher.desktop");
-        let desktop_content = r#"[Desktop Entry]
+        let desktop_content = format!(
+            r#"[Desktop Entry]
 Name=Loom Launcher
-Exec=loom-launcher %u
+Exec="{}" %u
 Type=Application
 MimeType=x-scheme-handler/nxm;
 Terminal=false
 Categories=Game;
-"#;
+"#,
+            exec_target
+        );
         fs::write(&desktop_file, desktop_content)
             .map_err(|e| format!("Failed to write desktop file: {}", e))?;
 
-        // Register default with xdg-mime
+        // Update ~/.config/mimeapps.list explicitly
+        let mimeapps = home.join(".config/mimeapps.list");
+        if mimeapps.exists() {
+            if let Ok(content) = fs::read_to_string(&mimeapps) {
+                let mut lines: Vec<String> = Vec::new();
+                for line in content.lines() {
+                    if line.starts_with("x-scheme-handler/nxm=") {
+                        continue;
+                    }
+                    lines.push(line.to_string());
+                    if line.trim() == "[Default Applications]" || line.trim() == "[Added Associations]" {
+                        lines.push("x-scheme-handler/nxm=loom-launcher.desktop;".to_string());
+                    }
+                }
+                let _ = fs::write(&mimeapps, lines.join("\n"));
+            }
+        }
+
+        // Also write ~/.local/share/applications/defaults.list for KDE Plasma fallback
+        let defaults_list = apps_dir.join("defaults.list");
+        let _ = fs::write(&defaults_list, "[Default Applications]\nx-scheme-handler/nxm=loom-launcher.desktop;\n");
+
+        // Rebuild desktop database and KDE sycoca cache if available
+        let _ = std::process::Command::new("update-desktop-database")
+            .arg(&apps_dir)
+            .output();
+        let _ = std::process::Command::new("kbuildsycoca6")
+            .arg("--noincremental")
+            .output();
+
+        // Register default with both gio and xdg-mime
+        let _ = std::process::Command::new("gio")
+            .args(["mime", "x-scheme-handler/nxm", "loom-launcher.desktop"])
+            .output();
+
         let _ = std::process::Command::new("xdg-mime")
             .args(["default", "loom-launcher.desktop", "x-scheme-handler/nxm"])
             .output();
