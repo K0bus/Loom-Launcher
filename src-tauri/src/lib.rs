@@ -916,6 +916,7 @@ fn get_profile_mods(profile_id: String) -> Result<Vec<ProfileModRecord>, String>
 
         if inst_dir.is_dir() {
             if let Ok(entries) = fs::read_dir(&inst_dir) {
+                let _ = conn.execute_batch("BEGIN TRANSACTION;");
                 for (idx, entry) in entries.flatten().enumerate() {
                     let path = entry.path();
                     let fname = path.file_name().unwrap_or_default().to_string_lossy().to_string();
@@ -939,6 +940,7 @@ fn get_profile_mods(profile_id: String) -> Result<Vec<ProfileModRecord>, String>
                         mods.push(pmod);
                     }
                 }
+                let _ = conn.execute_batch("COMMIT;");
             }
         }
     }

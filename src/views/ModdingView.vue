@@ -37,7 +37,9 @@ const wowTotalAddons = computed(() => {
 })
 
 onMounted(() => {
-  wowStore.loadInstances()
+  if (wowStore.instances.length === 0) {
+    wowStore.loadInstances()
+  }
 })
 </script>
 

@@ -284,11 +284,13 @@ export const useMinecraftStore = defineStore('minecraft', () => {
       }
     })
 
-    // 2. Load real data from persistence
-    await loadIgdbMetadata()
-    await fetchInstances()
-    await fetchGlobalStats()
-    await loadAccount()
+    // 2. Load real data from persistence in parallel
+    await Promise.all([
+      loadIgdbMetadata().catch(() => {}),
+      fetchInstances().catch(() => {}),
+      fetchGlobalStats().catch(() => {}),
+      loadAccount().catch(() => {})
+    ])
   }
 
   async function fetchGlobalStats() {
@@ -325,46 +327,51 @@ export const useMinecraftStore = defineStore('minecraft', () => {
   async function fetchInstances() {
     try {
       const records: MinecraftInstanceRecord[] = await ipc.getMinecraftInstancesCmd()
-      const loadedList: MinecraftInstance[] = []
 
-      for (const rec of records) {
-        const [rawMods, rawResourcePacks, rawShaderPacks] = await Promise.all([
-          ipc.getProfileMods(rec.id).catch(() => []),
-          ipc.getInstanceResourcePacksCmd(rec.id).catch(() => []),
-          ipc.getInstanceShaderPacksCmd(rec.id).catch(() => [])
-        ])
+      const loadedList: MinecraftInstance[] = await Promise.all(
+        records.map(async (rec) => {
+          const existing = instances.value.find((i) => i.id === rec.id)
+          let mappedMods: MinecraftMod[] = existing?.mods || []
+          let mappedResourcePacks: MinecraftMod[] = existing?.resourcePacks || []
+          let mappedShaderPacks: MinecraftMod[] = existing?.shaderPacks || []
 
-        const mappedMods: MinecraftMod[] = rawMods.map((m) => mapProfileModRecord(m, 'Mod'))
-        const mappedResourcePacks: MinecraftMod[] = rawResourcePacks.map((m) => mapProfileModRecord(m, 'Pack de ressources'))
-        const mappedShaderPacks: MinecraftMod[] = rawShaderPacks.map((m) => mapProfileModRecord(m, 'Shaderpack'))
+          if (!existing || mappedMods.length === 0) {
+            const [rawMods, rawResourcePacks, rawShaderPacks] = await Promise.all([
+              ipc.getProfileMods(rec.id).catch(() => []),
+              ipc.getInstanceResourcePacksCmd(rec.id).catch(() => []),
+              ipc.getInstanceShaderPacksCmd(rec.id).catch(() => [])
+            ])
 
-        // Keep existing logs if instance was already loaded
-        const existing = instances.value.find((i) => i.id === rec.id)
+            mappedMods = rawMods.map((m) => mapProfileModRecord(m, 'Mod'))
+            mappedResourcePacks = rawResourcePacks.map((m) => mapProfileModRecord(m, 'Pack de ressources'))
+            mappedShaderPacks = rawShaderPacks.map((m) => mapProfileModRecord(m, 'Shaderpack'))
+          }
 
-        loadedList.push({
-          id: rec.id,
-          name: rec.name,
-          icon: (rec as any).icon || '⛏️',
-          bannerUrl: (rec as any).banner_url || null,
-          coverUrl: (rec as any).cover_url || null,
-          lastPlayed: (rec as any).last_played ? new Date((rec as any).last_played * 1000).toISOString() : existing?.lastPlayed,
-          gameVersion: rec.mc_version,
-          loader: (rec.modloader as MinecraftLoader) || 'fabric',
-          loaderVersion: rec.loader_version || `${rec.modloader} latest`,
-          playtimeSeconds: (rec as any).playtime_seconds || 0,
-          playtimeMinutes: Math.floor(((rec as any).playtime_seconds || 0) / 60),
-          allocatedRamGb: Math.round(rec.max_ram_mb / 1024),
-          javaPath: rec.java_path,
-          jvmArgs: rec.jvm_args,
-          status: existing ? existing.status : 'idle',
-          mods: mappedMods,
-          worlds: [],
-          servers: [],
-          resourcePacks: mappedResourcePacks,
-          shaderPacks: mappedShaderPacks,
-          logs: existing ? existing.logs : []
+          return {
+            id: rec.id,
+            name: rec.name,
+            icon: (rec as any).icon || '⛏️',
+            bannerUrl: (rec as any).banner_url || null,
+            coverUrl: (rec as any).cover_url || null,
+            lastPlayed: (rec as any).last_played ? new Date((rec as any).last_played * 1000).toISOString() : existing?.lastPlayed,
+            gameVersion: rec.mc_version,
+            loader: (rec.modloader as MinecraftLoader) || 'fabric',
+            loaderVersion: rec.loader_version || `${rec.modloader} latest`,
+            playtimeSeconds: (rec as any).playtime_seconds || 0,
+            playtimeMinutes: Math.floor(((rec as any).playtime_seconds || 0) / 60),
+            allocatedRamGb: Math.round(rec.max_ram_mb / 1024),
+            javaPath: rec.java_path,
+            jvmArgs: rec.jvm_args,
+            status: existing ? existing.status : 'idle',
+            mods: mappedMods,
+            worlds: [],
+            servers: [],
+            resourcePacks: mappedResourcePacks,
+            shaderPacks: mappedShaderPacks,
+            logs: existing ? existing.logs : []
+          }
         })
-      }
+      )
 
       instances.value = loadedList
       if (loadedList.length > 0 && (!selectedInstanceId.value || !instances.value.find(i => i.id === selectedInstanceId.value))) {

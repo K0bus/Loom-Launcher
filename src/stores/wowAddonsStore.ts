@@ -99,7 +99,8 @@ export const useWowAddonsStore = defineStore('wowAddons', () => {
   }
 
   // Load instances from local detection
-  async function loadInstances() {
+  async function loadInstances(force = false) {
+    if (instances.value.length > 0 && !force) return
     isLoadingInstances.value = true
     try {
       const data = await ipc.scanWowInstances()

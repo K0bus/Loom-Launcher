@@ -3225,11 +3225,8 @@ function wowAddonsPlugin(): Plugin {
       let addonsCount = 0
       if (fs.existsSync(addonsPath)) {
         try {
-          const list = await getInstalledWowAddons(addonsPath, false, fl.versionType)
-          addonsCount = list.length
-        } catch {
           addonsCount = fs.readdirSync(addonsPath, { withFileTypes: true }).filter((d) => d.isDirectory()).length
-        }
+        } catch {}
       }
 
       let lp: number | null = null
