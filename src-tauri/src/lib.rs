@@ -1393,6 +1393,10 @@ pub fn run() {
                 let _ = win.show();
                 let _ = win.unminimize();
                 let _ = win.set_focus();
+                #[cfg(debug_assertions)]
+                {
+                    let _ = win.eval("window.location.reload()");
+                }
             }
             for arg in args {
                 if arg.starts_with("nxm://") {
