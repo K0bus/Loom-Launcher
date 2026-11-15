@@ -1331,6 +1331,50 @@ pub struct GpuBackendInfo {
     pub webkit_compositing_disabled: bool,
     pub libgl_always_software: bool,
     pub active_mode: String,
+    pub hardware_gpu_name: Option<String>,
+}
+
+fn detect_hardware_gpu_name() -> Option<String> {
+    // 1. Détection prioritaire NVIDIA via nvidia-smi
+    if let Ok(output) = Command::new("nvidia-smi")
+        .args(["--query-gpu=name", "--format=csv,noheader"])
+        .output()
+    {
+        if output.status.success() {
+            if let Ok(name) = String::from_utf8(output.stdout) {
+                let trimmed = name.trim();
+                if !trimmed.is_empty() {
+                    return Some(trimmed.to_string());
+                }
+            }
+        }
+    }
+
+    // 2. Détection générique Linux (AMD / Intel / NVIDIA) via lspci
+    if let Ok(output) = Command::new("lspci").output() {
+        if output.status.success() {
+            if let Ok(txt) = String::from_utf8(output.stdout) {
+                for line in txt.lines() {
+                    if line.contains("VGA compatible controller")
+                        || line.contains("3D controller")
+                        || line.contains("Display controller")
+                    {
+                        if let Some(pos) = line.find(": ") {
+                            let part = &line[pos + 2..];
+                            let clean = if let Some(rev_pos) = part.find(" (rev ") {
+                                &part[..rev_pos]
+                            } else {
+                                part
+                            };
+                            return Some(clean.trim().to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    None
 }
 
 #[tauri::command]
@@ -1361,6 +1405,8 @@ fn get_gpu_backend_info() -> Result<GpuBackendInfo, String> {
         "hardware_accelerated".to_string()
     };
 
+    let hardware_gpu_name = detect_hardware_gpu_name();
+
     Ok(GpuBackendInfo {
         hardware_acceleration_enabled: hw_enabled,
         display_server,
@@ -1368,6 +1414,7 @@ fn get_gpu_backend_info() -> Result<GpuBackendInfo, String> {
         webkit_compositing_disabled,
         libgl_always_software,
         active_mode,
+        hardware_gpu_name,
     })
 }
 

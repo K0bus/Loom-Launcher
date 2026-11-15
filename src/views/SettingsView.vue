@@ -305,7 +305,7 @@ async function handleTestNotification() {
               />
               {{
                 settingsStore.gpuDiagnostic?.isEffectiveGpuAccelerated
-                  ? `GPU Actif : ${settingsStore.gpuDiagnostic.webgl.renderer.split('/')[0]}`
+                  ? `GPU Actif : ${settingsStore.gpuDiagnostic.effectiveGpuName.split('/')[0]}`
                   : 'Rendu Logiciel Sécurisé (llvmpipe)'
               }}
             </span>
@@ -374,9 +374,12 @@ async function handleTestNotification() {
             <!-- Grille d'état rapide -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs font-mono">
               <div class="p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800/60">
-                <div class="text-[10px] text-zinc-400 uppercase tracking-wider">Renderer Détecté</div>
-                <div class="font-bold text-zinc-200 truncate mt-0.5" :title="settingsStore.gpuDiagnostic?.webgl?.renderer">
-                  {{ settingsStore.gpuDiagnostic?.webgl?.renderer || 'Détection...' }}
+                <div class="text-[10px] text-zinc-400 uppercase tracking-wider">GPU / Renderer</div>
+                <div
+                  class="font-bold text-zinc-200 truncate mt-0.5"
+                  :title="settingsStore.gpuDiagnostic?.effectiveGpuName || settingsStore.gpuDiagnostic?.webgl?.renderer"
+                >
+                  {{ settingsStore.gpuDiagnostic?.effectiveGpuName || settingsStore.gpuDiagnostic?.webgl?.renderer || 'Détection...' }}
                 </div>
               </div>
 
@@ -406,6 +409,14 @@ async function handleTestNotification() {
               v-if="showGpuDetails"
               class="p-3 rounded-lg bg-zinc-900/40 border border-zinc-800/80 text-[11px] font-mono space-y-1.5 text-zinc-300 animate-in fade-in duration-150"
             >
+              <div class="flex justify-between" v-if="settingsStore.gpuDiagnostic?.backend?.hardwareGpuName">
+                <span class="text-zinc-400">GPU Matériel (Sonde Linux) :</span>
+                <span class="text-emerald-400 font-bold">{{ settingsStore.gpuDiagnostic.backend.hardwareGpuName }}</span>
+              </div>
+              <div class="flex justify-between" v-if="settingsStore.gpuDiagnostic?.isAppleGpuMasked">
+                <span class="text-zinc-400">Masque WebKit Anti-Track :</span>
+                <span class="text-amber-300 font-bold">Actif ('Apple GPU' masqué en sandbox WebGL)</span>
+              </div>
               <div class="flex justify-between">
                 <span class="text-zinc-400">Vendor WebGL :</span>
                 <span class="text-zinc-200">{{ settingsStore.gpuDiagnostic?.webgl?.vendor || 'N/A' }}</span>

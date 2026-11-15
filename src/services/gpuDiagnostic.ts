@@ -24,6 +24,8 @@ export interface FullGpuDiagnostic {
   backend: GpuBackendInfo
   benchmark?: FpsBenchmarkResult
   isEffectiveGpuAccelerated: boolean
+  effectiveGpuName: string
+  isAppleGpuMasked: boolean
   diagnosticMessage: string
   statusVariant: 'success' | 'warning' | 'info'
 }
@@ -183,27 +185,44 @@ export async function getCompleteGpuDiagnostic(withBenchmark = false): Promise<F
     benchmark = await runFpsBenchmark(800)
   }
 
+  const isAppleGpuMasked =
+    /apple\s+gpu/i.test(webgl.renderer) || /apple\s+inc/i.test(webgl.vendor)
+
   const isEffectiveGpuAccelerated =
     backend.hardwareAccelerationEnabled &&
     !backend.libglAlwaysSoftware &&
     webgl.supported &&
     !webgl.isSoftwareRenderer
 
+  // Résolution du nom réel du GPU en contournant le masque anti-fingerprinting de WebKit
+  let effectiveGpuName = webgl.renderer
+  if (!backend.hardwareAccelerationEnabled || backend.libglAlwaysSoftware || webgl.isSoftwareRenderer) {
+    effectiveGpuName = 'llvmpipe (Mesa CPU Rasterizer - Safe Mode)'
+  } else if (backend.hardwareGpuName) {
+    effectiveGpuName = backend.hardwareGpuName
+  } else if (isAppleGpuMasked) {
+    effectiveGpuName = 'GPU Matériel Détecté (Compositeur WebKit)'
+  }
+
   let diagnosticMessage = ''
   let statusVariant: 'success' | 'warning' | 'info' = 'info'
 
   if (isEffectiveGpuAccelerated) {
     statusVariant = 'success'
-    diagnosticMessage = `Accélération matérielle active via ${webgl.renderer}. Compositeur matériel EGL / DMA-BUF opérationnel.`
+    if (backend.hardwareGpuName && isAppleGpuMasked) {
+      diagnosticMessage = `Accélération matérielle active via ${backend.hardwareGpuName}. Le masque anti-fingerprinting standard de WebKit ('Apple GPU') a été démasqué par la sonde native Linux.`
+    } else {
+      diagnosticMessage = `Accélération matérielle active via ${effectiveGpuName}. Compositeur matériel EGL / DMA-BUF opérationnel.`
+    }
   } else if (!backend.hardwareAccelerationEnabled || backend.libglAlwaysSoftware) {
     statusVariant = 'warning'
-    diagnosticMessage = `Mode sécurisé logiciel actif (${webgl.renderer}). Rendu CPU (llvmpipe) pour une compatibilité maximale.`
+    diagnosticMessage = `Mode sécurisé logiciel actif (${effectiveGpuName}). Rendu CPU (llvmpipe) pour une compatibilité maximale.`
   } else if (webgl.isSoftwareRenderer) {
     statusVariant = 'warning'
-    diagnosticMessage = `Attention : L'accélération matérielle est demandée mais le pilote graphique a basculé sur le rasterizer CPU (${webgl.renderer}).`
+    diagnosticMessage = `Attention : L'accélération matérielle est demandée mais le pilote graphique a basculé sur le rasterizer CPU (${effectiveGpuName}).`
   } else {
     statusVariant = 'info'
-    diagnosticMessage = `Statut graphique standard : ${webgl.renderer}`
+    diagnosticMessage = `Statut graphique standard : ${effectiveGpuName}`
   }
 
   return {
@@ -212,6 +231,8 @@ export async function getCompleteGpuDiagnostic(withBenchmark = false): Promise<F
     backend,
     benchmark,
     isEffectiveGpuAccelerated,
+    effectiveGpuName,
+    isAppleGpuMasked,
     diagnosticMessage,
     statusVariant
   }

@@ -37,6 +37,7 @@ export interface GpuBackendInfo {
   webkitCompositingDisabled: boolean
   libglAlwaysSoftware: boolean
   activeMode: 'hardware_accelerated' | 'software_safe' | string
+  hardwareGpuName?: string
 }
 
 type EventCallback<T = any> = (event: { payload: T; event: string }) => void
@@ -1105,7 +1106,8 @@ class IpcBridge {
           webkitDmabufDisabled: !hw,
           webkitCompositingDisabled: !hw,
           libglAlwaysSoftware: !hw,
-          activeMode: hw ? 'hardware_accelerated' : 'software_safe'
+          activeMode: hw ? 'hardware_accelerated' : 'software_safe',
+          hardwareGpuName: 'NVIDIA GeForce RTX 3080'
         } as T
       }
 
