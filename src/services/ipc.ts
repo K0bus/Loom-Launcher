@@ -19,6 +19,10 @@ import type {
   BlizzardGameEntitlement
 } from '@/models/battlenet'
 import type {
+  SystemMetricsSnapshot,
+  SystemSummary
+} from '@/models/monitoring'
+import type {
   WowInstance,
   InstalledWowAddon,
   WowCharacter
@@ -158,6 +162,18 @@ class IpcBridge {
   }
 
   // Typed convenience wrappers
+
+  public async getSystemMetrics(): Promise<SystemMetricsSnapshot> {
+    return this.invoke<SystemMetricsSnapshot>('get_system_metrics')
+  }
+
+  public async getSystemStaticInfo(): Promise<SystemSummary> {
+    return this.invoke<SystemSummary>('get_system_static_info')
+  }
+
+  public async killProcess(pid: number, force: boolean = false): Promise<void> {
+    return this.invoke<void>('kill_process', { pid, force })
+  }
 
   public async getGameModdingManifest(gameId: string): Promise<GameModdingManifest> {
     return this.invoke<GameModdingManifest>('get_game_modding_manifest', { gameId })
@@ -1078,6 +1094,176 @@ class IpcBridge {
           networkDownKb: 124.5,
           networkUpKb: 18.2
         } as T
+      }
+
+      case 'get_system_static_info': {
+        return {
+          osName: 'Linux',
+          osVersion: 'rolling',
+          kernelVersion: '6.12.1-arch1-1',
+          hostname: 'loom-rig',
+          displayServer: 'Wayland',
+          cpuModel: 'AMD Ryzen 7 7800X3D 8-Core Processor',
+          physicalCores: 8,
+          logicalCores: 16,
+          totalMemoryBytes: 32 * 1024 * 1024 * 1024,
+          gpuName: 'NVIDIA GeForce RTX 4070 (12GB)',
+          networkInterfaces: ['wlan0', 'eth0']
+        } as T
+      }
+
+      case 'get_system_metrics': {
+        const now = Date.now()
+        const cpuUsage = Math.round((15 + Math.random() * 25) * 10) / 10
+        const cores = Array.from({ length: 16 }, (_, i) => ({
+          id: i,
+          name: `cpu${i}`,
+          usage: Math.round(Math.min(100, Math.max(2, cpuUsage + (Math.random() * 20 - 10)))),
+          frequencyMhz: Math.round(4200 + Math.random() * 800),
+          temperatureC: Math.round(45 + Math.random() * 15)
+        }))
+
+        return {
+          timestampMs: now,
+          cpu: {
+            model: 'AMD Ryzen 7 7800X3D 8-Core Processor',
+            physicalCores: 8,
+            logicalCores: 16,
+            globalUsage: cpuUsage,
+            packageTemperatureC: 58.4,
+            cores,
+            powerGovernor: 'performance'
+          },
+          gpu: {
+            name: 'NVIDIA GeForce RTX 4070',
+            vendor: 'NVIDIA',
+            driverVersion: '560.35.03',
+            usagePercent: Math.round(30 + Math.random() * 30),
+            memoryUsedMb: 4200,
+            memoryTotalMb: 12282,
+            coreTempC: 52.0,
+            hotspotTempC: 61.0,
+            vramTempC: 56.0,
+            fanSpeedPercent: 40,
+            fanSpeedRpm: 1350,
+            powerWatts: 115.4
+          },
+          memory: {
+            totalBytes: 32 * 1024 * 1024 * 1024,
+            usedBytes: 12 * 1024 * 1024 * 1024,
+            freeBytes: 10 * 1024 * 1024 * 1024,
+            availableBytes: 20 * 1024 * 1024 * 1024,
+            buffersBytes: 1024 * 1024 * 1024,
+            cachedBytes: 7 * 1024 * 1024 * 1024,
+            usagePercent: 37.5,
+            swapTotalBytes: 8 * 1024 * 1024 * 1024,
+            swapUsedBytes: 512 * 1024 * 1024,
+            swapFreeBytes: 7.5 * 1024 * 1024 * 1024,
+            swapUsagePercent: 6.25
+          },
+          disks: {
+            readBytesPerSec: 15 * 1024 * 1024,
+            writeBytesPerSec: 4 * 1024 * 1024,
+            partitions: [
+              {
+                name: '/dev/nvme0n1p2',
+                mountPoint: '/',
+                fileSystem: 'btrfs',
+                totalBytes: 1000 * 1024 * 1024 * 1024,
+                availableBytes: 450 * 1024 * 1024 * 1024,
+                usedBytes: 550 * 1024 * 1024 * 1024,
+                usagePercent: 55.0,
+                isRemovable: false,
+                temperatureC: 41.0
+              },
+              {
+                name: '/dev/nvme1n1p1',
+                mountPoint: '/mnt/games',
+                fileSystem: 'ext4',
+                totalBytes: 2000 * 1024 * 1024 * 1024,
+                availableBytes: 850 * 1024 * 1024 * 1024,
+                usedBytes: 1150 * 1024 * 1024 * 1024,
+                usagePercent: 57.5,
+                isRemovable: false,
+                temperatureC: 44.0
+              }
+            ]
+          },
+          network: {
+            rxBytesPerSec: 2.4 * 1024 * 1024,
+            txBytesPerSec: 450 * 1024,
+            defaultGateway: '192.168.1.1',
+            localIp: '192.168.1.42',
+            wifiSsid: 'Loom-Gaming-5G',
+            wifiSignalPercent: 88,
+            wifiSignalDbm: -56,
+            interfaces: [
+              {
+                name: 'wlan0',
+                isUp: true,
+                ipAddress: '192.168.1.42',
+                macAddress: 'e4:5f:01:aa:bb:cc',
+                isWireless: true,
+                rxBytesPerSec: 2.4 * 1024 * 1024,
+                txBytesPerSec: 450 * 1024,
+                totalRxBytes: 10 * 1024 * 1024 * 1024,
+                totalTxBytes: 1.2 * 1024 * 1024 * 1024
+              }
+            ]
+          },
+          battery: null,
+          os: {
+            osName: 'Linux',
+            osVersion: 'rolling',
+            kernelVersion: '6.12.1-arch1-1',
+            hostname: 'loom-rig',
+            uptimeSeconds: 125430,
+            uptimeFormatted: '1j 10h 50m 30s',
+            displayServer: 'Wayland',
+            loadAverage1m: 1.45,
+            loadAverage5m: 1.12,
+            loadAverage15m: 0.98
+          },
+          topProcesses: [
+            {
+              pid: 2450,
+              name: 'loom-launcher',
+              command: '/usr/bin/loom-launcher',
+              user: 'k0bus',
+              cpuUsage: 2.1,
+              memoryBytes: 340 * 1024 * 1024,
+              diskReadBytesPerSec: 1024 * 100,
+              diskWriteBytesPerSec: 0,
+              status: 'Run'
+            },
+            {
+              pid: 3120,
+              name: 'steam',
+              command: '/usr/lib/steam/steam',
+              user: 'k0bus',
+              cpuUsage: 4.8,
+              memoryBytes: 850 * 1024 * 1024,
+              diskReadBytesPerSec: 1024 * 500,
+              diskWriteBytesPerSec: 1024 * 200,
+              status: 'Sleep'
+            },
+            {
+              pid: 4512,
+              name: 'firefox',
+              command: '/usr/lib/firefox/firefox',
+              user: 'k0bus',
+              cpuUsage: 8.5,
+              memoryBytes: 1600 * 1024 * 1024,
+              diskReadBytesPerSec: 1024 * 20,
+              diskWriteBytesPerSec: 1024 * 80,
+              status: 'Run'
+            }
+          ]
+        } as T
+      }
+
+      case 'kill_process': {
+        return undefined as T
       }
 
       case 'open_external_url': {

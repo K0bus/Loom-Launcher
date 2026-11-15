@@ -1751,6 +1751,8 @@ pub fn run() {
         }
     }
 
+    let shared_collector = Arc::new(std::sync::Mutex::new(monitoring::SystemMetricsCollector::new()));
+
     // 3. Build Tauri v2 App
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
@@ -1772,6 +1774,7 @@ pub fn run() {
             }
         }))
         .manage(shared_registry)
+        .manage(shared_collector)
         .manage(BattleNetLauncherState::new())
         .setup(|app| {
             if let Ok(show_item) = MenuItem::with_id(app, "show", "Ouvrir Loom Launcher", true, None::<&str>) {
@@ -1861,6 +1864,9 @@ pub fn run() {
             scan_local_steam_library,
             process_guard::restart_application,
             get_system_stats,
+            monitoring::get_system_static_info,
+            monitoring::get_system_metrics,
+            monitoring::kill_process,
             save_backend_settings,
             get_backend_settings,
             is_start_minimized,
