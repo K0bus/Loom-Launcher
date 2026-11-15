@@ -17,9 +17,14 @@ import {
   KeyRound,
   DownloadCloud,
   ExternalLink,
-  Edit3
+  Edit3,
+  Play,
+  Terminal,
+  Copy,
+  Check
 } from 'lucide-vue-next'
 import { useBethesdaStore, BETHESDA_GAMES } from '@/stores/bethesdaStore'
+import { useGamesStore } from '@/stores/gamesStore'
 import { ipc } from '@/services/ipc'
 import { safeBrowserOpen } from '@/utils/externalLinks'
 import UiBadge from '@/components/ui/UiBadge.vue'
@@ -29,6 +34,7 @@ import UiModal from '@/components/ui/UiModal.vue'
 const route = useRoute()
 const router = useRouter()
 const store = useBethesdaStore()
+const gamesStore = useGamesStore()
 
 const gameId = computed(() => (route.params.gameId as string) || 'skyrim_se')
 
@@ -36,6 +42,42 @@ const gameId = computed(() => (route.params.gameId as string) || 'skyrim_se')
 const isCreateProfileModalOpen = ref(false)
 const newProfileName = ref('')
 const newProfilePath = ref('')
+
+// SKSE Launch Helper
+const isSkseHelpModalOpen = ref(false)
+const hasCopiedSkseCmd = ref(false)
+
+const steamLaunchCommand = computed(() => {
+  if (store.currentGameId === 'skyrim_se') {
+    return 'echo "%command%" | sed "s/SkyrimSE.exe/skse64_loader.exe/" | sh'
+  }
+  if (store.currentGameId === 'fallout4') {
+    return 'echo "%command%" | sed "s/Fallout4.exe/f4se_loader.exe/" | sh'
+  }
+  if (store.currentGameId === 'oblivion') {
+    return 'echo "%command%" | sed "s/Oblivion.exe/obse_loader.exe/" | sh'
+  }
+  return 'echo "%command%" | sed "s/SkyrimSE.exe/skse64_loader.exe/" | sh'
+})
+
+async function copySkseLaunchCmd() {
+  await navigator.clipboard.writeText(steamLaunchCommand.value)
+  hasCopiedSkseCmd.value = true
+  setTimeout(() => {
+    hasCopiedSkseCmd.value = false
+  }, 3000)
+}
+
+async function handleLaunchGame() {
+  await store.deployActiveProfile()
+  const steamAppIdMap: Record<string, string> = {
+    skyrim_se: 'steam-489830',
+    fallout4: 'steam-377160',
+    oblivion: 'steam-22330'
+  }
+  const targetId = steamAppIdMap[store.currentGameId] || 'steam-489830'
+  await gamesStore.launchGame(targetId)
+}
 
 // Nexus API Key Modal & NXM Events
 const isNexusModalOpen = ref(false)
@@ -213,8 +255,21 @@ function movePlugin(index: number, direction: 'up' | 'down') {
           </div>
         </div>
 
-        <!-- Boutons d'action : Clé Nexus & Déploiement -->
+        <!-- Boutons d'action : Lancement, Déploiement & Clé Nexus -->
         <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+          <UiButton
+            variant="secondary"
+            size="lg"
+            @click="isSkseHelpModalOpen = true"
+            class="font-mono text-xs border-zinc-700 hover:border-amber-400"
+            title="Options de lancement Steam / Proton"
+          >
+            <template #prefix>
+              <Terminal class="w-4 h-4 text-amber-400" />
+            </template>
+            Options Steam
+          </UiButton>
+
           <UiButton
             variant="secondary"
             size="lg"
@@ -228,16 +283,29 @@ function movePlugin(index: number, direction: 'up' | 'down') {
           </UiButton>
 
           <UiButton
-            variant="primary"
+            variant="secondary"
             size="lg"
             :loading="store.isDeploying"
             @click="store.deployActiveProfile"
-            class="shadow-xl shadow-amber-500/20 font-mono font-bold"
+            class="font-mono text-xs border-zinc-700 hover:border-amber-400"
           >
             <template #prefix>
               <Rocket class="w-4 h-4" />
             </template>
-            Déployer le Profil
+            Déployer
+          </UiButton>
+
+          <UiButton
+            variant="primary"
+            size="lg"
+            :loading="gamesStore.isLaunching"
+            @click="handleLaunchGame"
+            class="shadow-xl shadow-amber-500/20 font-mono font-bold"
+          >
+            <template #prefix>
+              <Play class="w-4 h-4 fill-current" />
+            </template>
+            Lancer le Jeu
           </UiButton>
         </div>
       </div>
@@ -630,6 +698,52 @@ function movePlugin(index: number, direction: 'up' | 'down') {
           </UiButton>
           <UiButton variant="primary" size="sm" @click="handleSaveNexusKey">
             Enregistrer la Clé
+          </UiButton>
+        </div>
+      </div>
+    </UiModal>
+
+    <!-- Modal Options de Lancement Steam & Proton SKSE -->
+    <UiModal
+      :open="isSkseHelpModalOpen"
+      @close="isSkseHelpModalOpen = false"
+      title="Options de Lancement Steam (Proton & SKSE)"
+      maxWidth="md"
+    >
+      <div class="space-y-4">
+        <p class="text-xs text-zinc-300 leading-relaxed">
+          Sous Linux / Proton, Skyrim s'exécute dans un préfixe isolé géré par Steam. Pour que Steam lance <strong>{{ store.currentGame.defaultExecutable }}</strong> (SKSE64) tout en conservant l'overlay Steam, les manettes et les succès, configurez l'option de lancement suivante dans Steam :
+        </p>
+
+        <div class="space-y-2">
+          <label class="block text-xs font-mono text-zinc-400">Commande d'injection Steam :</label>
+          <div class="flex items-center gap-2 bg-zinc-950 p-2.5 rounded-xl border border-zinc-800">
+            <code class="text-xs font-mono text-amber-400 flex-1 truncate select-all">{{ steamLaunchCommand }}</code>
+            <button
+              type="button"
+              @click="copySkseLaunchCmd"
+              class="px-3 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-mono text-zinc-200 hover:text-amber-300 transition flex items-center gap-1.5 flex-shrink-0"
+            >
+              <Check v-if="hasCopiedSkseCmd" class="w-3.5 h-3.5 text-emerald-400" />
+              <Copy v-else class="w-3.5 h-3.5" />
+              <span>{{ hasCopiedSkseCmd ? 'Copié !' : 'Copier' }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-zinc-950/80 border border-zinc-800/80 space-y-1.5 text-[11px] text-zinc-400">
+          <div class="font-bold text-zinc-300 font-mono mb-1">Étapes dans Steam :</div>
+          <ol class="list-decimal list-inside space-y-1">
+            <li>Ouvrez votre client Steam.</li>
+            <li>Faites un clic droit sur <strong>{{ store.currentGame.title }}</strong> &gt; <strong>Propriétés...</strong></li>
+            <li>Dans l'onglet <strong>Général</strong>, collez la commande dans le champ <strong>Options de lancement</strong>.</li>
+            <li>Fermez la fenêtre : lancer le jeu depuis Steam ou depuis le bouton <strong>Lancer le Jeu</strong> de Loom exécutera automatiquement SKSE64 !</li>
+          </ol>
+        </div>
+
+        <div class="flex justify-end pt-2">
+          <UiButton variant="primary" size="sm" @click="isSkseHelpModalOpen = false">
+            Compris !
           </UiButton>
         </div>
       </div>
