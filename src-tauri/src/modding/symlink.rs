@@ -20,6 +20,24 @@ pub fn get_mods_cache_dir() -> PathBuf {
 /// Under Unix, creates a temporary symlink in the target's parent directory and renames it over `link_target`
 /// to guarantee atomic replacement.
 pub fn create_atomic_symlink(source_path: &Path, link_target: &Path) -> io::Result<()> {
+    if source_path == link_target {
+        return Ok(());
+    }
+
+    if let (Ok(can_src), Ok(can_tgt)) = (source_path.canonicalize(), link_target.canonicalize()) {
+        if can_src == can_tgt {
+            return Ok(());
+        }
+    }
+
+    if link_target.is_symlink() {
+        if let Ok(dest) = fs::read_link(link_target) {
+            if dest == source_path {
+                return Ok(());
+            }
+        }
+    }
+
     if let Some(parent) = link_target.parent() {
         fs::create_dir_all(parent)?;
     }

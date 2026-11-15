@@ -1,3 +1,4 @@
+use std::path::{Path, PathBuf};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::process::Stdio;
@@ -14,6 +15,196 @@ use super::manifest::{
     download_assets, download_client_jar, download_libraries, get_version_metadata,
 };
 use super::runtime::{ensure_java_runtime, validate_java_binary};
+
+async fn setup_fabric(
+    client: &Client,
+    mc_version: &str,
+    loader_version: Option<&str>,
+) -> Result<(String, Vec<PathBuf>), String> {
+    let loader_ver = loader_version.unwrap_or("0.16.9");
+    let url = format!(
+        "https://meta.fabricmc.net/v2/versions/loader/{}/{}/profile/json",
+        mc_version, loader_ver
+    );
+    let res = client.get(&url).send().await.map_err(|e| e.to_string())?;
+    if !res.status().is_success() {
+        return Ok(("net.fabricmc.loader.impl.launch.knot.KnotClient".to_string(), vec![]));
+    }
+    let profile: serde_json::Value = res.json().await.map_err(|e| e.to_string())?;
+    let main_class = profile
+        .get("mainClass")
+        .and_then(|m| m.as_str())
+        .unwrap_or("net.fabricmc.loader.impl.launch.knot.KnotClient")
+        .to_string();
+
+    let lib_dir = super::manifest::get_shared_libraries_dir();
+    let mut fabric_libs = Vec::new();
+
+    if let Some(libs) = profile.get("libraries").and_then(|l| l.as_array()) {
+        for lib in libs {
+            if let Some(name) = lib.get("name").and_then(|n| n.as_str()) {
+                let parts: Vec<&str> = name.split(':').collect();
+                if parts.len() >= 3 {
+                    let grp = parts[0].replace('.', "/");
+                    let art = parts[1];
+                    let ver = parts[2];
+                    let rel_path = format!("{}/{}/{}/{}-{}.jar", grp, art, ver, art, ver);
+                    let dest_path = lib_dir.join(&rel_path);
+                    fabric_libs.push(dest_path.clone());
+
+                    if !dest_path.exists() {
+                        if let Some(parent) = dest_path.parent() {
+                            let _ = std::fs::create_dir_all(parent);
+                        }
+                        let base_url = lib.get("url").and_then(|u| u.as_str()).unwrap_or("https://maven.fabricmc.net/");
+                        let dl_url = format!("{}{}", base_url, rel_path);
+                        if let Ok(dl_res) = client.get(&dl_url).send().await {
+                            if let Ok(bytes) = dl_res.bytes().await {
+                                let _ = std::fs::write(&dest_path, &bytes);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok((main_class, fabric_libs))
+}
+
+async fn setup_neoforge(
+    client: &Client,
+    java_bin: &Path,
+    mc_version: &str,
+    loader_version: Option<&str>,
+    client_jar: &Path,
+) -> Result<(String, Vec<String>, Vec<String>, Vec<PathBuf>), String> {
+    let loader_ver = loader_version.unwrap_or("21.1.266");
+    let common_dir = super::manifest::get_shared_common_dir();
+    let versions_dir = super::manifest::get_shared_versions_dir();
+    let libraries_dir = super::manifest::get_shared_libraries_dir();
+    let nf_ver_name = format!("neoforge-{}", loader_ver);
+    let nf_json_path = versions_dir.join(&nf_ver_name).join(format!("{}.json", &nf_ver_name));
+
+    if !nf_json_path.exists() {
+        let lp_path = common_dir.join("launcher_profiles.json");
+        if !lp_path.exists() {
+            let _ = std::fs::write(&lp_path, r#"{"profiles":{}}"#);
+        }
+
+        let v_dir = versions_dir.join(mc_version);
+        let _ = std::fs::create_dir_all(&v_dir);
+        let v_json_path = v_dir.join(format!("{}.json", mc_version));
+        if !v_json_path.exists() {
+            if let Ok(m_res) = client.get("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json").send().await {
+                if let Ok(m_data) = m_res.json::<serde_json::Value>().await {
+                    if let Some(versions) = m_data.get("versions").and_then(|v| v.as_array()) {
+                        if let Some(entry) = versions.iter().find(|v| v.get("id").and_then(|id| id.as_str()) == Some(mc_version)) {
+                            if let Some(url) = entry.get("url").and_then(|u| u.as_str()) {
+                                if let Ok(v_res) = client.get(url).send().await {
+                                    if let Ok(bytes) = v_res.bytes().await {
+                                        let _ = std::fs::write(&v_json_path, &bytes);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        let v_jar_path = v_dir.join(format!("{}.jar", mc_version));
+        if !v_jar_path.exists() && client_jar.exists() {
+            let _ = std::fs::copy(client_jar, &v_jar_path);
+        }
+
+        let installer_path = versions_dir.join(format!("{}-installer.jar", &nf_ver_name));
+        if !installer_path.exists() {
+            let installer_url = format!(
+                "https://maven.neoforged.net/releases/net/neoforged/neoforge/{}/neoforge-{}-installer.jar",
+                loader_ver, loader_ver
+            );
+            let res = client.get(&installer_url).send().await.map_err(|e| format!("Failed to download NeoForge installer: {}", e))?;
+            let bytes = res.bytes().await.map_err(|e| e.to_string())?;
+            std::fs::write(&installer_path, &bytes).map_err(|e| e.to_string())?;
+        }
+
+        let mut install_cmd = tokio::process::Command::new(java_bin);
+        install_cmd
+            .arg("-jar")
+            .arg(&installer_path)
+            .arg("--install-client")
+            .arg(&common_dir);
+        let out = install_cmd.output().await.map_err(|e| format!("Failed to run NeoForge installer: {}", e))?;
+        if !out.status.success() {
+            return Err(format!("NeoForge installer failed: {}", String::from_utf8_lossy(&out.stderr)));
+        }
+    }
+
+    if !nf_json_path.exists() {
+        return Err(format!("NeoForge version JSON missing after installation at {}", nf_json_path.display()));
+    }
+
+    let content = std::fs::read_to_string(&nf_json_path).map_err(|e| e.to_string())?;
+    let nf_json: serde_json::Value = serde_json::from_str(&content).map_err(|e| e.to_string())?;
+
+    let main_class = nf_json
+        .get("mainClass")
+        .and_then(|m| m.as_str())
+        .unwrap_or("cpw.mods.bootstraplauncher.BootstrapLauncher")
+        .to_string();
+
+    let mut extra_jvm_args: Vec<String> = Vec::new();
+    if let Some(jvm_arr) = nf_json.get("arguments").and_then(|a| a.get("jvm")).and_then(|j| j.as_array()) {
+        for raw in jvm_arr {
+            if let Some(raw_str) = raw.as_str() {
+                let mut val = raw_str
+                    .replace("${library_directory}", &libraries_dir.to_string_lossy())
+                    .replace("${classpath_separator}", ":")
+                    .replace("${version_name}", &nf_ver_name);
+                if val.starts_with("-DignoreList=") {
+                    val.push_str(&format!(",{},minecraft-{}-client.jar", mc_version, mc_version));
+                }
+                extra_jvm_args.push(val);
+            }
+        }
+    }
+
+    let mut extra_game_args: Vec<String> = Vec::new();
+    if let Some(game_arr) = nf_json.get("arguments").and_then(|a| a.get("game")).and_then(|g| g.as_array()) {
+        for raw in game_arr {
+            if let Some(raw_str) = raw.as_str() {
+                extra_game_args.push(raw_str.to_string());
+            }
+        }
+    }
+
+    let mut nf_libraries: Vec<PathBuf> = Vec::new();
+    if let Some(libs) = nf_json.get("libraries").and_then(|l| l.as_array()) {
+        for lib in libs {
+            if let Some(p) = lib.get("downloads").and_then(|d| d.get("artifact")).and_then(|a| a.get("path")).and_then(|p| p.as_str()) {
+                let lib_path = libraries_dir.join(p);
+                if lib_path.exists() {
+                    nf_libraries.push(lib_path);
+                }
+            } else if let Some(name) = lib.get("name").and_then(|n| n.as_str()) {
+                let parts: Vec<&str> = name.split(':').collect();
+                if parts.len() >= 3 {
+                    let grp = parts[0].replace('.', "/");
+                    let art = parts[1];
+                    let ver = parts[2];
+                    let classifier = if parts.len() >= 4 { format!("-{}", parts[3]) } else { String::new() };
+                    let rel = format!("{}/{}/{}/{}-{}{}.jar", grp, art, ver, art, ver, classifier);
+                    let lib_path = libraries_dir.join(rel);
+                    if lib_path.exists() {
+                        nf_libraries.push(lib_path);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok((main_class, extra_jvm_args, extra_game_args, nf_libraries))
+}
 
 pub fn get_required_java_version(mc_version: &str) -> u32 {
     let parts: Vec<u32> = mc_version
@@ -104,10 +295,10 @@ pub async fn launch_instance(
     let conn = db::open_db().map_err(|e| e.to_string())?;
     let inst_opt = db::get_minecraft_instance(&conn, &instance_id).map_err(|e| e.to_string())?;
 
-    let (game_version, modloader, min_ram_mb, max_ram_mb, java_path, custom_jvm_args) = match inst_opt {
+    let (game_version, modloader, loader_version, min_ram_mb, max_ram_mb, java_path, custom_jvm_args) = match inst_opt {
         Some(i) => {
             let jargs: Vec<String> = serde_json::from_str(&i.jvm_args).unwrap_or_else(|_| default_jvm_args());
-            (i.mc_version, i.modloader, i.min_ram_mb, i.max_ram_mb, i.java_path, jargs)
+            (i.mc_version, i.modloader, i.loader_version, i.min_ram_mb, i.max_ram_mb, i.java_path, jargs)
         }
         None => {
             let profiles = db::get_profiles(&conn, Some("minecraft")).unwrap_or_default();
@@ -117,7 +308,7 @@ pub async fn launch_instance(
                 None => ("1.20.1".to_string(), "fabric".to_string()),
             };
             let ram = allocated_ram_gb.unwrap_or(4) * 1024;
-            (gv, ml, 2048, ram, None, default_jvm_args())
+            (gv, ml, None, 2048, ram, None, default_jvm_args())
         }
     };
 
@@ -149,13 +340,43 @@ pub async fn launch_instance(
     let mc_dir = get_instance_minecraft_dir(&instance_id);
     let _ = std::fs::create_dir_all(&mc_dir);
 
-    // 6. Build Classpath
+    // 6. Build Classpath and Loader Configuration
     let mut cp_entries: Vec<String> = libraries
         .iter()
         .map(|p| p.to_string_lossy().to_string())
         .collect();
+
+    let (main_class, extra_jvm_args, extra_game_args) = if modloader == "neoforge" {
+        let (mc, jvms, games, nf_libs) = setup_neoforge(
+            &client,
+            &java_bin,
+            &game_version,
+            loader_version.as_deref(),
+            &client_jar,
+        )
+        .await?;
+        for lib in nf_libs {
+            cp_entries.push(lib.to_string_lossy().to_string());
+        }
+        (mc, jvms, games)
+    } else if modloader == "fabric" || modloader == "quilt" {
+        let (mc, fab_libs) = setup_fabric(&client, &game_version, loader_version.as_deref()).await?;
+        for lib in fab_libs {
+            cp_entries.push(lib.to_string_lossy().to_string());
+        }
+        (mc, Vec::new(), Vec::new())
+    } else {
+        (version_meta.main_class.clone(), Vec::new(), Vec::new())
+    };
+
     cp_entries.push(client_jar.to_string_lossy().to_string());
-    let classpath = cp_entries.join(":");
+
+    let mut seen = std::collections::HashSet::new();
+    let unique_cp: Vec<String> = cp_entries
+        .into_iter()
+        .filter(|p| std::path::Path::new(p).exists() && seen.insert(p.clone()))
+        .collect();
+    let classpath = unique_cp.join(":");
 
     // 7. Resolve Authentication (with automatic token refresh if needed)
     let account = super::auth::get_valid_account(&client).await;
@@ -206,6 +427,11 @@ pub async fn launch_instance(
     cmd.arg(format!("-Xms{}M", min_ram_mb))
         .arg(format!("-Xmx{}M", max_ram_mb));
 
+    // Loader JVM args (e.g. NeoForge module path, ignoreList, etc.)
+    for arg in extra_jvm_args {
+        cmd.arg(arg);
+    }
+
     // Custom and GC args
     for arg in custom_jvm_args {
         cmd.arg(arg);
@@ -221,12 +447,12 @@ pub async fn launch_instance(
         .arg(&classpath);
 
     // Main class
-    let main_class = if modloader == "fabric" || modloader == "quilt" {
-        "net.fabricmc.loader.impl.launch.knot.KnotClient"
-    } else {
-        &version_meta.main_class
-    };
-    cmd.arg(main_class);
+    cmd.arg(&main_class);
+
+    // Modloader specific game arguments
+    for arg in extra_game_args {
+        cmd.arg(arg);
+    }
 
     // Minecraft Game Arguments
     cmd.arg("--username")

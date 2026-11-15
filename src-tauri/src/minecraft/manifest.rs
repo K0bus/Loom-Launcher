@@ -27,10 +27,20 @@ pub struct VersionMetadata {
     pub java_version_major: u32,
 }
 
+pub fn get_shared_common_dir() -> PathBuf {
+    let base = dirs::data_local_dir()
+        .unwrap_or_else(|| PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string())).join(".local/share"))
+        .join("loom")
+        .join("common");
+    let _ = fs::create_dir_all(&base);
+    base
+}
+
 pub fn get_shared_assets_dir() -> PathBuf {
     let base = dirs::data_local_dir()
         .unwrap_or_else(|| PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string())).join(".local/share"))
         .join("loom")
+        .join("common")
         .join("assets");
     let _ = fs::create_dir_all(&base);
     base
@@ -40,6 +50,7 @@ pub fn get_shared_libraries_dir() -> PathBuf {
     let base = dirs::data_local_dir()
         .unwrap_or_else(|| PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string())).join(".local/share"))
         .join("loom")
+        .join("common")
         .join("libraries");
     let _ = fs::create_dir_all(&base);
     base
@@ -49,6 +60,7 @@ pub fn get_shared_versions_dir() -> PathBuf {
     let base = dirs::data_local_dir()
         .unwrap_or_else(|| PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string())).join(".local/share"))
         .join("loom")
+        .join("common")
         .join("versions");
     let _ = fs::create_dir_all(&base);
     base
@@ -304,7 +316,51 @@ pub async fn download_assets(client: &Client, meta: &VersionMetadata) -> Result<
             .map_err(|e| e.to_string())?;
 
         let _ = fs::write(&index_file, &bytes);
-        let _ = &mut index_json_str;
+        index_json_str = String::from_utf8_lossy(&bytes).to_string();
+    }
+
+    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&index_json_str) {
+        if let Some(objects) = parsed.get("objects").and_then(|o| o.as_object()) {
+            let mut missing: Vec<(String, PathBuf)> = Vec::new();
+            for (_name, obj) in objects {
+                if let Some(hash) = obj.get("hash").and_then(|h| h.as_str()) {
+                    if hash.len() >= 2 {
+                        let prefix = &hash[..2];
+                        let dest_path = objects_dir.join(prefix).join(hash);
+                        if !dest_path.exists() {
+                            let url = format!("https://resources.download.minecraft.net/{}/{}", prefix, hash);
+                            missing.push((url, dest_path));
+                        }
+                    }
+                }
+            }
+
+            if !missing.is_empty() {
+                // Download missing objects concurrently
+                let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(20));
+                let mut handles = Vec::new();
+
+                for (url, dest_path) in missing {
+                    let sem = semaphore.clone();
+                    let cl = client.clone();
+                    handles.push(tokio::spawn(async move {
+                        let _permit = sem.acquire().await;
+                        if let Some(parent) = dest_path.parent() {
+                            let _ = fs::create_dir_all(parent);
+                        }
+                        if let Ok(res) = cl.get(&url).send().await {
+                            if let Ok(bytes) = res.bytes().await {
+                                let _ = fs::write(&dest_path, &bytes);
+                            }
+                        }
+                    }));
+                }
+
+                for h in handles {
+                    let _ = h.await;
+                }
+            }
+        }
     }
 
     Ok(assets_dir)

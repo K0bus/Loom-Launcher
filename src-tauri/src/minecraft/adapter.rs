@@ -115,6 +115,16 @@ impl GameAdapter for MinecraftAdapter {
 
             let link_target = mods_dir.join(file_name);
 
+            // If the source is already the exact file in the target directory, don't create a circular symlink
+            if source_path == link_target {
+                continue;
+            }
+            if let (Ok(can_src), Ok(can_tgt)) = (source_path.canonicalize(), link_target.canonicalize()) {
+                if can_src == can_tgt {
+                    continue;
+                }
+            }
+
             create_atomic_symlink(&source_path, &link_target)
                 .map_err(|e| format!("Failed to create symlink for {}: {}", pmod.name, e))?;
         }
