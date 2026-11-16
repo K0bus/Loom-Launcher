@@ -349,11 +349,12 @@ pub async fn launch_battlenet_game(
     let mut command = Command::new(&root_binary);
     command.args(&cmd_args);
 
-    // Set standard environment variables
+    // Set standard environment variables (silence noisy Wine/VKD3D fixmes and avoid forced experimental DXR)
     command.env("WINEPREFIX", &config.wine_prefix_path);
     command.env("WINEARCH", "win64");
     command.env("DXVK_ASYNC", "1");
-    command.env("VKD3D_CONFIG", "dxr11,dxr");
+    command.env("WINEDEBUG", "-all");
+    command.env("VKD3D_DEBUG", "none");
 
     // Apply custom user-defined env vars
     if let Some(ref custom_json) = config.custom_env_vars {
@@ -362,6 +363,32 @@ pub async fn launch_battlenet_game(
                 command.env(k, v);
             }
         }
+    }
+
+    // Redirect stdout/stderr to a dedicated log file to avoid terminal spam and thread assertion leaks
+    let log_dir = dirs::data_local_dir()
+        .unwrap_or_else(|| PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string())).join(".local/share"))
+        .join("loom")
+        .join("logs");
+    let _ = std::fs::create_dir_all(&log_dir);
+    let log_file_path = log_dir.join("battlenet.log");
+
+    if let Ok(file) = std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open(&log_file_path)
+    {
+        if let Ok(file_err) = file.try_clone() {
+            command.stdout(std::process::Stdio::from(file));
+            command.stderr(std::process::Stdio::from(file_err));
+        } else {
+            command.stdout(std::process::Stdio::null());
+            command.stderr(std::process::Stdio::null());
+        }
+    } else {
+        command.stdout(std::process::Stdio::null());
+        command.stderr(std::process::Stdio::null());
     }
 
     // Spawn process asynchronously

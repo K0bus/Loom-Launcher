@@ -284,8 +284,7 @@ export const useBattleNetStore = defineStore('battlenet', () => {
         gamescope: false,
         envVariables: {
           WINEPREFIX: config.value ? config.value.wine_prefix_path : '~/.local/share/loom/prefixes/battlenet',
-          DXVK_ASYNC: '1',
-          VKD3D_CONFIG: 'dxr11,dxr'
+          DXVK_ASYNC: '1'
         },
         launchArguments: `--exec="launch ${launchUid}"`
       },
