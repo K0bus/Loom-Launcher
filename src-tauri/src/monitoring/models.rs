@@ -206,7 +206,10 @@ pub struct SmartDiskInfo {
     pub data_units_read_gb: Option<u64>,
     pub data_units_written_gb: Option<u64>,
     pub unsafe_shutdowns: Option<u64>,
+    pub reallocated_sectors: Option<u64>,
+    pub media_errors: Option<u64>,
     pub is_live: bool,
+    pub has_admin_data: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

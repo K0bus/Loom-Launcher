@@ -230,10 +230,10 @@ export const useSystemMonitorStore = defineStore('systemMonitor', () => {
     }
   }
 
-  async function fetchSmartDisks() {
+  async function fetchSmartDisks(elevated: boolean = false) {
     isSmartLoading.value = true
     try {
-      smartDisks.value = await ipc.getSmartDisksInfo()
+      smartDisks.value = await ipc.getSmartDisksInfo(elevated)
     } catch (err: any) {
       console.warn('[MonitorStore] Failed to fetch SMART disks:', err)
     } finally {

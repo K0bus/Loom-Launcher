@@ -329,7 +329,8 @@ function handleKillProcess(payload: { pid: number; force: boolean }) {
         <SmartDisksView
           :disks="monitorStore.smartDisks"
           :is-loading="monitorStore.isSmartLoading"
-          @refresh="monitorStore.fetchSmartDisks"
+          @refresh="monitorStore.fetchSmartDisks(false)"
+          @scan-elevated="monitorStore.fetchSmartDisks(true)"
         />
       </div>
 

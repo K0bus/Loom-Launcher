@@ -1095,7 +1095,7 @@ impl SystemMetricsCollector {
     }
 
     // --- S.M.A.R.T. Disks Health ---
-    pub fn collect_smart_disks(&self) -> Vec<SmartDiskInfo> {
+    pub fn collect_smart_disks(&self, elevated: bool) -> Vec<SmartDiskInfo> {
         let mut disks = Vec::new();
 
         // 1. Scan NVMe devices (/sys/class/nvme/nvme*)
@@ -1149,39 +1149,47 @@ impl SystemMetricsCollector {
                     let mut data_written_gb = None;
                     let mut unsafe_shutdowns = None;
                     let mut critical_warning = None;
+                    let mut media_errors = None;
+                    let mut has_admin_data = false;
 
-                    // Try smartctl JSON inspection if possible
-                    if let Ok(output) = Command::new("smartctl")
-                        .args(["--json=c", "-a", &format!("/dev/{}", name)])
-                        .output()
-                    {
-                        if let Ok(txt) = String::from_utf8(output.stdout) {
-                            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&txt) {
-                                if let Some(passed) = v.pointer("/smart_status/passed").and_then(|b| b.as_bool()) {
-                                    health_status = if passed { "PASSED".into() } else { "FAILED".into() };
-                                }
-                                power_on_hours = v.pointer("/power_on_time/hours").and_then(|h| h.as_u64());
-                                power_cycles = v.pointer("/power_cycle_count").and_then(|c| c.as_u64());
-                                percentage_used = v
-                                    .pointer("/nvme_smart_health_information_log/percentage_used")
-                                    .and_then(|p| p.as_u64())
-                                    .map(|p| p as u8);
-                                unsafe_shutdowns = v
-                                    .pointer("/nvme_smart_health_information_log/unsafe_shutdowns")
-                                    .and_then(|u| u.as_u64());
-                                data_read_gb = v
-                                    .pointer("/nvme_smart_health_information_log/data_units_read")
-                                    .and_then(|d| d.as_u64())
-                                    .map(|u| u * 512 * 1000 / (1024 * 1024 * 1024));
-                                data_written_gb = v
-                                    .pointer("/nvme_smart_health_information_log/data_units_written")
-                                    .and_then(|d| d.as_u64())
-                                    .map(|u| u * 512 * 1000 / (1024 * 1024 * 1024));
-                                critical_warning = v
-                                    .pointer("/nvme_smart_health_information_log/critical_warning")
-                                    .and_then(|w| w.as_u64())
-                                    .map(|w| if w == 0 { "Aucun (Normal)".into() } else { format!("Code {}", w) });
+                    // Try smartctl JSON inspection
+                    if let Some(v) = Self::run_smartctl_json(&format!("/dev/{}", name), elevated) {
+                        let is_denied = v.pointer("/smartctl/messages").and_then(|m| m.as_array()).map(|arr| {
+                            arr.iter().any(|msg| msg.get("string").and_then(|s| s.as_str()).map(|s| s.contains("Permission denied")).unwrap_or(false))
+                        }).unwrap_or(false);
+
+                        if !is_denied {
+                            has_admin_data = true;
+                            if let Some(passed) = v.pointer("/smart_status/passed").and_then(|b| b.as_bool()) {
+                                health_status = if passed { "PASSED".into() } else { "FAILED".into() };
                             }
+                            if let Some(t) = v.pointer("/temperature/current").and_then(|t| t.as_f64()) {
+                                temp = Some(t as f32);
+                            }
+                            power_on_hours = v.pointer("/power_on_time/hours").and_then(|h| h.as_u64());
+                            power_cycles = v.pointer("/power_cycle_count").and_then(|c| c.as_u64());
+                            percentage_used = v
+                                .pointer("/nvme_smart_health_information_log/percentage_used")
+                                .and_then(|p| p.as_u64())
+                                .map(|p| p as u8);
+                            unsafe_shutdowns = v
+                                .pointer("/nvme_smart_health_information_log/unsafe_shutdowns")
+                                .and_then(|u| u.as_u64());
+                            media_errors = v
+                                .pointer("/nvme_smart_health_information_log/media_errors")
+                                .and_then(|u| u.as_u64());
+                            data_read_gb = v
+                                .pointer("/nvme_smart_health_information_log/data_units_read")
+                                .and_then(|d| d.as_u64())
+                                .map(|u| u * 512 * 1000 / (1024 * 1024 * 1024));
+                            data_written_gb = v
+                                .pointer("/nvme_smart_health_information_log/data_units_written")
+                                .and_then(|d| d.as_u64())
+                                .map(|u| u * 512 * 1000 / (1024 * 1024 * 1024));
+                            critical_warning = v
+                                .pointer("/nvme_smart_health_information_log/critical_warning")
+                                .and_then(|w| w.as_u64())
+                                .map(|w| if w == 0 { "Aucun (Normal)".into() } else { format!("Alerte code {}", w) });
                         }
                     }
 
@@ -1200,7 +1208,10 @@ impl SystemMetricsCollector {
                         data_units_read_gb: data_read_gb,
                         data_units_written_gb: data_written_gb,
                         unsafe_shutdowns,
+                        reallocated_sectors: None,
+                        media_errors,
                         is_live: state == "live",
+                        has_admin_data,
                     });
                 }
             }
@@ -1234,29 +1245,45 @@ impl SystemMetricsCollector {
                         .map(|sectors| sectors * 512)
                         .unwrap_or(0);
 
-                    let temp = self.find_disk_temperature(&name);
+                    let mut temp = self.find_disk_temperature(&name);
 
                     let mut health_status = "PASSED".to_string();
                     let mut power_on_hours = None;
                     let mut power_cycles = None;
-                    let percentage_used = None;
-                    let data_read_gb = None;
-                    let data_written_gb = None;
-                    let unsafe_shutdowns = None;
-                    let critical_warning = None;
+                    let mut percentage_used = None;
+                    let mut reallocated_sectors = None;
+                    let mut has_admin_data = false;
 
                     // Try smartctl JSON
-                    if let Ok(output) = Command::new("smartctl")
-                        .args(["--json=c", "-a", &dev_path])
-                        .output()
-                    {
-                        if let Ok(txt) = String::from_utf8(output.stdout) {
-                            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&txt) {
-                                if let Some(passed) = v.pointer("/smart_status/passed").and_then(|b| b.as_bool()) {
-                                    health_status = if passed { "PASSED".into() } else { "FAILED".into() };
+                    if let Some(v) = Self::run_smartctl_json(&dev_path, elevated) {
+                        let is_denied = v.pointer("/smartctl/messages").and_then(|m| m.as_array()).map(|arr| {
+                            arr.iter().any(|msg| msg.get("string").and_then(|s| s.as_str()).map(|s| s.contains("Permission denied")).unwrap_or(false))
+                        }).unwrap_or(false);
+
+                        if !is_denied {
+                            has_admin_data = true;
+                            if let Some(passed) = v.pointer("/smart_status/passed").and_then(|b| b.as_bool()) {
+                                health_status = if passed { "PASSED".into() } else { "FAILED".into() };
+                            }
+                            if let Some(t) = v.pointer("/temperature/current").and_then(|t| t.as_f64()) {
+                                temp = Some(t as f32);
+                            }
+                            power_on_hours = v.pointer("/power_on_time/hours").and_then(|h| h.as_u64());
+                            power_cycles = v.pointer("/power_cycle_count").and_then(|c| c.as_u64());
+
+                            if let Some(table) = v.pointer("/ata_smart_attributes/table").and_then(|t| t.as_array()) {
+                                for row in table {
+                                    let id = row.get("id").and_then(|i| i.as_u64()).unwrap_or(0);
+                                    let raw_val = row.pointer("/raw/value").and_then(|r| r.as_u64()).unwrap_or(0);
+                                    if id == 5 {
+                                        reallocated_sectors = Some(raw_val);
+                                    } else if id == 231 || id == 177 || id == 169 {
+                                        // Life left / wear
+                                        if let Some(val) = row.get("value").and_then(|v| v.as_u64()) {
+                                            percentage_used = Some((100u64.saturating_sub(val)) as u8);
+                                        }
+                                    }
                                 }
-                                power_on_hours = v.pointer("/power_on_time/hours").and_then(|h| h.as_u64());
-                                power_cycles = v.pointer("/power_cycle_count").and_then(|c| c.as_u64());
                             }
                         }
                     }
@@ -1269,20 +1296,52 @@ impl SystemMetricsCollector {
                         size_bytes,
                         health_status,
                         temperature_c: temp,
-                        critical_warning,
+                        critical_warning: None,
                         power_on_hours,
                         power_cycles,
                         percentage_used,
-                        data_units_read_gb: data_read_gb,
-                        data_units_written_gb: data_written_gb,
-                        unsafe_shutdowns,
+                        data_units_read_gb: None,
+                        data_units_written_gb: None,
+                        unsafe_shutdowns: None,
+                        reallocated_sectors,
+                        media_errors: None,
                         is_live: true,
+                        has_admin_data,
                     });
                 }
             }
         }
 
         disks
+    }
+
+    fn run_smartctl_json(device: &str, elevated: bool) -> Option<serde_json::Value> {
+        if elevated {
+            // Try pkexec for graphical Polkit admin prompt
+            if let Ok(output) = Command::new("pkexec")
+                .args(["smartctl", "--json=c", "-a", device])
+                .output()
+            {
+                if let Ok(txt) = String::from_utf8(output.stdout) {
+                    if let Ok(v) = serde_json::from_str::<serde_json::Value>(&txt) {
+                        return Some(v);
+                    }
+                }
+            }
+        }
+
+        // Standard user query
+        if let Ok(output) = Command::new("smartctl")
+            .args(["--json=c", "-a", device])
+            .output()
+        {
+            if let Ok(txt) = String::from_utf8(output.stdout) {
+                if let Ok(v) = serde_json::from_str::<serde_json::Value>(&txt) {
+                    return Some(v);
+                }
+            }
+        }
+        None
     }
 
     // --- Linux DNF Package Updates ---

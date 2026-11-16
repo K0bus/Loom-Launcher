@@ -101,13 +101,15 @@ pub async fn get_all_system_processes(
 #[tauri::command]
 pub async fn get_smart_disks_info(
     collector: State<'_, SharedCollector>,
+    elevated: Option<bool>,
 ) -> Result<Vec<SmartDiskInfo>, String> {
     let collector = collector.inner().clone();
+    let is_elevated = elevated.unwrap_or(false);
     tokio::task::spawn_blocking(move || {
         let guard = collector
             .lock()
             .map_err(|e| format!("Impossible de verrouiller le collecteur: {}", e))?;
-        Ok(guard.collect_smart_disks())
+        Ok(guard.collect_smart_disks(is_elevated))
     })
     .await
     .map_err(|e| format!("Erreur tâche asynchrone: {}", e))?

@@ -174,7 +174,10 @@ export interface SmartDiskInfo {
   dataUnitsReadGb?: number
   dataUnitsWrittenGb?: number
   unsafeShutdowns?: number
+  reallocatedSectors?: number
+  mediaErrors?: number
   isLive: boolean
+  hasAdminData?: boolean
 }
 
 export interface DnfPackageUpdate {

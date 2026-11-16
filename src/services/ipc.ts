@@ -187,8 +187,8 @@ class IpcBridge {
     return this.invoke<ProcessSnapshot[]>('get_all_system_processes')
   }
 
-  public async getSmartDisksInfo(): Promise<SmartDiskInfo[]> {
-    return this.invoke<SmartDiskInfo[]>('get_smart_disks_info')
+  public async getSmartDisksInfo(elevated: boolean = false): Promise<SmartDiskInfo[]> {
+    return this.invoke<SmartDiskInfo[]>('get_smart_disks_info', { elevated })
   }
 
   public async checkDnfUpdates(refresh: boolean = false): Promise<DnfUpdateStatus> {

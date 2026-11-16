@@ -59,7 +59,7 @@ mod tests {
         let all_procs = collector.collect_all_processes();
         assert!(!all_procs.is_empty());
 
-        let smart_disks = collector.collect_smart_disks();
+        let smart_disks = collector.collect_smart_disks(false);
         assert!(!smart_disks.is_empty());
     }
 
