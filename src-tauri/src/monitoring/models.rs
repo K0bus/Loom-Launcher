@@ -104,6 +104,41 @@ pub struct NetworkInterfaceSnapshot {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
+pub struct PrimaryNetworkDetails {
+    pub interface_name: String,
+    pub is_up: bool,
+    pub connection_name: Option<String>,
+    pub interface_type: String, // "ethernet", "wifi", "cellular", "virtual", etc.
+    pub ip_address: Option<String>,
+    pub ipv6_address: Option<String>,
+    pub mac_address: Option<String>,
+    pub gateway: Option<String>,
+    pub dns_servers: Vec<String>,
+    pub speed_mbps: Option<u32>,
+    pub duplex: Option<String>,
+    pub mtu: Option<u32>,
+    pub connectivity: String, // "full", "limited", "portal", "none", "unknown"
+    pub latency_ms: Option<f32>,
+    pub is_wireless: bool,
+    pub wifi_ssid: Option<String>,
+    pub wifi_signal_percent: Option<u8>,
+    pub wifi_signal_dbm: Option<i32>,
+    pub wifi_frequency_mhz: Option<u32>,
+    pub rx_bytes_per_sec: u64,
+    pub tx_bytes_per_sec: u64,
+    pub total_rx_bytes: u64,
+    pub total_tx_bytes: u64,
+    pub rx_errors: Option<u64>,
+    pub tx_errors: Option<u64>,
+    pub rx_dropped: Option<u64>,
+    pub tx_dropped: Option<u64>,
+    pub vendor: Option<String>,
+    pub product: Option<String>,
+    pub driver: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct NetworkSnapshot {
     pub rx_bytes_per_sec: u64,
     pub tx_bytes_per_sec: u64,
@@ -112,6 +147,7 @@ pub struct NetworkSnapshot {
     pub wifi_ssid: Option<String>,
     pub wifi_signal_percent: Option<u8>,
     pub wifi_signal_dbm: Option<i32>,
+    pub primary_interface: Option<PrimaryNetworkDetails>,
     pub interfaces: Vec<NetworkInterfaceSnapshot>,
 }
 

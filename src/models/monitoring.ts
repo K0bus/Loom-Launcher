@@ -84,6 +84,39 @@ export interface NetworkInterfaceSnapshot {
   totalTxBytes: number
 }
 
+export interface PrimaryNetworkDetails {
+  interfaceName: string
+  isUp: boolean
+  connectionName?: string
+  interfaceType: string
+  ipAddress?: string
+  ipv6Address?: string
+  macAddress?: string
+  gateway?: string
+  dnsServers: string[]
+  speedMbps?: number
+  duplex?: string
+  mtu?: number
+  connectivity: string
+  latencyMs?: number
+  isWireless: boolean
+  wifiSsid?: string
+  wifiSignalPercent?: number
+  wifiSignalDbm?: number
+  wifiFrequencyMhz?: number
+  rxBytesPerSec: number
+  txBytesPerSec: number
+  totalRxBytes: number
+  totalTxBytes: number
+  rxErrors?: number
+  txErrors?: number
+  rxDropped?: number
+  txDropped?: number
+  vendor?: string
+  product?: string
+  driver?: string
+}
+
 export interface NetworkSnapshot {
   rxBytesPerSec: number
   txBytesPerSec: number
@@ -92,6 +125,7 @@ export interface NetworkSnapshot {
   wifiSsid?: string
   wifiSignalPercent?: number
   wifiSignalDbm?: number
+  primaryInterface?: PrimaryNetworkDetails
   interfaces: NetworkInterfaceSnapshot[]
 }
 

@@ -684,6 +684,32 @@ impl SystemMetricsCollector {
         // Wi-Fi details if wireless present
         let (wifi_ssid, wifi_signal_percent, wifi_signal_dbm) = Self::detect_wifi_info();
 
+        // Primary Interface detection and detailed profiling
+        let primary_name = Self::detect_primary_interface_name(active_iface_name, &interfaces);
+        let primary_interface = if let Some(ref p_name) = primary_name {
+            let found = interfaces.iter().find(|i| &i.name == p_name);
+            let rx_bps = found.map(|i| i.rx_bytes_per_sec).unwrap_or(0);
+            let tx_bps = found.map(|i| i.tx_bytes_per_sec).unwrap_or(0);
+            let total_rx = found.map(|i| i.total_rx_bytes).unwrap_or(0);
+            let total_tx = found.map(|i| i.total_tx_bytes).unwrap_or(0);
+            let is_wireless = found.map(|i| i.is_wireless).unwrap_or(false);
+
+            Some(Self::collect_primary_network_details(
+                p_name,
+                is_wireless,
+                rx_bps,
+                tx_bps,
+                total_rx,
+                total_tx,
+                default_gw.as_deref(),
+                wifi_ssid.clone(),
+                wifi_signal_percent,
+                wifi_signal_dbm,
+            ))
+        } else {
+            None
+        };
+
         NetworkSnapshot {
             rx_bytes_per_sec: total_rx_bps,
             tx_bytes_per_sec: total_tx_bps,
@@ -692,8 +718,312 @@ impl SystemMetricsCollector {
             wifi_ssid,
             wifi_signal_percent,
             wifi_signal_dbm,
+            primary_interface,
             interfaces,
         }
+    }
+
+    fn detect_primary_interface_name(
+        detected: Option<String>,
+        interfaces: &[NetworkInterfaceSnapshot],
+    ) -> Option<String> {
+        if let Some(name) = detected {
+            if !name.is_empty() && name != "lo" {
+                return Some(name);
+            }
+        }
+        // Fallback: Check 'ip route show default'
+        if let Ok(output) = Command::new("ip").args(["route", "show", "default"]).output() {
+            if output.status.success() {
+                let txt = String::from_utf8_lossy(&output.stdout);
+                let parts: Vec<&str> = txt.split_whitespace().collect();
+                if let Some(pos) = parts.iter().position(|&x| x == "dev") {
+                    if let Some(iface) = parts.get(pos + 1) {
+                        return Some(iface.to_string());
+                    }
+                }
+            }
+        }
+        // Fallback: Pick first active interface with an IP that is not "lo"
+        for iface in interfaces {
+            if iface.is_up && iface.name != "lo" && iface.ip_address.is_some() {
+                return Some(iface.name.clone());
+            }
+        }
+        // Fallback: Any up interface that is not "lo"
+        for iface in interfaces {
+            if iface.is_up && iface.name != "lo" {
+                return Some(iface.name.clone());
+            }
+        }
+        None
+    }
+
+    fn collect_primary_network_details(
+        iface_name: &str,
+        is_wireless: bool,
+        rx_bps: u64,
+        tx_bps: u64,
+        total_rx: u64,
+        total_tx: u64,
+        default_gw: Option<&str>,
+        wifi_ssid: Option<String>,
+        wifi_signal_percent: Option<u8>,
+        wifi_signal_dbm: Option<i32>,
+    ) -> PrimaryNetworkDetails {
+        let mut connection_name = None;
+        let mut interface_type = if is_wireless { "wifi".to_string() } else { "ethernet".to_string() };
+        let mut vendor = None;
+        let mut product = None;
+        let mut driver = None;
+        let mut ip_address = None;
+        let mut ipv6_address = None;
+        let mut gateway = default_gw.map(|s| s.to_string());
+        let mut dns_servers = Vec::new();
+        let mut connectivity = "unknown".to_string();
+
+        // 1. Sysfs properties
+        let operstate = fs::read_to_string(format!("/sys/class/net/{}/operstate", iface_name))
+            .unwrap_or_default();
+        let is_up = operstate.trim() == "up";
+
+        let mac_address = fs::read_to_string(format!("/sys/class/net/{}/address", iface_name))
+            .ok()
+            .map(|s| s.trim().to_string());
+
+        let speed_mbps = fs::read_to_string(format!("/sys/class/net/{}/speed", iface_name))
+            .ok()
+            .and_then(|s| s.trim().parse::<u32>().ok());
+
+        let duplex = fs::read_to_string(format!("/sys/class/net/{}/duplex", iface_name))
+            .ok()
+            .map(|s| s.trim().to_string());
+
+        let mtu = fs::read_to_string(format!("/sys/class/net/{}/mtu", iface_name))
+            .ok()
+            .and_then(|s| s.trim().parse::<u32>().ok());
+
+        let rx_errors = fs::read_to_string(format!("/sys/class/net/{}/statistics/rx_errors", iface_name))
+            .ok()
+            .and_then(|s| s.trim().parse::<u64>().ok());
+        let tx_errors = fs::read_to_string(format!("/sys/class/net/{}/statistics/tx_errors", iface_name))
+            .ok()
+            .and_then(|s| s.trim().parse::<u64>().ok());
+        let rx_dropped = fs::read_to_string(format!("/sys/class/net/{}/statistics/rx_dropped", iface_name))
+            .ok()
+            .and_then(|s| s.trim().parse::<u64>().ok());
+        let tx_dropped = fs::read_to_string(format!("/sys/class/net/{}/statistics/tx_dropped", iface_name))
+            .ok()
+            .and_then(|s| s.trim().parse::<u64>().ok());
+
+        // 2. Query nmcli for rich info
+        if let Ok(output) = Command::new("nmcli")
+            .args(["-t", "-f", "GENERAL,IP4,IP6", "dev", "show", iface_name])
+            .output()
+        {
+            if output.status.success() {
+                let txt = String::from_utf8_lossy(&output.stdout);
+                for line in txt.lines() {
+                    if let Some((k, v)) = line.split_once(':') {
+                        let k = k.trim();
+                        let v = v.trim();
+                        if v.is_empty() {
+                            continue;
+                        }
+                        match k {
+                            "GENERAL.CONNECTION" => connection_name = Some(v.to_string()),
+                            "GENERAL.TYPE" => {
+                                if !v.is_empty() {
+                                    interface_type = v.to_lowercase();
+                                }
+                            }
+                            "GENERAL.VENDOR" => vendor = Some(v.to_string()),
+                            "GENERAL.PRODUCT" => product = Some(v.to_string()),
+                            "GENERAL.DRIVER" => driver = Some(v.to_string()),
+                            "GENERAL.IP4-CONNECTIVITY" => {
+                                if v.contains("full") {
+                                    connectivity = "full".to_string();
+                                } else if v.contains("limited") {
+                                    connectivity = "limited".to_string();
+                                } else if v.contains("portal") {
+                                    connectivity = "portal".to_string();
+                                } else if v.contains("none") {
+                                    connectivity = "none".to_string();
+                                }
+                            }
+                            k if k.starts_with("IP4.ADDRESS") => {
+                                if ip_address.is_none() {
+                                    ip_address = Some(v.to_string());
+                                }
+                            }
+                            "IP4.GATEWAY" => {
+                                if !v.is_empty() && v != "--" {
+                                    gateway = Some(v.to_string());
+                                }
+                            }
+                            k if k.starts_with("IP4.DNS") => {
+                                if !v.is_empty() && !dns_servers.contains(&v.to_string()) {
+                                    dns_servers.push(v.to_string());
+                                }
+                            }
+                            k if k.starts_with("IP6.ADDRESS") => {
+                                if ipv6_address.is_none() {
+                                    ipv6_address = Some(v.to_string());
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+        }
+
+        // Fallbacks if not detected by nmcli
+        if ip_address.is_none() {
+            if let Ok(output) = Command::new("ip").args(["-o", "-4", "addr", "show", iface_name]).output() {
+                if output.status.success() {
+                    let txt = String::from_utf8_lossy(&output.stdout);
+                    for line in txt.lines() {
+                        let parts: Vec<&str> = line.split_whitespace().collect();
+                        if let Some(pos) = parts.iter().position(|&x| x == "inet") {
+                            if let Some(cidr) = parts.get(pos + 1) {
+                                ip_address = Some(cidr.to_string());
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if ipv6_address.is_none() {
+            if let Ok(output) = Command::new("ip").args(["-o", "-6", "addr", "show", iface_name]).output() {
+                if output.status.success() {
+                    let txt = String::from_utf8_lossy(&output.stdout);
+                    for line in txt.lines() {
+                        let parts: Vec<&str> = line.split_whitespace().collect();
+                        if let Some(pos) = parts.iter().position(|&x| x == "inet6") {
+                            if let Some(cidr) = parts.get(pos + 1) {
+                                ipv6_address = Some(cidr.to_string());
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if dns_servers.is_empty() {
+            if let Ok(output) = Command::new("resolvectl").args(["dns", iface_name]).output() {
+                if output.status.success() {
+                    let txt = String::from_utf8_lossy(&output.stdout);
+                    if let Some((_, ips)) = txt.split_once(':') {
+                        for ip in ips.split_whitespace() {
+                            dns_servers.push(ip.to_string());
+                        }
+                    }
+                }
+            }
+            if dns_servers.is_empty() {
+                if let Ok(content) = fs::read_to_string("/etc/resolv.conf") {
+                    for line in content.lines() {
+                        let parts: Vec<&str> = line.split_whitespace().collect();
+                        if parts.len() >= 2 && parts[0] == "nameserver" {
+                            dns_servers.push(parts[1].to_string());
+                        }
+                    }
+                }
+            }
+        }
+
+        if connectivity == "unknown" {
+            connectivity = if is_up { "full".to_string() } else { "none".to_string() };
+        }
+
+        // Measure ping latency to gateway or 1.1.1.1
+        let ping_target = gateway.as_deref().unwrap_or("1.1.1.1");
+        let latency_ms = Self::measure_ping_latency(ping_target);
+
+        // Wi-Fi frequency detection
+        let wifi_frequency_mhz = if is_wireless {
+            Self::detect_wifi_frequency(iface_name)
+        } else {
+            None
+        };
+
+        PrimaryNetworkDetails {
+            interface_name: iface_name.to_string(),
+            is_up,
+            connection_name,
+            interface_type,
+            ip_address,
+            ipv6_address,
+            mac_address,
+            gateway,
+            dns_servers,
+            speed_mbps,
+            duplex,
+            mtu,
+            connectivity,
+            latency_ms,
+            is_wireless,
+            wifi_ssid,
+            wifi_signal_percent,
+            wifi_signal_dbm,
+            wifi_frequency_mhz,
+            rx_bytes_per_sec: rx_bps,
+            tx_bytes_per_sec: tx_bps,
+            total_rx_bytes: total_rx,
+            total_tx_bytes: total_tx,
+            rx_errors,
+            tx_errors,
+            rx_dropped,
+            tx_dropped,
+            vendor,
+            product,
+            driver,
+        }
+    }
+
+    fn measure_ping_latency(target: &str) -> Option<f32> {
+        let output = Command::new("ping")
+            .args(["-c", "1", "-W", "1", target])
+            .output()
+            .ok()?;
+        if output.status.success() {
+            let txt = String::from_utf8_lossy(&output.stdout);
+            for word in txt.split_whitespace() {
+                if word.starts_with("time=") || word.starts_with("temps=") {
+                    let s = word
+                        .trim_start_matches("time=")
+                        .trim_start_matches("temps=")
+                        .trim_end_matches("ms");
+                    if let Ok(v) = s.parse::<f32>() {
+                        return Some(v);
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    fn detect_wifi_frequency(iface: &str) -> Option<u32> {
+        if let Ok(output) = Command::new("iw").args(["dev", iface, "link"]).output() {
+            if output.status.success() {
+                let txt = String::from_utf8_lossy(&output.stdout);
+                for line in txt.lines() {
+                    let parts: Vec<&str> = line.split_whitespace().collect();
+                    if let Some(pos) = parts.iter().position(|&x| x == "freq:") {
+                        if let Some(freq_str) = parts.get(pos + 1) {
+                            if let Ok(freq) = freq_str.parse::<u32>() {
+                                return Some(freq);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        None
     }
 
     fn detect_default_gateway() -> (Option<String>, Option<String>) {
