@@ -8,18 +8,25 @@ export const useToastStore = defineStore('toast', () => {
   const message = ref('')
   const type = ref<'success' | 'info' | 'error'>('success')
   let timer: any = null
+  let lastNotificationTime = 0
+  let lastNotificationMsg = ''
 
   function show(msg: string, toastType: 'success' | 'info' | 'error' = 'success', duration = 3000) {
     message.value = msg
     type.value = toastType
     visible.value = true
 
-    try {
-      const settingsStore = useSettingsStore()
-      if (settingsStore.settings.desktopNotifications) {
-        ipc.sendDesktopNotification('Loom Launcher', msg).catch(() => {})
-      }
-    } catch {}
+    const now = Date.now()
+    if (now - lastNotificationTime > 600 || lastNotificationMsg !== msg) {
+      lastNotificationTime = now
+      lastNotificationMsg = msg
+      try {
+        const settingsStore = useSettingsStore()
+        if (settingsStore.settings.desktopNotifications) {
+          ipc.sendDesktopNotification('Loom Launcher', msg).catch(() => {})
+        }
+      } catch {}
+    }
 
     if (timer) clearTimeout(timer)
     timer = setTimeout(() => {

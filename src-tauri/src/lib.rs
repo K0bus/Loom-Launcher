@@ -1671,10 +1671,21 @@ fn send_desktop_notification(title: String, body: String, icon: Option<String>) 
     #[cfg(target_os = "linux")]
     {
         let mut cmd = Command::new("notify-send");
-        cmd.args(["-a", "Loom Launcher", &title, &body]);
+        cmd.args([
+            "-a",
+            "Loom Launcher",
+            "-h",
+            "string:x-canonical-private-synchronous:loom",
+            "-h",
+            "string:desktop-entry:com.loom.launcher",
+            &title,
+            &body,
+        ]);
         if let Some(ic) = icon {
             cmd.args(["-i", &ic]);
         }
+        cmd.stdout(std::process::Stdio::null());
+        cmd.stderr(std::process::Stdio::null());
         let _ = cmd.spawn();
     }
     Ok(())
