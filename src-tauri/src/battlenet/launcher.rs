@@ -20,43 +20,19 @@ impl BattleNetLauncherState {
     }
 
     pub async fn is_running(&self, product_uid: &str) -> bool {
-        {
-            let map = self.running_pids.read().await;
-            if let Some(&pid) = map.get(product_uid) {
-                if Path::new(&format!("/proc/{}", pid)).exists() {
-                    return true;
-                }
-            }
-        }
         let scanned = scan_running_battlenet_processes();
-        if let Some(&pid) = scanned.get(product_uid) {
-            let mut map = self.running_pids.write().await;
-            map.insert(product_uid.to_string(), pid);
-            true
-        } else {
-            false
-        }
+        scanned.contains_key(product_uid)
     }
 
     pub async fn get_running_games(&self) -> Vec<String> {
         let scanned = scan_running_battlenet_processes();
         let mut map = self.running_pids.write().await;
-        for (uid, pid) in scanned {
-            map.insert(uid, pid);
-        }
-        let mut active = Vec::new();
-        map.retain(|uid, &mut pid| {
-            let alive = Path::new(&format!("/proc/{}", pid)).exists();
-            if alive {
-                active.push(uid.clone());
-            }
-            alive
-        });
-        active
+        *map = scanned.clone();
+        scanned.into_keys().collect()
     }
 }
 
-/// Proactively scans Linux /proc for running Battle.net game client processes
+/// Proactively scans Linux /proc for running Blizzard game client processes (strictly excluding launchers/agents)
 pub fn scan_running_battlenet_processes() -> HashMap<String, u32> {
     let mut detected = HashMap::new();
 
@@ -86,16 +62,41 @@ pub fn scan_running_battlenet_processes() -> HashMap<String, u32> {
                 }
 
                 let exe0 = args[0].to_lowercase();
-                if exe0.contains("node") || exe0.contains("python") || exe0.contains("bash") || exe0.contains("grep") || exe0.contains("cargo") {
+                if exe0.contains("node")
+                    || exe0.contains("python")
+                    || exe0.contains("bash")
+                    || exe0.contains("grep")
+                    || exe0.contains("cargo")
+                    || exe0.contains("wineserver")
+                {
                     continue;
                 }
 
-                // 1. Look for explicit -uid argument (e.g., -uid wowf)
+                // Strictly ignore launcher, updater, and helper processes
+                let is_launcher = args.iter().any(|arg| {
+                    let a = arg.to_lowercase();
+                    a.ends_with("battle.net.exe")
+                        || a.ends_with("battle.net launcher.exe")
+                        || a.ends_with("agent.exe")
+                        || a.ends_with("agenthelper.exe")
+                        || a.ends_with("blizzarderror.exe")
+                        || a.ends_with("blizzard uninstaller.exe")
+                        || a.ends_with("winedevice.exe")
+                        || a.ends_with("conhost.exe")
+                });
+                if is_launcher {
+                    continue;
+                }
+
+                // 1. Look for explicit -uid argument on the game binary (e.g., Wow.exe ... -uid wowf)
                 let mut found_uid: Option<String> = None;
                 for i in 0..args.len() {
                     if args[i] == "-uid" && i + 1 < args.len() {
                         let uid_val = args[i + 1].trim().to_lowercase();
-                        if !uid_val.is_empty() {
+                        const IGNORED_UIDS: &[&str] = &[
+                            "agent", "bna", "battle.net", "battlenet", "bdk", "bdko", "client"
+                        ];
+                        if !uid_val.is_empty() && !IGNORED_UIDS.contains(&uid_val.as_str()) {
                             found_uid = Some(uid_val);
                             break;
                         }
@@ -119,12 +120,22 @@ pub fn scan_running_battlenet_processes() -> HashMap<String, u32> {
                         found_uid = Some("pro".to_string());
                     } else if cmd_lower.contains("warcraft iii.exe") {
                         found_uid = Some("w3".to_string());
-                    } else if cmd_lower.contains("sc2_x64.exe") || cmd_lower.contains("starcraft ii.exe") {
+                    } else if cmd_lower.contains("sc2_x64.exe") || cmd_lower.contains("starcraft ii.exe") || cmd_lower.contains("sc2switcher") {
                         found_uid = Some("sc2".to_string());
                     } else if cmd_lower.contains("hearthstone.exe") {
-                        found_uid = Some("wtcg".to_string());
-                    } else if cmd_lower.contains("heroesofthestorm") {
+                        found_uid = Some("hs".to_string());
+                    } else if cmd_lower.contains("heroesofthestorm") || cmd_lower.contains("heroesswitcher") {
                         found_uid = Some("hero".to_string());
+                    } else if cmd_lower.contains("d2r.exe") {
+                        found_uid = Some("osi".to_string());
+                    } else if cmd_lower.contains("diablo iii64.exe") || cmd_lower.contains("diablo iii.exe") {
+                        found_uid = Some("diablo3".to_string());
+                    } else if cmd_lower.contains("starcraft.exe") {
+                        found_uid = Some("s1".to_string());
+                    } else if cmd_lower.contains("modernwarfare.exe") || cmd_lower.contains("cod.exe") {
+                        found_uid = Some("odin".to_string());
+                    } else if cmd_lower.contains("blizzard arcade collection.exe") {
+                        found_uid = Some("rtro".to_string());
                     }
                 }
 
@@ -279,7 +290,7 @@ pub fn ensure_battlenet_minimized_config(prefix: &Path) {
 /// Launches a Battle.net game delegated to the Battle.net launcher client inside the Wine prefix.
 /// Formula: WINEPREFIX="<path>" [gamemoderun] [mangohud] <runner_bin> "<path_to_Battle.net.exe>" --exec="launch <game_uid>"
 pub async fn launch_battlenet_game(
-    state: &BattleNetLauncherState,
+    _state: &BattleNetLauncherState,
     product_uid: &str,
 ) -> Result<(), String> {
     let conn = db::open_db().map_err(|e| e.to_string())?;
@@ -359,9 +370,9 @@ pub async fn launch_battlenet_game(
         .map_err(|e| format!("Échec du lancement du processus Wine Battle.net: {}", e))?;
 
     if let Some(pid) = child.id() {
-        println!("[Loom::BattleNet] Processus lancé avec succès (PID: {})", pid);
-        let mut map = state.running_pids.write().await;
-        map.insert(product_uid.to_string(), pid);
+        println!("[Loom::BattleNet] Commande Battle.net transmise (PID runner: {})", pid);
+        // Do NOT register runner PID in state.running_pids: the actual game process
+        // is tracked by scan_running_battlenet_processes when the game executable starts.
     }
 
     // Update last_played timestamp in database
@@ -371,43 +382,29 @@ pub async fn launch_battlenet_game(
     Ok(())
 }
 
-/// Force-kills the Battle.net game and cleans up the Wine environment to avoid zombie processes.
+/// Force-kills the Battle.net game cleanly without killing the whole Wine prefix unless no game is found.
 pub async fn kill_battlenet_game(
     state: &BattleNetLauncherState,
     product_uid: &str,
 ) -> Result<(), String> {
-    let conn = db::open_db().map_err(|e| e.to_string())?;
-    let config = db::get_battlenet_config(&conn).map_err(|e| e.to_string())?;
+    println!("[Loom::BattleNet] Arrêt ciblé du jeu '{}'", product_uid);
 
-    println!("[Loom::BattleNet] Arrêt d'urgence du jeu '{}'", product_uid);
-
-    // 1. Terminate tracked PID directly if recorded
+    // 1. Terminate tracked game PID directly
     let pid_opt = {
-        let mut map = state.running_pids.write().await;
-        map.remove(product_uid).or_else(|| {
-            let scanned = scan_running_battlenet_processes();
-            scanned.get(product_uid).copied()
-        })
+        let scanned = scan_running_battlenet_processes();
+        scanned.get(product_uid).copied()
     };
 
     if let Some(pid) = pid_opt {
         // Send SIGTERM
         let _ = Command::new("kill").arg("-15").arg(pid.to_string()).status().await;
-        tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
         // Send SIGKILL if still present
         if Path::new(&format!("/proc/{}", pid)).exists() {
             let _ = Command::new("kill").arg("-9").arg(pid.to_string()).status().await;
         }
-    }
-
-    // 2. Execute wineserver -k on the Wine prefix to terminate any orphan Agent.exe or Wine subprocesses
-    let prefix_path = Path::new(&config.wine_prefix_path);
-    if prefix_path.exists() {
-        let _ = Command::new("wineserver")
-            .arg("-k")
-            .env("WINEPREFIX", &config.wine_prefix_path)
-            .status()
-            .await;
+        let mut map = state.running_pids.write().await;
+        map.remove(product_uid);
     }
 
     Ok(())

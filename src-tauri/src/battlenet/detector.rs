@@ -61,7 +61,7 @@ pub fn product_uid_to_name(uid: &str) -> &'static str {
     }
 }
 
-/// Known executable paths for Blizzard games
+/// Known executable paths for Blizzard games (strict game binaries only, no launcher stubs)
 pub fn get_known_executable_relative_paths(product_uid: &str) -> Vec<&'static str> {
     match product_uid.to_lowercase().as_str() {
         "wow" | "wowf" | "wow_forever" => vec![
@@ -69,11 +69,11 @@ pub fn get_known_executable_relative_paths(product_uid: &str) -> Vec<&'static st
             "_retail_/Wow.exe",
             "Wow.exe",
             "_classic_/WowClassic.exe",
-            "World of Warcraft Launcher.exe",
+            "_classic_era_/WowClassic.exe",
         ],
         "wow_classic" => vec!["_classic_/WowClassic.exe", "WowClassic.exe", "_classic_era_/WowClassic.exe"],
         "wow_classic_era" => vec!["_classic_era_/WowClassic.exe", "WowClassic.exe"],
-        "fenris" => vec!["Diablo IV.exe", "Diablo IV Launcher.exe"],
+        "fenris" => vec!["Diablo IV.exe"],
         "pro" => vec!["_retail_/Overwatch.exe", "Overwatch.exe"],
         "w3" => vec!["_retail_/x86_64/Warcraft III.exe", "Warcraft III.exe", "x86_64/Warcraft III.exe"],
         "odin" => vec!["ModernWarfare.exe", "CoD.exe"],
@@ -245,9 +245,12 @@ pub fn parse_product_db(product_db_path: &Path) -> Result<Vec<ProductDbEntry>, S
                 if let Some(sub_bytes) = reader.read_bytes() {
                     if let Some(entry) = parse_product_install_message(sub_bytes) {
                         if !entry.uid.is_empty() && !entry.install_path.is_empty() {
-                            // Filter internal Agent and Battle.net client
+                            // Filter internal Agent, BDK, and Battle.net client components
                             let low = entry.uid.to_lowercase();
-                            if low != "agent" && low != "bna" {
+                            const IGNORED_INTERNAL_UIDS: &[&str] = &[
+                                "agent", "bna", "battle.net", "battlenet", "bdk", "bdko", "client"
+                            ];
+                            if !IGNORED_INTERNAL_UIDS.contains(&low.as_str()) {
                                 entries.push(entry);
                             }
                         }
@@ -452,7 +455,7 @@ pub fn locate_build_info(base_dir: &Path) -> Option<PathBuf> {
     None
 }
 
-/// Locates the game executable relative to the game's root directory
+/// Locates the game executable relative to the game's root directory (ignoring launcher/helper binaries)
 pub fn find_game_executable(game_dir: &Path, product_uid: &str) -> Option<String> {
     // 1. Check known relative paths for this product UID
     for rel in get_known_executable_relative_paths(product_uid) {
@@ -461,7 +464,7 @@ pub fn find_game_executable(game_dir: &Path, product_uid: &str) -> Option<String
         }
     }
 
-    // 2. Scan root directory for any .exe
+    // 2. Scan root directory for any .exe, strictly ignoring launcher stubs
     if let Ok(entries) = fs::read_dir(game_dir) {
         for entry in entries.flatten() {
             let p = entry.path();
@@ -470,7 +473,12 @@ pub fn find_game_executable(game_dir: &Path, product_uid: &str) -> Option<String
                     if ext.to_string_lossy().eq_ignore_ascii_case("exe") {
                         let filename = p.file_name().unwrap().to_string_lossy().to_string();
                         let low = filename.to_lowercase();
-                        if !low.contains("crash") && !low.contains("error") && !low.contains("uninstall") {
+                        if !low.contains("crash")
+                            && !low.contains("error")
+                            && !low.contains("uninstall")
+                            && !low.contains("launcher")
+                            && !low.contains("helper")
+                        {
                             return Some(filename);
                         }
                     }
@@ -480,7 +488,7 @@ pub fn find_game_executable(game_dir: &Path, product_uid: &str) -> Option<String
     }
 
     // 3. Scan subdirectories (_retail_, etc.)
-    for sub in &["_retail_", "_classic_", "x86_64", "Support64", "Support"] {
+    for sub in &["_retail_", "_forever_", "_classic_", "_classic_era_", "x86_64", "Support64", "Support"] {
         let sub_dir = game_dir.join(sub);
         if sub_dir.is_dir() {
             if let Ok(entries) = fs::read_dir(&sub_dir) {
@@ -491,7 +499,12 @@ pub fn find_game_executable(game_dir: &Path, product_uid: &str) -> Option<String
                             if ext.to_string_lossy().eq_ignore_ascii_case("exe") {
                                 let filename = p.file_name().unwrap().to_string_lossy().to_string();
                                 let low = filename.to_lowercase();
-                                if !low.contains("crash") && !low.contains("error") {
+                                if !low.contains("crash")
+                                    && !low.contains("error")
+                                    && !low.contains("uninstall")
+                                    && !low.contains("launcher")
+                                    && !low.contains("helper")
+                                {
                                     return Some(format!("{}/{}", sub, filename));
                                 }
                             }
@@ -677,10 +690,15 @@ pub fn detect_directory_last_modified(dir: &Path) -> Option<i64> {
 }
 
 /// Detects all installed editions/instances of World of Warcraft inside a root WoW directory
+/// Note: Editions are ONLY marked as installed if their real game client binary (Wow.exe / WowClassic.exe) exists.
 pub fn detect_wow_editions(base_wow_path: &Path) -> Vec<BattleNetGameRecord> {
     let mut editions = Vec::new();
     let name_str = base_wow_path.file_name().unwrap_or_default().to_string_lossy().to_lowercase();
-    let is_wow_dir = name_str.contains("world of warcraft") || base_wow_path.join("_retail_").exists() || base_wow_path.join("_forever_").exists() || base_wow_path.join("_classic_").exists();
+    let is_wow_dir = name_str.contains("world of warcraft")
+        || base_wow_path.join("_retail_").exists()
+        || base_wow_path.join("_forever_").exists()
+        || base_wow_path.join("_classic_").exists()
+        || base_wow_path.join("_classic_era_").exists();
 
     if !is_wow_dir {
         return editions;
@@ -688,45 +706,60 @@ pub fn detect_wow_editions(base_wow_path: &Path) -> Vec<BattleNetGameRecord> {
 
     let p_str = base_wow_path.to_string_lossy().to_string();
 
-    // 1. Forever
+    // Map versions from .build.info if available
+    let build_info_map: HashMap<String, String> = locate_build_info(base_wow_path)
+        .and_then(|p| parse_build_info(&p).ok())
+        .map(|rows| {
+            let mut map = HashMap::new();
+            for r in rows {
+                map.insert(r.product.to_lowercase(), r.version);
+            }
+            map
+        })
+        .unwrap_or_default();
+
+    // 1. Forever Edition
     let forever_dir = base_wow_path.join("_forever_");
     if forever_dir.is_dir() {
         let exe = if forever_dir.join("Wow.exe").exists() {
-            "_forever_/Wow.exe"
+            Some("_forever_/Wow.exe")
         } else if forever_dir.join("WowClassic.exe").exists() {
-            "_forever_/WowClassic.exe"
+            Some("_forever_/WowClassic.exe")
         } else {
-            "World of Warcraft Launcher.exe"
+            None
         };
-        let last_played = detect_directory_last_modified(&forever_dir);
-        editions.push(BattleNetGameRecord {
-            product_uid: "wowf".to_string(),
-            name: "World of Warcraft: Forever".to_string(),
-            install_path: p_str.clone(),
-            executable_relative_path: exe.to_string(),
-            version_build: Some("1.60.1.70790".to_string()),
-            is_external: false,
-            is_installed: true,
-            last_played,
-            playtime_seconds: 0,
-        });
+
+        if let Some(exe_rel) = exe {
+            let last_played = detect_directory_last_modified(&forever_dir);
+            let version = build_info_map
+                .get("wowf")
+                .cloned()
+                .or_else(|| build_info_map.get("wow").cloned());
+            editions.push(BattleNetGameRecord {
+                product_uid: "wowf".to_string(),
+                name: "World of Warcraft: Forever".to_string(),
+                install_path: p_str.clone(),
+                executable_relative_path: exe_rel.to_string(),
+                version_build: version,
+                is_external: false,
+                is_installed: true,
+                last_played,
+                playtime_seconds: 0,
+            });
+        }
     }
 
     // 2. Retail
     let retail_dir = base_wow_path.join("_retail_");
-    if retail_dir.is_dir() {
-        let exe = if retail_dir.join("Wow.exe").exists() {
-            "_retail_/Wow.exe"
-        } else {
-            "World of Warcraft Launcher.exe"
-        };
+    if retail_dir.is_dir() && retail_dir.join("Wow.exe").exists() {
         let last_played = detect_directory_last_modified(&retail_dir);
+        let version = build_info_map.get("wow").cloned();
         editions.push(BattleNetGameRecord {
             product_uid: "wow".to_string(),
             name: "World of Warcraft".to_string(),
             install_path: p_str.clone(),
-            executable_relative_path: exe.to_string(),
-            version_build: Some("11.0.2".to_string()),
+            executable_relative_path: "_retail_/Wow.exe".to_string(),
+            version_build: version,
             is_external: false,
             is_installed: true,
             last_played,
@@ -736,19 +769,18 @@ pub fn detect_wow_editions(base_wow_path: &Path) -> Vec<BattleNetGameRecord> {
 
     // 3. Classic
     let classic_dir = base_wow_path.join("_classic_");
-    if classic_dir.is_dir() {
-        let exe = if classic_dir.join("WowClassic.exe").exists() {
-            "_classic_/WowClassic.exe"
-        } else {
-            "World of Warcraft Launcher.exe"
-        };
+    if classic_dir.is_dir() && classic_dir.join("WowClassic.exe").exists() {
         let last_played = detect_directory_last_modified(&classic_dir);
+        let version = build_info_map
+            .get("wow_classic")
+            .cloned()
+            .or_else(|| build_info_map.get("wow").cloned());
         editions.push(BattleNetGameRecord {
             product_uid: "wow_classic".to_string(),
             name: "World of Warcraft Classic".to_string(),
             install_path: p_str.clone(),
-            executable_relative_path: exe.to_string(),
-            version_build: Some("1.15.5".to_string()),
+            executable_relative_path: "_classic_/WowClassic.exe".to_string(),
+            version_build: version,
             is_external: false,
             is_installed: true,
             last_played,
@@ -758,19 +790,35 @@ pub fn detect_wow_editions(base_wow_path: &Path) -> Vec<BattleNetGameRecord> {
 
     // 4. Classic Era
     let classic_era_dir = base_wow_path.join("_classic_era_");
-    if classic_era_dir.is_dir() {
-        let exe = if classic_era_dir.join("WowClassic.exe").exists() {
-            "_classic_era_/WowClassic.exe"
-        } else {
-            "World of Warcraft Launcher.exe"
-        };
+    if classic_era_dir.is_dir() && classic_era_dir.join("WowClassic.exe").exists() {
         let last_played = detect_directory_last_modified(&classic_era_dir);
+        let version = build_info_map
+            .get("wow_classic_era")
+            .cloned()
+            .or_else(|| build_info_map.get("wow_classic").cloned());
         editions.push(BattleNetGameRecord {
             product_uid: "wow_classic_era".to_string(),
             name: "World of Warcraft Classic: Season of Discovery".to_string(),
             install_path: p_str.clone(),
-            executable_relative_path: exe.to_string(),
-            version_build: Some("1.15.5".to_string()),
+            executable_relative_path: "_classic_era_/WowClassic.exe".to_string(),
+            version_build: version,
+            is_external: false,
+            is_installed: true,
+            last_played,
+            playtime_seconds: 0,
+        });
+    }
+
+    // 5. Fallback if Wow.exe is at root directly
+    if base_wow_path.join("Wow.exe").exists() && editions.is_empty() {
+        let last_played = detect_directory_last_modified(base_wow_path);
+        let version = build_info_map.get("wow").cloned();
+        editions.push(BattleNetGameRecord {
+            product_uid: "wow".to_string(),
+            name: "World of Warcraft".to_string(),
+            install_path: p_str.clone(),
+            executable_relative_path: "Wow.exe".to_string(),
+            version_build: version,
             is_external: false,
             is_installed: true,
             last_played,
@@ -786,6 +834,12 @@ pub fn scan_prefix_and_external_games(
     prefix_path: &Path,
     conn: &rusqlite::Connection,
 ) -> Result<Vec<BattleNetGameRecord>, String> {
+    // 0. Clean up internal/launcher components from SQLite if any previously slipped in
+    let _ = conn.execute(
+        "DELETE FROM battlenet_games WHERE product_uid IN ('battle.net', 'battlenet', 'agent', 'bna', 'bdk', 'bdko', 'client')",
+        [],
+    );
+
     // 1. Scan product.db if prefix exists
     let product_db_path = prefix_path
         .join("drive_c")
@@ -872,8 +926,7 @@ pub fn scan_prefix_and_external_games(
         }
     }
 
-    // 3. Synchronize with database
-    // Persist all newly detected internal games
+    // 3. Synchronize with database: persist newly detected internal games
     for g in &detected_internal {
         let existing = db::get_battlenet_game(conn, &g.product_uid).unwrap_or(None);
         let mut to_save = g.clone();
@@ -889,14 +942,29 @@ pub fn scan_prefix_and_external_games(
         let _ = db::insert_or_replace_battlenet_game(conn, &to_save);
     }
 
-    // 4. Verify existing external games in DB: re-check if directory is still on disk
+    // 4. Verify all existing games in DB: reconcile is_installed flag and remove invalid launcher entries
     let stored_games = db::get_battlenet_games(conn).map_err(|e| e.to_string())?;
     for mut stored in stored_games {
+        let exe_lower = stored.executable_relative_path.to_lowercase();
+        let is_launcher_stub = exe_lower.contains("launcher") || exe_lower.contains("agent.exe");
+
         if stored.is_external {
             let p = PathBuf::from(&stored.install_path);
-            let still_installed = p.exists();
+            let exe_exists = p.join(&stored.executable_relative_path).exists();
+            let still_installed = p.exists() && exe_exists && !is_launcher_stub;
             if stored.is_installed != still_installed {
                 stored.is_installed = still_installed;
+                let _ = db::insert_or_replace_battlenet_game(conn, &stored);
+            }
+        } else {
+            // Internal game: verify if actively detected and real executable exists
+            let re_detected = detected_internal.iter().any(|g| g.product_uid == stored.product_uid);
+            let full_exe_path = PathBuf::from(&stored.install_path).join(&stored.executable_relative_path);
+            let exe_valid = full_exe_path.exists() && !is_launcher_stub;
+            let should_be_installed = re_detected && exe_valid;
+
+            if stored.is_installed != should_be_installed {
+                stored.is_installed = should_be_installed;
                 let _ = db::insert_or_replace_battlenet_game(conn, &stored);
             }
         }
@@ -984,5 +1052,100 @@ us|1|deadbeef12345678|2.0.4.59888|fenris\n";
         assert!(result.is_err());
         let err_msg = result.unwrap_err();
         assert!(err_msg.contains("n'existe pas"));
+    }
+
+    #[test]
+    fn test_detect_wow_editions_ignores_launcher_stubs() {
+        let tmp_dir = std::env::temp_dir().join("loom_test_wow_launcher_stub");
+        let _ = fs::create_dir_all(&tmp_dir);
+
+        // Create _retail_ with only a launcher stub
+        let retail_dir = tmp_dir.join("_retail_");
+        let _ = fs::create_dir_all(&retail_dir);
+        let launcher_stub = tmp_dir.join("World of Warcraft Launcher.exe");
+        fs::write(&launcher_stub, b"MZ").unwrap();
+
+        // Should NOT detect retail as installed since Wow.exe is missing
+        let detected = detect_wow_editions(&tmp_dir);
+        assert!(detected.is_empty(), "Launcher stub without Wow.exe should not detect an installed edition");
+
+        // Now add real Wow.exe inside _retail_
+        let real_wow_exe = retail_dir.join("Wow.exe");
+        fs::write(&real_wow_exe, b"MZ").unwrap();
+
+        let detected_with_real = detect_wow_editions(&tmp_dir);
+        assert_eq!(detected_with_real.len(), 1);
+        assert_eq!(detected_with_real[0].product_uid, "wow");
+        assert_eq!(detected_with_real[0].executable_relative_path, "_retail_/Wow.exe");
+
+        let _ = fs::remove_dir_all(&tmp_dir);
+    }
+
+    #[test]
+    fn test_find_game_executable_strictly_ignores_launcher() {
+        let tmp_dir = std::env::temp_dir().join("loom_test_find_exe_no_launcher");
+        let _ = fs::create_dir_all(&tmp_dir);
+
+        // Put launcher stub
+        let stub = tmp_dir.join("Diablo IV Launcher.exe");
+        fs::write(&stub, b"MZ").unwrap();
+
+        let found = find_game_executable(&tmp_dir, "fenris");
+        assert_eq!(found, None, "Should not return Launcher stub as game executable");
+
+        // Put real executable
+        let real = tmp_dir.join("Diablo IV.exe");
+        fs::write(&real, b"MZ").unwrap();
+
+        let found_real = find_game_executable(&tmp_dir, "fenris");
+        assert_eq!(found_real, Some("Diablo IV.exe".to_string()));
+
+        let _ = fs::remove_dir_all(&tmp_dir);
+    }
+
+    #[test]
+    fn test_scan_cleans_up_launcher_and_ghost_entries() {
+        let conn = rusqlite::Connection::open_in_memory().unwrap();
+        crate::db::init_schema(&conn).unwrap();
+
+        // Insert a ghost game pointing to a launcher stub
+        let fake_record = BattleNetGameRecord {
+            product_uid: "wow".to_string(),
+            name: "World of Warcraft".to_string(),
+            install_path: "/tmp/fake_wow".to_string(),
+            executable_relative_path: "World of Warcraft Launcher.exe".to_string(),
+            version_build: Some("11.0.2".to_string()),
+            is_external: false,
+            is_installed: true,
+            last_played: None,
+            playtime_seconds: 0,
+        };
+        db::insert_or_replace_battlenet_game(&conn, &fake_record).unwrap();
+
+        // Also insert an internal tool UID that should be removed
+        let internal_tool = BattleNetGameRecord {
+            product_uid: "battle.net".to_string(),
+            name: "Battle.net Client".to_string(),
+            install_path: "/tmp/fake_bnet".to_string(),
+            executable_relative_path: "Battle.net.exe".to_string(),
+            version_build: None,
+            is_external: false,
+            is_installed: true,
+            last_played: None,
+            playtime_seconds: 0,
+        };
+        db::insert_or_replace_battlenet_game(&conn, &internal_tool).unwrap();
+
+        // Run scan with non-existent prefix
+        let prefix = PathBuf::from("/tmp/non_existent_prefix_for_test");
+        let results = scan_prefix_and_external_games(&prefix, &conn).unwrap();
+
+        // 'battle.net' UID must be deleted
+        assert!(!results.iter().any(|g| g.product_uid == "battle.net"));
+
+        // 'wow' pointing to launcher must have is_installed = false
+        if let Some(wow_rec) = results.iter().find(|g| g.product_uid == "wow") {
+            assert!(!wow_rec.is_installed, "Ghost entry pointing to launcher must not be marked installed");
+        }
     }
 }

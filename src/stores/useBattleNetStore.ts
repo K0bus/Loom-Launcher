@@ -509,9 +509,6 @@ export const useBattleNetStore = defineStore('battlenet', () => {
     try {
       toast.show(`Lancement de ${title}...`, 'info')
       await ipc.launchBattleNetGame(productUid)
-      if (!runningGames.value.includes(productUid)) {
-        runningGames.value.push(productUid)
-      }
       toast.show(`Lancement transmis pour ${title}`, 'success')
     } catch (e: any) {
       console.error('[BattleNetStore] Erreur lancement:', e)
