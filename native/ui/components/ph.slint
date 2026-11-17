@@ -1,0 +1,8 @@
+// Icône Phosphor (police). weight: 0 = regular, 1 = fill, 2 = bold.
+export component Ph inherits Text {
+    in property <int> weight: 0;
+    font-family: weight == 1 ? "Phosphor-Fill" : (weight == 2 ? "Phosphor-Bold" : "Phosphor");
+    font-size: 16px;
+    horizontal-alignment: center;
+    vertical-alignment: center;
+}

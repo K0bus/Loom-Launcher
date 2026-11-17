@@ -1,0 +1,521 @@
+// Équivalent de MinecraftStudio.vue (hub d'instances + page d'instance)
+import { ScrollView } from "std-widgets.slint";
+import { Theme, Icons } from "../theme.slint";
+import { Ph } from "../components/ph.slint";
+import { UiBadge, UiButton, UiInput, UiModal, UiSwitch } from "../components/ui.slint";
+import { UiSelect, FieldLabel, SecretInput } from "../components/form.slint";
+import { Modding } from "modding_state.slint";
+import { BackLink, TabBar, TabPill, Panel, Stat, Chip, SmallBtn, EmptyState, Hero } from "../components/studio.slint";
+
+export struct McInst { id: string, name: string, loader: string, loader-variant: int, version: string, mods: int, playtime: string, last-played: string, state: int, banner: image, has-banner: bool, hue: color }
+export struct McMod { id: string, name: string, file: string, provider: string, enabled: bool }
+export struct McCat { id: string, name: string, summary: string, author: string, downloads: string, provider: string, icon: image, has-icon: bool, installed: bool, installing: bool }
+export struct McServer { name: string, ip: string, online: bool, checked: bool, ping: string, motd: string, players: string, version: string }
+export struct McSave { folder: string, name: string, last-played: string, mode: string, version: string, size: string }
+export struct McPack { title: string, author: string, downloads: string, summary: string, loader: string, loader-variant: int, mc-version: string, source: string, icon: image, has-icon: bool, installing: bool }
+export struct McLog { time: string, level: string, source: string, msg: string }
+
+export global Minecraft {
+    in property <bool> account-connected;
+    in property <string> account-name;
+    in property <image> account-avatar;
+    in property <bool> has-avatar;
+    in property <[McInst]> instances;
+    in-out property <string> inst-search;
+    // création
+    in-out property <bool> create-open;
+    in-out property <string> create-name;
+    in property <[string]> versions;
+    in-out property <int> create-version: 0;
+    in-out property <int> create-loader: 0;
+    in-out property <string> create-ram: "6";
+    in property <bool> creating;
+    // instance sélectionnée
+    in property <McInst> sel;
+    in property <string> sel-path;
+    in-out property <int> tab: 0;
+    in property <[McMod]> mods;
+    in property <[McCat]> catalog;
+    in-out property <string> cat-query;
+    in-out property <int> cat-provider: 0;
+    in property <bool> cat-loading;
+    in property <[McLog]> logs;
+    in-out property <string> set-min;
+    in-out property <string> set-max;
+    in-out property <string> set-java;
+    in-out property <string> set-jvm;
+    in property <bool> launching;
+    // serveurs / cartes / modpacks
+    in property <[McServer]> servers;
+    in-out property <string> srv-name;
+    in-out property <string> srv-ip;
+    in property <bool> srv-pinging;
+    in property <[McSave]> saves;
+    in-out property <string> save-pending;
+    in-out property <int> hub-tab: 0;
+    in property <[McPack]> packs;
+    in-out property <string> pack-query;
+    in-out property <int> pack-provider: 0;
+    in property <bool> pack-loading;
+
+    callback open-instance(string);
+    callback back-hub();
+    callback create-submit();
+    callback launch(string);
+    callback stop(string);
+    callback delete-instance(string);
+    callback toggle-mod(string);
+    callback delete-mod(string);
+    callback search();
+    callback install(int);
+    callback save-settings();
+    callback open-folder();
+    callback login-ms();
+    callback clear-logs();
+    callback load-tab(int);
+    callback server-add();
+    callback server-delete(int);
+    callback servers-ping();
+    callback save-backup(string);
+    callback save-delete(string);
+    callback save-open(string);
+    callback packs-search();
+    callback pack-install(int);
+}
+
+
+component InstanceCard inherits Rectangle {
+    in property <McInst> inst;
+    callback open();
+    callback launch();
+    callback stop();
+    private property <bool> hov: card.has-hover || play.has-hover;
+    height: 262px;
+    background: #18181b99; border-radius: 24px; border-width: 1px; clip: true;
+    border-color: hov ? Theme.amber-500.with-alpha(0.7) : Theme.border-subtle;
+    card := TouchArea { mouse-cursor: pointer; clicked => { root.open(); } }
+    Rectangle {
+        y: 0px; width: parent.width; height: 176px; clip: true; background: Theme.zinc-950;
+        if root.inst.has-banner: Image { source: root.inst.banner; width: parent.width; height: parent.height; image-fit: cover; }
+        if !root.inst.has-banner: Rectangle { background: @linear-gradient(135deg, root.inst.hue, Theme.zinc-950); Ph { text: "\u{e1da}"; weight: 1; font-size: 64px; color: #ffffff22; } }
+        Rectangle { background: @linear-gradient(0deg, #09090b 0%, #09090b66 40%, transparent 100%); }
+        HorizontalLayout {
+            x: 14px; y: 14px; width: parent.width - 28px; height: 24px;
+            UiBadge { text: root.inst.loader; variant: root.inst.loader-variant; }
+            Rectangle { horizontal-stretch: 1; }
+            UiBadge { text: root.inst.state == 1 ? "EN JEU" : root.inst.state == 2 ? "INSTALLATION" : "PRÊT"; variant: root.inst.state == 1 ? 2 : root.inst.state == 2 ? 1 : 0; dot: root.inst.state != 0; }
+        }
+        if root.hov: Rectangle {
+            width: 56px; height: 56px; border-radius: 16px; x: (parent.width - 56px) / 2; y: (parent.height - 56px) / 2;
+            background: root.inst.state == 1 ? Theme.rose-500 : Theme.amber-500;
+            drop-shadow-blur: 24px; drop-shadow-color: Theme.amber-glow;
+            Ph { weight: 1; text: root.inst.state == 1 ? Icons.stop : Icons.play; font-size: 24px; color: root.inst.state == 1 ? #ffffff : Theme.zinc-950; }
+        }
+        play := TouchArea {
+            width: 56px; height: 56px; x: (parent.width - 56px) / 2; y: (parent.height - 56px) / 2; mouse-cursor: pointer;
+            clicked => { if (root.inst.state == 1) { root.stop(); } else { root.launch(); } }
+        }
+        HorizontalLayout {
+            x: 16px; y: parent.height - 36px; width: parent.width - 32px; height: 26px; spacing: 8px;
+            Text { text: root.inst.name; font-size: 18px; font-weight: 700; color: root.hov ? Theme.amber-400 : #ffffff; overflow: elide; vertical-alignment: bottom; }
+            Text { text: root.inst.version; font-family: Theme.font-mono; font-size: 12px; font-weight: 700; color: Theme.amber-400; vertical-alignment: bottom; }
+        }
+    }
+    VerticalLayout {
+        y: 176px; height: parent.height - 176px; padding: 20px; spacing: 12px; alignment: start;
+        HorizontalLayout {
+            spacing: 8px;
+            Stat { label: "MODS"; value: root.inst.mods; }
+            Stat { label: "TEMPS DE JEU"; value: root.inst.playtime; }
+            Stat { label: "DERNIÈRE PARTIE"; value: root.inst.last-played; }
+        }
+    }
+}
+
+component Account inherits Rectangle {
+    min-width: l.min-width; preferred-width: l.preferred-width; max-width: l.preferred-width; horizontal-stretch: 0; height: 40px; border-radius: 20px; border-width: 1px;
+    background: Minecraft.account-connected ? #18181bcc : (ta.has-hover ? Theme.zinc-800 : #18181bcc);
+    border-color: Minecraft.account-connected ? Theme.border-subtle : Theme.amber-border;
+    l := HorizontalLayout {
+        padding-left: 6px; padding-right: 14px; spacing: 10px;
+        if Minecraft.account-connected: Rectangle {
+            width: 28px; height: 28px; y: 6px; border-radius: 8px; clip: true; background: Theme.zinc-950;
+            if Minecraft.has-avatar: Image { source: Minecraft.account-avatar; width: 28px; height: 28px; }
+        }
+        if !Minecraft.account-connected: Ph { text: Icons.shield-check; font-size: 14px; color: Theme.amber-400; width: 22px; }
+        VerticalLayout {
+            alignment: center; spacing: 0px;
+            Text { text: Minecraft.account-connected ? Minecraft.account-name : "Lier compte Microsoft"; font-size: 12px; font-weight: 700; color: Minecraft.account-connected ? Theme.zinc-100 : Theme.amber-300; }
+            if Minecraft.account-connected: Text { text: "● Session Xbox Live active"; font-family: Theme.font-mono; font-size: 9px; color: Theme.emerald-400; }
+        }
+    }
+    ta := TouchArea { enabled: !Minecraft.account-connected; mouse-cursor: pointer; clicked => { Minecraft.login-ms(); } }
+}
+
+component HubScreen inherits Rectangle {
+    private property <int> cols: max(1, min(4, floor((self.width - 112px + 24px) / 340px)));
+    private property <length> content-w: min(root.width - 112px, 1280px);
+    private property <length> card-w: (content-w - (cols - 1) * 24px) / cols;
+    ScrollView {
+        VerticalLayout {
+            Hero {
+                hero-height: 300px; hue: Theme.emerald-500.with-alpha(0.35);
+                HorizontalLayout {
+                    x: 56px; y: 24px; width: parent.width - 112px; height: 40px;
+                    BackLink { text: "Modding"; clicked => { Modding.back(); } }
+                    Rectangle { horizontal-stretch: 1; }
+                    Account { }
+                }
+                VerticalLayout {
+                    x: 56px; y: parent.height - 160px; width: parent.width - 112px; spacing: 6px;
+                    Text { text: "MOJANG STUDIOS • JAVA EDITION"; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-400; }
+                    Text { text: "MINECRAFT"; font-family: Theme.font-display; font-size: 56px; font-weight: 900; color: #ffffff; }
+                    Text { text: "Sandbox • Survie • Aventure • Modding Hermétique"; font-size: 13px; color: Theme.zinc-300; }
+                }
+            }
+            VerticalLayout {
+                padding-left: max(56px, (root.width - 1280px) / 2); padding-right: max(56px, (root.width - 1280px) / 2);
+                padding-top: 32px; padding-bottom: 64px; spacing: 24px;
+                HorizontalLayout {
+                    spacing: 12px;
+                    VerticalLayout {
+                        horizontal-stretch: 1; spacing: 4px;
+                        HorizontalLayout {
+                            spacing: 10px; alignment: start;
+                            Ph { text: Icons.stack; weight: 1; font-size: 20px; color: Theme.amber-400; width: 24px; }
+                            Text { text: "Vos Environnements & Instances"; font-size: 18px; font-weight: 800; color: Theme.zinc-100; vertical-alignment: center; }
+                            UiBadge { text: Minecraft.instances.length + (Minecraft.instances.length > 1 ? " INSTANCES" : " INSTANCE"); variant: 1; }
+                        }
+                        Text { text: "Chaque instance dispose de son dossier .minecraft/ hermétique et de ses réglages JVM dédiés."; font-size: 12px; color: Theme.zinc-400; }
+                    }
+                    UiInput { y: 6px; width: 260px; height: 38px; icon: Icons.search; placeholder: "Rechercher une instance..."; text <=> Minecraft.inst-search; }
+                    UiButton { y: 6px; variant: 0; size: 0; icon: Icons.plus-circle; text: "Nouvelle Instance"; clicked => { Minecraft.create-open = true; } }
+                }
+                HorizontalLayout {
+                    alignment: start;
+                    TabBar {
+                        TabPill { glyph: Icons.stack; text: "Instances"; badge: Minecraft.instances.length; active: Minecraft.hub-tab == 0; clicked => { Minecraft.hub-tab = 0; } }
+                        TabPill { glyph: Icons.download; text: "Catalogue de Modpacks"; active: Minecraft.hub-tab == 1; clicked => { Minecraft.hub-tab = 1; if (Minecraft.packs.length == 0) { Minecraft.packs-search(); } } }
+                    }
+                }
+                if Minecraft.hub-tab == 1: VerticalLayout {
+                    spacing: 14px;
+                    Panel {
+                        HorizontalLayout {
+                            spacing: 10px;
+                            UiInput { horizontal-stretch: 1; icon: Icons.search; placeholder: "Rechercher un modpack (ex: All the Mods, Better MC, Create)..."; text <=> Minecraft.pack-query; accepted(t) => { Minecraft.packs-search(); } }
+                            UiButton { variant: 0; size: 1; text: "Rechercher"; clicked => { Minecraft.packs-search(); } }
+                        }
+                        HorizontalLayout {
+                            spacing: 8px; alignment: start;
+                            Text { text: "Source :"; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-400; vertical-alignment: center; }
+                            Chip { text: "Tous"; active: Minecraft.pack-provider == 0; clicked => { Minecraft.pack-provider = 0; Minecraft.packs-search(); } }
+                            Chip { text: "Modrinth"; active: Minecraft.pack-provider == 1; clicked => { Minecraft.pack-provider = 1; Minecraft.packs-search(); } }
+                            Chip { text: "CurseForge"; active: Minecraft.pack-provider == 2; clicked => { Minecraft.pack-provider = 2; Minecraft.packs-search(); } }
+                        }
+                    }
+                    Panel {
+                        VerticalLayout {
+                            for p[i] in Minecraft.packs: Rectangle {
+                                height: 92px;
+                                Rectangle { y: parent.height - 1px; height: 1px; background: #27272a66; }
+                                HorizontalLayout {
+                                    padding: 12px; spacing: 14px;
+                                    Rectangle {
+                                        width: 60px; height: 60px; border-radius: 14px; clip: true; background: Theme.zinc-950; border-width: 1px; border-color: Theme.zinc-800;
+                                        if p.has-icon: Image { source: p.icon; width: 60px; height: 60px; image-fit: cover; }
+                                        if !p.has-icon: Ph { text: Icons.stack; font-size: 24px; color: Theme.zinc-600; }
+                                    }
+                                    VerticalLayout {
+                                        horizontal-stretch: 1; alignment: center; spacing: 3px;
+                                        HorizontalLayout { spacing: 8px; alignment: start; Text { text: p.title; font-size: 14px; font-weight: 700; color: Theme.zinc-100; vertical-alignment: center; } UiBadge { text: p.loader; variant: p.loader-variant; } UiBadge { text: "MC " + p.mc-version; variant: 0; } UiBadge { text: p.source; variant: p.source == "MODRINTH" ? 2 : 1; } }
+                                        Text { text: p.summary; font-size: 11px; color: Theme.zinc-400; overflow: elide; }
+                                        Text { text: "par " + p.author + "   ·   ↓ " + p.downloads; font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-500; }
+                                    }
+                                    UiButton { y: 18px; variant: 0; size: 0; enabled: !p.installing; icon: Icons.download; text: p.installing ? "Installation..." : "Installer"; clicked => { Minecraft.pack-install(i); } }
+                                }
+                            }
+                            if Minecraft.packs.length == 0: Text { text: Minecraft.pack-loading ? "Recherche en cours..." : "Aucun modpack. Lancez une recherche."; font-size: 12px; color: Theme.zinc-500; horizontal-alignment: center; height: 60px; vertical-alignment: center; }
+                        }
+                    }
+                }
+                if Minecraft.hub-tab == 0 && Minecraft.instances.length == 0: EmptyState {
+                    glyph: "\u{e1da}"; title: "Aucune instance Minecraft";
+                    text: "Créez votre premier environnement hermétique (Vanilla, Fabric, NeoForge ou Forge) pour commencer.";
+                }
+                if Minecraft.hub-tab == 0: grid := Rectangle {
+                    height: ceil(Minecraft.instances.length / root.cols) * (262px + 24px);
+                    for it[i] in Minecraft.instances: InstanceCard {
+                        x: mod(i, root.cols) * (root.card-w + 24px); y: floor(i / root.cols) * (262px + 24px);
+                        width: root.card-w; inst: it;
+                        open => { Minecraft.open-instance(it.id); }
+                        launch => { Minecraft.launch(it.id); }
+                        stop => { Minecraft.stop(it.id); }
+                    }
+                }
+                Rectangle { vertical-stretch: 1; }
+            }
+        }
+    }
+}
+
+component ModRow inherits Rectangle {
+    in property <McMod> m;
+    height: 52px;
+    Rectangle { y: parent.height - 1px; height: 1px; background: #27272a66; }
+    HorizontalLayout {
+        padding-left: 16px; padding-right: 16px; spacing: 12px;
+        VerticalLayout {
+            horizontal-stretch: 1; alignment: center;
+            Text { text: root.m.name; font-size: 13px; font-weight: 600; color: root.m.enabled ? Theme.zinc-100 : Theme.zinc-500; overflow: elide; }
+            Text { text: root.m.file; font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-500; overflow: elide; }
+        }
+        UiBadge { y: 14px; text: root.m.provider; variant: root.m.provider == "MODRINTH" ? 2 : root.m.provider == "CURSEFORGE" ? 1 : 0; }
+        UiSwitch { y: 14px; checked: root.m.enabled; toggled(c) => { Minecraft.toggle-mod(root.m.id); } }
+        Rectangle { width: 30px; SmallBtn { y: 12px; glyph: Icons.x; danger: true; clicked => { Minecraft.delete-mod(root.m.id); } } }
+    }
+}
+
+component CatalogRow inherits Rectangle {
+    in property <McCat> c;
+    in property <int> idx;
+    height: 84px;
+    Rectangle { y: parent.height - 1px; height: 1px; background: #27272a66; }
+    HorizontalLayout {
+        padding: 14px; spacing: 14px;
+        Rectangle {
+            width: 52px; height: 52px; border-radius: 12px; clip: true; background: Theme.zinc-950; border-width: 1px; border-color: Theme.zinc-800;
+            if root.c.has-icon: Image { source: root.c.icon; width: 52px; height: 52px; image-fit: cover; }
+            if !root.c.has-icon: Ph { text: Icons.stack; font-size: 22px; color: Theme.zinc-600; }
+        }
+        VerticalLayout {
+            horizontal-stretch: 1; spacing: 3px; alignment: center;
+            HorizontalLayout { spacing: 8px; alignment: start; Text { text: root.c.name; font-size: 14px; font-weight: 700; color: Theme.zinc-100; vertical-alignment: center; } UiBadge { text: root.c.provider; variant: root.c.provider == "MODRINTH" ? 2 : 1; } }
+            Text { text: root.c.summary; font-size: 11px; color: Theme.zinc-400; overflow: elide; }
+            Text { text: "par " + root.c.author + "   ·   ↓ " + root.c.downloads; font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-500; }
+        }
+        UiButton {
+            y: 12px;
+            variant: root.c.installed ? 1 : 0; size: 0; enabled: !root.c.installed && !root.c.installing;
+            icon: root.c.installed ? Icons.check : Icons.download;
+            text: root.c.installed ? "Installé" : root.c.installing ? "Installation..." : "Installer";
+            clicked => { Minecraft.install(root.idx); }
+        }
+    }
+}
+
+component InstanceScreen inherits Rectangle {
+    ScrollView {
+        VerticalLayout {
+            Hero {
+                hero-height: 250px; art: Minecraft.sel.banner; has-art: Minecraft.sel.has-banner; hue: Minecraft.sel.hue;
+                HorizontalLayout {
+                    x: 56px; y: 20px; width: parent.width - 112px; height: 40px; spacing: 12px;
+                    BackLink { text: "Toutes les instances"; clicked => { Minecraft.back-hub(); } }
+                    Rectangle { horizontal-stretch: 1; }
+                    Account { }
+                }
+                HorizontalLayout {
+                    x: 56px; y: parent.height - 120px; width: parent.width - 112px; height: 90px; spacing: 20px;
+                    Rectangle { width: 84px; height: 84px; y: 3px; border-radius: 20px; background: #18181bcc; border-width: 1px; border-color: Theme.zinc-700; Ph { text: "\u{e1da}"; weight: 1; font-size: 40px; color: Theme.amber-400; } }
+                    VerticalLayout {
+                        horizontal-stretch: 1; alignment: end; spacing: 6px;
+                        HorizontalLayout {
+                            spacing: 10px; alignment: start;
+                            Text { text: Minecraft.sel.name; font-size: 30px; font-weight: 800; color: #ffffff; vertical-alignment: center; }
+                            UiBadge { y: 10px; text: Minecraft.sel.loader; variant: Minecraft.sel.loader-variant; }
+                            UiBadge { y: 10px; text: "MC " + Minecraft.sel.version; variant: 0; }
+                        }
+                        Text { text: Minecraft.sel.mods + " mods   •   " + Minecraft.sel.playtime + " de jeu   •   " + Minecraft.sel.last-played; font-family: Theme.font-mono; font-size: 12px; color: Theme.zinc-300; }
+                    }
+                    UiButton {
+                        y: 22px; variant: Minecraft.sel.state == 1 ? 4 : 0; size: 2;
+                        icon: Minecraft.sel.state == 1 ? Icons.stop : Icons.play;
+                        text: Minecraft.sel.state == 1 ? "Arrêter" : (Minecraft.launching ? "Préparation..." : "Jouer");
+                        enabled: !Minecraft.launching || Minecraft.sel.state == 1;
+                        clicked => { if (Minecraft.sel.state == 1) { Minecraft.stop(Minecraft.sel.id); } else { Minecraft.launch(Minecraft.sel.id); } }
+                    }
+                }
+            }
+            VerticalLayout {
+                padding-left: max(56px, (root.width - 1280px) / 2 + 56px); padding-right: max(56px, (root.width - 1280px) / 2 + 56px);
+                padding-top: 24px; padding-bottom: 64px; spacing: 20px;
+                HorizontalLayout {
+                    alignment: start;
+                    TabBar {
+                        TabPill { glyph: Icons.gamepad; text: "Général"; active: Minecraft.tab == 0; clicked => { Minecraft.tab = 0; } }
+                        TabPill { glyph: Icons.stack; text: "Mods"; badge: Minecraft.mods.length; active: Minecraft.tab == 1; clicked => { Minecraft.tab = 1; Minecraft.load-tab(1); } }
+                        TabPill { glyph: Icons.download; text: "Catalogue"; active: Minecraft.tab == 2; clicked => { Minecraft.tab = 2; Minecraft.load-tab(2); } }
+                        TabPill { glyph: Icons.globe; text: "Serveurs"; badge: Minecraft.servers.length; active: Minecraft.tab == 3; clicked => { Minecraft.tab = 3; Minecraft.load-tab(3); } }
+                        TabPill { glyph: Icons.folder-open; text: "Cartes"; badge: Minecraft.saves.length; active: Minecraft.tab == 4; clicked => { Minecraft.tab = 4; Minecraft.load-tab(4); } }
+                        TabPill { glyph: "\u{eae8}"; text: "Console"; badge: Minecraft.logs.length; active: Minecraft.tab == 5; dot: Minecraft.sel.state == 1; clicked => { Minecraft.tab = 5; } }
+                        TabPill { glyph: Icons.gear; text: "Réglages"; active: Minecraft.tab == 6; clicked => { Minecraft.tab = 6; Minecraft.load-tab(6); } }
+                    }
+                }
+                if Minecraft.tab == 0: Panel {
+                    Text { text: "ENVIRONNEMENT HERMÉTIQUE"; font-family: Theme.font-mono; font-size: 12px; font-weight: 700; color: Theme.zinc-300; }
+                    HorizontalLayout { spacing: 12px; Stat { label: "VERSION MINECRAFT"; value: Minecraft.sel.version; } Stat { label: "MODLOADER"; value: Minecraft.sel.loader; tint: Theme.amber-400; } Stat { label: "MODS INSTALLÉS"; value: Minecraft.sel.mods; } Stat { label: "TEMPS DE JEU"; value: Minecraft.sel.playtime; } Stat { label: "DERNIÈRE PARTIE"; value: Minecraft.sel.last-played; } }
+                    Text { text: "Dossier : " + Minecraft.sel-path; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-500; wrap: word-wrap; }
+                    HorizontalLayout {
+                        spacing: 10px; alignment: start;
+                        UiButton { variant: 1; size: 0; icon: Icons.folder-open; text: "Ouvrir le dossier"; clicked => { Minecraft.open-folder(); } }
+                        UiButton { variant: 2; size: 0; icon: Icons.x; text: "Supprimer l'instance"; clicked => { Minecraft.delete-instance(Minecraft.sel.id); } }
+                    }
+                }
+                if Minecraft.tab == 1: Panel {
+                    HorizontalLayout { Text { horizontal-stretch: 1; text: "MODS INSTALLÉS"; font-family: Theme.font-mono; font-size: 12px; font-weight: 700; color: Theme.zinc-300; } Text { text: Minecraft.mods.length + " fichiers"; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-500; } }
+                    VerticalLayout {
+                        for m in Minecraft.mods: ModRow { m: m; }
+                        if Minecraft.mods.length == 0: Text { text: "Aucun mod installé. Ouvrez le catalogue pour en ajouter."; font-size: 12px; color: Theme.zinc-500; horizontal-alignment: center; height: 60px; vertical-alignment: center; }
+                    }
+                }
+                if Minecraft.tab == 2: VerticalLayout {
+                    spacing: 14px;
+                    Panel {
+                        HorizontalLayout {
+                            spacing: 10px;
+                            UiInput { horizontal-stretch: 1; icon: Icons.search; placeholder: "Rechercher des mods (ex: Sodium, Create, JEI, Iris)..."; text <=> Minecraft.cat-query; accepted(t) => { Minecraft.search(); } }
+                            UiButton { variant: 0; size: 1; text: "Rechercher"; clicked => { Minecraft.search(); } }
+                        }
+                        HorizontalLayout {
+                            spacing: 8px; alignment: start;
+                            Text { text: "Source :"; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-400; vertical-alignment: center; }
+                            Chip { text: "Tous"; active: Minecraft.cat-provider == 0; clicked => { Minecraft.cat-provider = 0; Minecraft.search(); } }
+                            Chip { text: "Modrinth"; active: Minecraft.cat-provider == 1; clicked => { Minecraft.cat-provider = 1; Minecraft.search(); } }
+                            Chip { text: "CurseForge"; active: Minecraft.cat-provider == 2; clicked => { Minecraft.cat-provider = 2; Minecraft.search(); } }
+                            Text { text: "Cible : MC " + Minecraft.sel.version + " • " + Minecraft.sel.loader; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-500; vertical-alignment: center; }
+                        }
+                    }
+                    Panel {
+                        VerticalLayout {
+                            for c[i] in Minecraft.catalog: CatalogRow { c: c; idx: i; }
+                            if Minecraft.catalog.length == 0: Text { text: Minecraft.cat-loading ? "Recherche en cours..." : "Aucun résultat. Lancez une recherche."; font-size: 12px; color: Theme.zinc-500; horizontal-alignment: center; height: 60px; vertical-alignment: center; }
+                        }
+                    }
+                }
+                if Minecraft.tab == 5: Panel {
+                    HorizontalLayout { Text { horizontal-stretch: 1; text: "CONSOLE DU JEU"; font-family: Theme.font-mono; font-size: 12px; font-weight: 700; color: Theme.zinc-300; } SmallBtn { glyph: Icons.x; text: "Vider"; clicked => { Minecraft.clear-logs(); } } }
+                    Rectangle {
+                        background: #09090b; border-radius: 12px; border-width: 1px; border-color: Theme.zinc-800;
+                        preferred-height: max(200px, lg.preferred-height);
+                        lg := VerticalLayout {
+                            padding: 12px; spacing: 2px;
+                            for l in Minecraft.logs: HorizontalLayout {
+                                spacing: 8px;
+                                Text { text: l.time; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-600; width: 60px; }
+                                Text { text: l.level; font-family: Theme.font-mono; font-size: 11px; font-weight: 700; width: 48px; color: l.level == "ERROR" ? Theme.rose-400 : l.level == "WARN" ? Theme.amber-400 : l.level == "DEBUG" ? Theme.zinc-500 : Theme.emerald-400; }
+                                Text { text: l.msg; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-300; horizontal-stretch: 1; wrap: word-wrap; }
+                            }
+                            if Minecraft.logs.length == 0: Text { text: "Aucun log. Lancez l'instance pour voir la sortie de la JVM."; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-600; }
+                        }
+                    }
+                }
+                if Minecraft.tab == 3: Panel {
+                    HorizontalLayout {
+                        spacing: 10px;
+                        Text { horizontal-stretch: 1; text: "SERVEURS DE L'INSTANCE (servers.dat)"; font-family: Theme.font-mono; font-size: 12px; font-weight: 700; color: Theme.zinc-300; vertical-alignment: center; }
+                        SmallBtn { glyph: Icons.refresh; text: Minecraft.srv-pinging ? "Ping..." : "Actualiser le statut"; enabled: !Minecraft.srv-pinging; clicked => { Minecraft.servers-ping(); } }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        SecretInput { width: 220px; mono: false; text <=> Minecraft.srv-name; placeholder: "Nom du serveur"; }
+                        SecretInput { horizontal-stretch: 1; text <=> Minecraft.srv-ip; placeholder: "play.exemple.fr ou 192.168.1.10:25565"; }
+                        UiButton { variant: 0; size: 1; icon: Icons.plus-circle; text: "Ajouter"; enabled: Minecraft.srv-ip != ""; clicked => { Minecraft.server-add(); } }
+                    }
+                    VerticalLayout {
+                        for sv[i] in Minecraft.servers: Rectangle {
+                            height: 64px;
+                            Rectangle { y: parent.height - 1px; height: 1px; background: #27272a66; }
+                            HorizontalLayout {
+                                padding-left: 8px; padding-right: 8px; spacing: 12px;
+                                Rectangle { width: 10px; Rectangle { y: (parent.height - 10px) / 2; width: 10px; height: 10px; border-radius: 5px; background: !sv.checked ? Theme.zinc-600 : sv.online ? Theme.emerald-400 : Theme.rose-500; } }
+                                VerticalLayout {
+                                    horizontal-stretch: 1; alignment: center; spacing: 2px;
+                                    Text { text: sv.name; font-size: 13px; font-weight: 700; color: Theme.zinc-100; overflow: elide; }
+                                    Text { text: sv.ip + (sv.motd != "" ? "   ·   " + sv.motd : ""); font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-500; overflow: elide; }
+                                }
+                                VerticalLayout { alignment: center; spacing: 2px; Text { text: sv.checked ? (sv.online ? sv.players + " joueurs" : "Hors-ligne") : "—"; font-size: 12px; font-weight: 600; color: sv.online ? Theme.emerald-400 : Theme.zinc-500; horizontal-alignment: right; } Text { text: sv.online ? sv.ping + "   " + sv.version : ""; font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-500; horizontal-alignment: right; } }
+                                Rectangle { width: 30px; SmallBtn { y: 17px; glyph: Icons.x; danger: true; clicked => { Minecraft.server-delete(i); } } }
+                            }
+                        }
+                        if Minecraft.servers.length == 0: Text { text: "Aucun serveur enregistré dans cette instance."; font-size: 12px; color: Theme.zinc-500; horizontal-alignment: center; height: 60px; vertical-alignment: center; }
+                    }
+                }
+                if Minecraft.tab == 4: Panel {
+                    Text { text: "CARTES / MONDES (saves/)"; font-family: Theme.font-mono; font-size: 12px; font-weight: 700; color: Theme.zinc-300; }
+                    VerticalLayout {
+                        for sv in Minecraft.saves: Rectangle {
+                            height: 64px;
+                            Rectangle { y: parent.height - 1px; height: 1px; background: #27272a66; }
+                            HorizontalLayout {
+                                padding-left: 8px; padding-right: 8px; spacing: 12px;
+                                VerticalLayout {
+                                    horizontal-stretch: 1; alignment: center; spacing: 2px;
+                                    Text { text: sv.name; font-size: 13px; font-weight: 700; color: Theme.zinc-100; overflow: elide; }
+                                    Text { text: sv.folder + "   ·   " + sv.mode + (sv.version != "" ? "   ·   " + sv.version : ""); font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-500; overflow: elide; }
+                                }
+                                VerticalLayout { alignment: center; spacing: 2px; Text { text: sv.size; font-family: Theme.font-mono; font-size: 12px; color: Theme.zinc-300; horizontal-alignment: right; } Text { text: sv.last-played; font-size: 10px; color: Theme.zinc-500; horizontal-alignment: right; } }
+                                SmallBtn { y: 18px; glyph: Icons.folder-open; clicked => { Minecraft.save-open(sv.folder); } }
+                                SmallBtn { y: 18px; glyph: Icons.download; text: "Sauvegarder"; clicked => { Minecraft.save-backup(sv.folder); } }
+                                SmallBtn { y: 18px; glyph: Icons.x; danger: true; clicked => { Minecraft.save-pending = sv.folder; } }
+                            }
+                        }
+                        if Minecraft.saves.length == 0: Text { text: "Aucune carte dans cette instance."; font-size: 12px; color: Theme.zinc-500; horizontal-alignment: center; height: 60px; vertical-alignment: center; }
+                    }
+                }
+                if Minecraft.tab == 6: Panel {
+                    Text { text: "RÉGLAGES JVM DE L'INSTANCE"; font-family: Theme.font-mono; font-size: 12px; font-weight: 700; color: Theme.zinc-300; }
+                    HorizontalLayout {
+                        spacing: 14px;
+                        VerticalLayout { horizontal-stretch: 1; spacing: 6px; FieldLabel { text: "RAM MINIMALE (Mo)"; } SecretInput { text <=> Minecraft.set-min; } }
+                        VerticalLayout { horizontal-stretch: 1; spacing: 6px; FieldLabel { text: "RAM MAXIMALE (Mo)"; } SecretInput { text <=> Minecraft.set-max; } }
+                    }
+                    VerticalLayout { spacing: 6px; FieldLabel { text: "CHEMIN JAVA (vide = auto, Adoptium géré)"; } SecretInput { text <=> Minecraft.set-java; placeholder: "/usr/lib/jvm/java-21/bin/java"; } }
+                    VerticalLayout { spacing: 6px; FieldLabel { text: "ARGUMENTS JVM (un par ligne ou séparés par des espaces)"; } SecretInput { text <=> Minecraft.set-jvm; } }
+                    HorizontalLayout { alignment: start; UiButton { variant: 0; size: 1; icon: Icons.check; text: "Enregistrer"; clicked => { Minecraft.save-settings(); } } }
+                }
+                Rectangle { vertical-stretch: 1; }
+            }
+        }
+    }
+}
+
+export component MinecraftStudio inherits Rectangle {
+    background: Theme.zinc-950;
+    if Modding.screen == 1: HubScreen { }
+    if Modding.screen == 2: InstanceScreen { }
+
+    UiModal {
+        open: Minecraft.save-pending != ""; title: "Supprimer la carte"; subtitle: "Cette action est irréversible"; dialog-width: 448px;
+        close => { Minecraft.save-pending = ""; }
+        VerticalLayout {
+            spacing: 14px;
+            Text { text: "Supprimer définitivement le dossier « " + Minecraft.save-pending + " » ? Pensez à la sauvegarder avant."; font-size: 13px; color: Theme.zinc-300; wrap: word-wrap; }
+            HorizontalLayout {
+                spacing: 8px; alignment: end;
+                UiButton { variant: 3; size: 0; text: "Annuler"; clicked => { Minecraft.save-pending = ""; } }
+                UiButton { variant: 4; size: 0; text: "Supprimer"; clicked => { Minecraft.save-delete(Minecraft.save-pending); Minecraft.save-pending = ""; } }
+            }
+        }
+    }
+
+    UiModal {
+        open: Minecraft.create-open;
+        title: "Nouvelle Instance Minecraft";
+        subtitle: "Environnement hermétique avec son propre dossier .minecraft/";
+        dialog-width: 512px;
+        close => { Minecraft.create-open = false; }
+        VerticalLayout {
+            spacing: 14px;
+            VerticalLayout { spacing: 6px; FieldLabel { text: "NOM DE L'INSTANCE"; } SecretInput { mono: false; text <=> Minecraft.create-name; placeholder: "Ma super instance"; } }
+            VerticalLayout { spacing: 6px; FieldLabel { text: "VERSION DE MINECRAFT"; } UiSelect { options: Minecraft.versions; current <=> Minecraft.create-version; } }
+            VerticalLayout { spacing: 6px; FieldLabel { text: "MODLOADER"; } UiSelect { options: ["Fabric", "NeoForge", "Forge", "Quilt", "Vanilla"]; current <=> Minecraft.create-loader; } }
+            VerticalLayout { spacing: 6px; FieldLabel { text: "RAM ALLOUÉE (Go)"; } SecretInput { text <=> Minecraft.create-ram; } }
+            HorizontalLayout {
+                spacing: 8px; alignment: end;
+                UiButton { variant: 3; size: 0; text: "Annuler"; clicked => { Minecraft.create-open = false; } }
+                UiButton { variant: 0; size: 0; text: Minecraft.creating ? "Création..." : "Créer l'instance"; enabled: !Minecraft.creating && Minecraft.create-name != ""; clicked => { Minecraft.create-submit(); } }
+            }
+        }
+    }
+}

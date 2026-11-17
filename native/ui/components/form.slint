@@ -1,0 +1,135 @@
+// Briques de mise en page des pages Paramètres / Comptes (cartes, lignes, sélecteur).
+import { Theme } from "../theme.slint";
+import { Ph } from "ph.slint";
+import { UiSwitch } from "ui.slint";
+
+export component SectionTitle inherits HorizontalLayout {
+    in property <string> glyph;
+    in property <string> text;
+    in property <length> size: 12px;
+    spacing: 8px;
+    alignment: start;
+    if root.glyph != "": Ph { weight: 1; text: root.glyph; font-size: root.size + 4px; color: Theme.amber-400; width: root.size + 6px; }
+    Text {
+        text: root.text; font-family: Theme.font-mono; font-size: root.size; font-weight: 700;
+        color: Theme.zinc-300; vertical-alignment: center;
+    }
+}
+
+export component FieldLabel inherits Text {
+    font-family: Theme.font-mono; font-size: 12px; font-weight: 600; color: Theme.zinc-300;
+}
+
+// Carte de section (rounded-2xl, bordure ambre optionnelle)
+export component SectionCard inherits Rectangle {
+    in property <bool> accent: false;
+    background: Theme.bg-card;
+    border-radius: 16px; border-width: 1px;
+    border-color: accent ? Theme.amber-border-soft : Theme.border-subtle;
+    drop-shadow-blur: 24px; drop-shadow-color: #00000066;
+    min-width: l.min-width;
+    preferred-height: l.preferred-height;
+    min-height: l.min-height;
+    l := VerticalLayout {
+        padding: 28px; spacing: 24px;
+        @children
+    }
+}
+
+// Sous-carte (bg-zinc-950/60)
+export component SubCard inherits Rectangle {
+    background: #09090b99;
+    border-radius: 12px; border-width: 1px; border-color: #27272ab3;
+    preferred-height: l.preferred-height;
+    min-height: l.min-height;
+    l := VerticalLayout {
+        padding: 16px; spacing: 16px;
+        @children
+    }
+}
+
+export component SwitchRow inherits HorizontalLayout {
+    in property <string> label;
+    in property <string> description;
+    in-out property <bool> checked;
+    callback toggled(bool);
+    spacing: 16px;
+    padding-top: 4px; padding-bottom: 4px;
+    VerticalLayout {
+        horizontal-stretch: 1; spacing: 2px; alignment: center;
+        Text { text: root.label; font-size: 14px; font-weight: 500; color: Theme.zinc-200; wrap: word-wrap; }
+        if root.description != "": Text { text: root.description; font-size: 12px; color: Theme.zinc-400; wrap: word-wrap; }
+    }
+    UiSwitch {
+        checked <=> root.checked;
+        y: 0px;
+        toggled(c) => { root.toggled(c); }
+    }
+}
+
+// Liste déroulante (<select> du Vue)
+export component UiSelect inherits Rectangle {
+    in property <[string]> options;
+    in-out property <int> current;
+    callback selected(int);
+    height: 40px;
+    background: #18181bcc;
+    border-radius: 8px; border-width: 1px;
+    border-color: ta.has-hover ? Theme.amber-500.with-alpha(0.7) : Theme.border-subtle;
+
+    Text {
+        x: 14px; width: parent.width - 44px; y: (parent.height - self.height) / 2;
+        text: root.options[root.current]; font-size: 14px; color: Theme.zinc-100; overflow: elide;
+    }
+    Ph { x: parent.width - 30px; y: (parent.height - self.height) / 2; text: "\u{e136}"; font-size: 14px; color: Theme.zinc-400; }
+    ta := TouchArea { mouse-cursor: pointer; clicked => { pop.show(); } }
+
+    pop := PopupWindow {
+        x: 0px; y: root.height + 4px; width: root.width;
+        Rectangle {
+            background: Theme.zinc-900; border-radius: 10px; border-width: 1px; border-color: Theme.zinc-700;
+            drop-shadow-blur: 20px; drop-shadow-color: #000000cc;
+            VerticalLayout {
+                padding: 4px;
+                for o[i] in root.options: Rectangle {
+                    height: 36px; border-radius: 6px;
+                    background: row.has-hover ? Theme.zinc-800 : (i == root.current ? Theme.amber-bg-faint : transparent);
+                    Text {
+                        x: 12px; width: parent.width - 24px; y: (parent.height - self.height) / 2;
+                        text: o; font-size: 13px; overflow: elide;
+                        color: i == root.current ? Theme.amber-400 : Theme.zinc-200;
+                    }
+                    row := TouchArea { mouse-cursor: pointer; clicked => { root.current = i; root.selected(i); } }
+                }
+            }
+        }
+    }
+}
+
+// Champ texte avec masquage optionnel (secrets)
+export component SecretInput inherits Rectangle {
+    in-out property <string> text;
+    in property <string> placeholder;
+    in property <bool> mono: true;
+    in property <bool> secret: false;
+    in-out property <bool> revealed: false;
+    height: 40px;
+    background: #09090b; border-radius: 12px; border-width: 1px;
+    border-color: ti.has-focus ? Theme.amber-500 : Theme.zinc-800;
+    ti := TextInput {
+        x: 14px; width: parent.width - (root.secret ? 52px : 28px); y: 0px; height: parent.height; vertical-alignment: center;
+        color: Theme.zinc-100; font-size: 12px; font-family: root.mono ? Theme.font-mono : Theme.font-sans;
+        input-type: root.secret && !root.revealed ? InputType.password : InputType.text;
+        selection-background-color: Theme.amber-500.with-alpha(0.3);
+        text <=> root.text;
+    }
+    if root.text == "": Text {
+        x: 14px; y: 0px; height: parent.height; vertical-alignment: center; text: root.placeholder;
+        color: Theme.zinc-600; font-size: 12px; font-family: root.mono ? Theme.font-mono : Theme.font-sans;
+    }
+    if root.secret: Rectangle {
+        x: parent.width - 36px; width: 28px; height: parent.height;
+        Ph { text: root.revealed ? "\u{e224}" : "\u{e220}"; font-size: 16px; color: eye.has-hover ? Theme.zinc-300 : Theme.zinc-500; }
+        eye := TouchArea { mouse-cursor: pointer; clicked => { root.revealed = !root.revealed; } }
+    }
+}

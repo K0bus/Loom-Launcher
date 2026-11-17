@@ -1,0 +1,362 @@
+// Équivalent de src/views/SettingsView.vue
+import { ScrollView } from "std-widgets.slint";
+import { Theme, Icons } from "../theme.slint";
+import { Ph } from "../components/ph.slint";
+import { UiBadge, UiButton, UiInput } from "../components/ui.slint";
+import { SectionTitle, FieldLabel, SectionCard, SubCard, SwitchRow, UiSelect, SecretInput } from "../components/form.slint";
+
+export global Settings {
+    // Démarrage & système
+    in-out property <bool> autostart;
+    in-out property <bool> start-minimized;
+    in-out property <bool> close-to-tray;
+    in-out property <int> after-launch: 0;      // 0 réduire, 1 masquer, 2 garder
+    // Plateformes au démarrage
+    in-out property <bool> inst-steam;
+    in-out property <bool> inst-bnet;
+    in-out property <bool> inst-epic;
+    in-out property <bool> inst-gog;
+    in-out property <bool> inst-silent;
+    // Apparence & notifications
+    in-out property <int> accent: 0;            // amber, emerald, violet, sky, rose
+    in-out property <bool> notifications;
+    in-out property <bool> auto-sync;
+    // Linux
+    in-out property <int> runner: 0;
+    in-out property <bool> gamemode;
+    in-out property <bool> mangohud;
+    // Dossiers
+    in-out property <string> dir-games;
+    in-out property <string> dir-minecraft;
+    in-out property <string> dir-wine;
+    // Système
+    in-out property <bool> check-updates;
+    in property <string> sys-version;
+    in property <string> sys-display;
+    in property <string> sys-kernel;
+    in property <string> sys-ram;
+    // IGDB
+    in-out property <string> igdb-id;
+    in-out property <string> igdb-token;
+    in-out property <string> igdb-secret;
+    in property <bool> igdb-busy;
+    // État
+    in property <bool> saved;
+
+    callback save();
+    callback reset();
+    callback pick-dir(int);
+    callback open-dir(int);
+    callback test-notification();
+    callback gen-token();
+    callback accent-changed(int);
+}
+
+component PlatformRow inherits Rectangle {
+    in property <image> logo;
+    in property <color> brand;
+    in property <string> name;
+    in property <string> provider;
+    in property <string> description;
+    in-out property <bool> checked;
+    callback toggled();
+    background: checked ? Theme.amber-bg-faint : #18181b66;
+    border-radius: 12px; border-width: 1px;
+    border-color: checked ? Theme.amber-border-soft : Theme.border-subtle;
+    min-height: 76px;
+    HorizontalLayout {
+        padding: 14px; spacing: 14px;
+        Rectangle {
+            width: 44px; height: 44px; y: 4px; border-radius: 12px;
+            background: root.brand.with-alpha(0.12); border-width: 1px; border-color: root.brand.with-alpha(0.35);
+            Image { source: root.logo; width: 22px; height: 22px; colorize: root.brand; image-fit: contain; }
+        }
+        VerticalLayout {
+            horizontal-stretch: 1; spacing: 2px; alignment: center;
+            Text { text: root.name; font-size: 14px; font-weight: 600; color: Theme.zinc-200; }
+            Text { text: root.provider; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-500; }
+            Text { text: root.description; font-size: 11px; color: Theme.zinc-400; wrap: word-wrap; }
+        }
+        Rectangle {
+            width: 24px; height: 24px; y: 10px; border-radius: 6px; border-width: 2px;
+            border-color: root.checked ? Theme.amber-500 : Theme.zinc-600;
+            background: root.checked ? Theme.amber-500 : transparent;
+            if root.checked: Ph { text: Icons.check; weight: 2; font-size: 14px; color: Theme.zinc-950; }
+        }
+    }
+    TouchArea { mouse-cursor: pointer; clicked => { root.checked = !root.checked; root.toggled(); } }
+}
+
+component AccentDot inherits Rectangle {
+    in property <color> c;
+    in property <bool> active;
+    callback clicked();
+    width: 40px; height: 40px; border-radius: 20px;
+    background: root.c;
+    border-width: root.active ? 3px : 0px; border-color: #ffffff;
+    drop-shadow-blur: root.active ? 14px : 0px; drop-shadow-color: root.c.with-alpha(0.6);
+    if root.active: Ph { text: Icons.check; weight: 2; font-size: 16px; color: Theme.zinc-950; }
+    TouchArea { mouse-cursor: pointer; clicked => { root.clicked(); } }
+}
+
+component DirRow inherits VerticalLayout {
+    in property <string> label;
+    in-out property <string> value;
+    in property <int> idx;
+    spacing: 6px;
+    FieldLabel { text: root.label; }
+    HorizontalLayout {
+        spacing: 8px;
+        UiInput { text <=> root.value; horizontal-stretch: 1; }
+        UiButton { variant: 1; icon: Icons.folder-open; text: "Parcourir"; clicked => { Settings.pick-dir(root.idx); } }
+        UiButton { variant: 2; icon: Icons.external; text: "Ouvrir"; clicked => { Settings.open-dir(root.idx); } }
+    }
+}
+
+component InfoLine inherits HorizontalLayout {
+    in property <string> label;
+    in property <string> value;
+    in property <color> value-color: Theme.zinc-200;
+    spacing: 6px; alignment: start;
+    Text { text: root.label + " :"; font-family: Theme.font-mono; font-size: 12px; color: Theme.zinc-400; }
+    Text { text: root.value; font-family: Theme.font-mono; font-size: 12px; color: root.value-color; }
+}
+
+export component SettingsView inherits Rectangle {
+    background: Theme.zinc-950;
+    in property <image> logo-steam;
+    in property <image> logo-bnet;
+    in property <image> logo-epic;
+    in property <image> logo-gog;
+    private property <int> instances-count: (Settings.inst-steam ? 1 : 0) + (Settings.inst-bnet ? 1 : 0) + (Settings.inst-epic ? 1 : 0) + (Settings.inst-gog ? 1 : 0);
+
+    ScrollView {
+        VerticalLayout {
+            padding-left: max(56px, (root.width - 1280px) / 2 + 56px);
+            padding-right: max(56px, (root.width - 1280px) / 2 + 56px);
+            padding-top: 24px; padding-bottom: 64px; spacing: 32px;
+
+            // ---------- En-tête ----------
+            HorizontalLayout {
+                spacing: 10px;
+                VerticalLayout {
+                    horizontal-stretch: 1; spacing: 4px;
+                    HorizontalLayout {
+                        spacing: 12px; alignment: start;
+                        Ph { weight: 1; text: Icons.gear; font-size: 32px; color: Theme.amber-400; width: 36px; }
+                        Text { text: "Paramètres du Lanceur"; font-size: 30px; font-weight: 900; color: Theme.zinc-100; vertical-alignment: center; }
+                    }
+                    Text { text: "Personnalisation complète de Loom Launcher, de l'environnement Linux et des intégrations de plateformes"; font-size: 12px; color: Theme.zinc-400; }
+                }
+                HorizontalLayout {
+                    spacing: 10px; alignment: end;
+                    UiButton { y: 8px; variant: 1; size: 0; icon: Icons.reset; text: "Par défaut"; clicked => { Settings.reset(); } }
+                    UiButton { y: 8px; variant: 0; size: 0; icon: Settings.saved ? Icons.check : ""; text: Settings.saved ? "Enregistré !" : "Enregistrer"; clicked => { Settings.save(); } }
+                }
+            }
+
+            // ---------- Paramètres propres à Loom ----------
+            SectionCard {
+                accent: true;
+                HorizontalLayout {
+                    VerticalLayout {
+                        horizontal-stretch: 1; spacing: 4px;
+                        SectionTitle { glyph: Icons.sparkle; text: "PARAMÈTRES PROPRES À LOOM LAUNCHER"; size: 16px; }
+                        Text { text: "Moteur, automatisation au démarrage et comportement de l'application"; font-size: 12px; color: Theme.zinc-400; }
+                    }
+                    UiBadge { text: "LOOM NATIF"; variant: 1; large: true; y: 4px; }
+                }
+                Rectangle { height: 1px; background: Theme.border-subtle; }
+
+                // Moteur & rendu
+                SubCard {
+                    HorizontalLayout {
+                        SectionTitle { glyph: Icons.lightning; text: "MOTEUR & RENDU VISUEL"; horizontal-stretch: 1; }
+                        UiBadge { text: "SLINT · SKIA / GPU"; variant: 2; dot: true; }
+                    }
+                    Text {
+                        text: "Interface 100 % native : le rendu passe directement par le GPU (Skia) sans WebKitGTK. Plus de compositing web, donc plus de réglage d'accélération matérielle ni de redémarrage nécessaire.";
+                        font-size: 12px; color: Theme.zinc-400; wrap: word-wrap;
+                    }
+                }
+
+                // Démarrage & système
+                SubCard {
+                    HorizontalLayout {
+                        SectionTitle { glyph: Icons.power; text: "DÉMARRAGE & SYSTÈME"; horizontal-stretch: 1; }
+                        if Settings.autostart: UiBadge { text: "AUTOSTART ACTIF"; variant: 1; }
+                    }
+                    SwitchRow {
+                        label: "Démarrage avec le PC";
+                        description: "Démarre automatiquement Loom Launcher dès l'ouverture de votre session utilisateur (Linux / Windows).";
+                        checked <=> Settings.autostart;
+                    }
+                    SwitchRow {
+                        label: "Démarrer Loom minimisé (Arrière-plan discret)";
+                        description: "Lance Loom discrètement sans afficher la fenêtre principale au premier plan.";
+                        checked <=> Settings.start-minimized;
+                    }
+                    SwitchRow {
+                        label: "Réduire dans la barre d'état au clic sur fermer (Close to Tray)";
+                        description: "Le bouton de fermeture masque la fenêtre au lieu d'interrompre l'application ; l'icône de la barre d'état permet de la rouvrir ou de quitter.";
+                        checked <=> Settings.close-to-tray;
+                    }
+                    VerticalLayout {
+                        spacing: 6px;
+                        FieldLabel { text: "APRÈS LE LANCEMENT D'UN JEU"; }
+                        UiSelect {
+                            options: ["Réduire Loom en arrière-plan (Recommandé)", "Masquer Loom dans la barre d'état (Économie de ressources)", "Laisser la fenêtre de Loom active"];
+                            current <=> Settings.after-launch;
+                        }
+                    }
+                }
+
+                // Plateformes au démarrage
+                SubCard {
+                    HorizontalLayout {
+                        SectionTitle { glyph: Icons.gamepad; text: "PLATEFORMES AU DÉMARRAGE"; horizontal-stretch: 1; }
+                        Text { text: root.instances-count + " / 4 sélectionnée(s)"; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-400; vertical-alignment: center; }
+                    }
+                    PlatformRow {
+                        logo: root.logo-steam; brand: Theme.steam-blue; name: "Steam"; provider: "Valve Corporation";
+                        description: "Initialise le client Steam natif (~/.local/share/Steam) et synchronise le statut des jeux.";
+                        checked <=> Settings.inst-steam;
+                    }
+                    PlatformRow {
+                        logo: root.logo-bnet; brand: #00aeff; name: "Battle.net"; provider: "Blizzard Entertainment";
+                        description: "Initialise le préfixe Wine dédié et prépare le service de lancement Blizzard.";
+                        checked <=> Settings.inst-bnet;
+                    }
+                    PlatformRow {
+                        logo: root.logo-epic; brand: #ffffff; name: "Epic Games"; provider: "Epic Games / Heroic";
+                        description: "Vérifie les sessions du magasin Epic Games et la disponibilité du lanceur Heroic.";
+                        checked <=> Settings.inst-epic;
+                    }
+                    PlatformRow {
+                        logo: root.logo-gog; brand: #b44aff; name: "GOG Galaxy"; provider: "CD PROJEKT";
+                        description: "Initialise la prise en charge des jeux sans DRM et synchronise les dossiers de stockage.";
+                        checked <=> Settings.inst-gog;
+                    }
+                    SwitchRow {
+                        label: "Lancer les instances en mode silencieux / réduit";
+                        description: "Démarre les plateformes sélectionnées en arrière-plan sans ouvrir leurs fenêtres d'accueil.";
+                        checked <=> Settings.inst-silent;
+                    }
+                }
+
+                // Apparence & notifications
+                SubCard {
+                    SectionTitle { glyph: Icons.palette; text: "APPARENCE & NOTIFICATIONS"; }
+                    VerticalLayout {
+                        spacing: 8px;
+                        FieldLabel { text: "COULEUR D'ACCENT"; }
+                        HorizontalLayout {
+                            spacing: 12px; alignment: start;
+                            AccentDot { c: #f59e0b; active: Settings.accent == 0; clicked => { Settings.accent = 0; Settings.accent-changed(0); } }
+                            AccentDot { c: #10b981; active: Settings.accent == 1; clicked => { Settings.accent = 1; Settings.accent-changed(1); } }
+                            AccentDot { c: #8b5cf6; active: Settings.accent == 2; clicked => { Settings.accent = 2; Settings.accent-changed(2); } }
+                            AccentDot { c: #0ea5e9; active: Settings.accent == 3; clicked => { Settings.accent = 3; Settings.accent-changed(3); } }
+                            AccentDot { c: #f43f5e; active: Settings.accent == 4; clicked => { Settings.accent = 4; Settings.accent-changed(4); } }
+                            Text {
+                                text: ["Ambre Loom", "Émeraude", "Néon Violet", "Bleu Cyan", "Rubis Rose"][Settings.accent];
+                                font-family: Theme.font-mono; font-size: 12px; color: Theme.zinc-400; vertical-alignment: center;
+                            }
+                        }
+                    }
+                    SwitchRow {
+                        label: "Notifications système du lanceur";
+                        description: "Alerte de bureau lors de la fin d'un téléchargement, d'un lancement ou d'une mise à jour.";
+                        checked <=> Settings.notifications;
+                    }
+                    if Settings.notifications: HorizontalLayout {
+                        alignment: start;
+                        UiButton { variant: 2; size: 0; icon: Icons.bell-ring; text: "Tester une notification"; clicked => { Settings.test-notification(); } }
+                    }
+                    SwitchRow {
+                        label: "Synchronisation automatique des sauvegardes locales & Cloud";
+                        description: "Surveille l'intégrité des dossiers de sauvegardes et prépare les synchronisations après chaque session.";
+                        checked <=> Settings.auto-sync;
+                    }
+                }
+            }
+
+            // ---------- Environnement Linux ----------
+            SectionCard {
+                SectionTitle { glyph: Icons.terminal; text: "ENVIRONNEMENT LINUX & COMPATIBILITÉ"; size: 14px; }
+                VerticalLayout {
+                    spacing: 6px;
+                    FieldLabel { text: "RUNNER PAR DÉFAUT"; }
+                    UiSelect {
+                        options: ["Proton-GE 9-20 (Recommandé)", "Proton Experimental (Valve)", "Linux Natif prioritaire", "Wine Staging (Système)"];
+                        current <=> Settings.runner;
+                    }
+                }
+                SwitchRow {
+                    label: "Activer Feral GameMode par défaut";
+                    description: "Applique 'gamemoderun' automatiquement à tous les exécutables de jeux";
+                    checked <=> Settings.gamemode;
+                }
+                SwitchRow {
+                    label: "Activer MangoHud par défaut";
+                    description: "Affiche les statistiques de performances en temps réel sur GPU AMD / NVIDIA";
+                    checked <=> Settings.mangohud;
+                }
+            }
+
+            // ---------- Emplacements ----------
+            SectionCard {
+                SectionTitle { glyph: Icons.folder-open; text: "EMPLACEMENTS DES FICHIERS"; size: 14px; }
+                DirRow { idx: 0; label: "BIBLIOTHÈQUE DE JEUX"; value <=> Settings.dir-games; }
+                DirRow { idx: 1; label: "INSTANCES MINECRAFT"; value <=> Settings.dir-minecraft; }
+                DirRow { idx: 2; label: "PRÉFIXES WINE"; value <=> Settings.dir-wine; }
+            }
+
+            // ---------- Système ----------
+            SectionCard {
+                HorizontalLayout {
+                    SectionTitle { glyph: Icons.cpu; text: "SYSTÈME"; size: 14px; horizontal-stretch: 1; }
+                    UiBadge { text: "RUNTIME NATIF SLINT"; variant: 2; dot: true; }
+                }
+                Rectangle {
+                    background: Theme.zinc-950; border-radius: 12px; border-width: 1px; border-color: Theme.border-subtle;
+                    preferred-height: il.preferred-height;
+                    il := VerticalLayout {
+                        padding: 16px; spacing: 8px;
+                        InfoLine { label: "Version App"; value: Settings.sys-version; }
+                        InfoLine { label: "Protocole Graphique"; value: Settings.sys-display; value-color: Theme.emerald-400; }
+                        InfoLine { label: "Noyau Système"; value: Settings.sys-kernel; }
+                        InfoLine { label: "Mémoire Vive (RAM)"; value: Settings.sys-ram; }
+                    }
+                }
+                SwitchRow {
+                    label: "Vérifier les mises à jour automatiquement au démarrage";
+                    checked <=> Settings.check-updates;
+                }
+            }
+
+            // ---------- IGDB ----------
+            SectionCard {
+                HorizontalLayout {
+                    SectionTitle { glyph: Icons.database; text: "MÉTADONNÉES IGDB / TWITCH"; size: 14px; horizontal-stretch: 1; }
+                    UiBadge { text: Settings.igdb-token != "" ? "API V4 EN DIRECT" : "TOKEN PUBLIC REQUIS"; variant: Settings.igdb-token != "" ? 2 : 1; dot: true; }
+                }
+                VerticalLayout { spacing: 6px; FieldLabel { text: "CLIENT ID"; } SecretInput { text <=> Settings.igdb-id; placeholder: "yxup2w2zyqkugl2erkq2ni9ih59rq7"; } }
+                VerticalLayout { spacing: 6px; FieldLabel { text: "ACCESS TOKEN"; } SecretInput { text <=> Settings.igdb-token; secret: true; placeholder: "Token d'accès généré (ex: gq4h...)"; } }
+                VerticalLayout { spacing: 6px; FieldLabel { text: "CLIENT SECRET"; } SecretInput { text <=> Settings.igdb-secret; secret: true; placeholder: "Client secret de votre console Twitch Developer"; } }
+                HorizontalLayout {
+                    alignment: start;
+                    UiButton {
+                        variant: 1; icon: Icons.key; text: Settings.igdb-busy ? "Génération..." : "Générer le token";
+                        enabled: !Settings.igdb-busy && Settings.igdb-secret != "" && Settings.igdb-id != "";
+                        clicked => { Settings.gen-token(); }
+                    }
+                }
+            }
+
+            HorizontalLayout {
+                alignment: end;
+                UiButton { variant: 0; size: 1; icon: Settings.saved ? Icons.check : ""; text: Settings.saved ? "Modifications Enregistrées !" : "Enregistrer tous les paramètres"; clicked => { Settings.save(); } }
+            }
+        }
+    }
+}

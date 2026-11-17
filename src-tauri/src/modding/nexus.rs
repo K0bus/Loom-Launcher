@@ -248,6 +248,10 @@ pub async fn download_nexus_file(
 pub fn register_linux_desktop_mime() -> Result<(), String> {
     #[cfg(target_os = "linux")]
     {
+        // Loom natif (Slint) gère les liens nxm:// : on ne reprend pas le gestionnaire à chaque démarrage.
+        if dirs::home_dir().map(|h| h.join(".local/share/applications/loom-native.desktop").exists()).unwrap_or(false) {
+            return Ok(());
+        }
         let home = dirs::home_dir().ok_or("Cannot determine HOME directory")?;
         let apps_dir = home.join(".local/share/applications");
         let _ = fs::create_dir_all(&apps_dir);

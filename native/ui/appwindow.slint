@@ -1,0 +1,156 @@
+import { Theme, Icons } from "theme.slint";
+import { Ph } from "components/ph.slint";
+import { DesktopHeader } from "components/header.slint";
+import { LibraryView } from "views/library.slint";
+import { SettingsView, Settings } from "views/settings.slint";
+import { AccountsView, Accounts } from "views/accounts.slint";
+import { ModdingView, Modding } from "views/modding.slint";
+import { Minecraft, McInst, McMod, McCat, McLog } from "views/minecraft.slint";
+import { Wow, WowInst, WowAddon, WowCat, WowChar } from "views/wow.slint";
+import { Beth, BethMod, BethPlugin, BethConflict, BethConflictMod } from "views/bethesda.slint";
+import { GameDetail, Detail, AchRow, ShotRow, NewsRow } from "views/detail.slint";
+import { MonitorView, Monitor, MonCore, MonPart, MonIface, MonProc, MonGpuProc, MonDisk, MonPkg } from "views/monitor.slint";
+import { UiButton, UiBadge, UiSwitch, UiProgressBar, UiTabs, UiInput, UiModal } from "components/ui.slint";
+import { GameData, ListRow } from "structs.slint";
+export { Tray } from "tray.slint";
+export { Detail, AchRow, ShotRow, NewsRow, Modding, Minecraft, McInst, McMod, McCat, McLog, Wow, WowInst, WowAddon, WowCat, WowChar, Beth, BethMod, BethPlugin, BethConflict, BethConflictMod, GameData, ListRow, Settings, Accounts, Monitor, MonCore, MonPart, MonIface, MonProc, MonGpuProc, MonDisk, MonPkg, Theme }
+
+export component AppWindow inherits Window {
+    title: "Loom Launcher";
+    no-frame: true;
+    min-width: 1100px;
+    min-height: 700px;
+    preferred-width: 1280px;
+    preferred-height: 800px;
+    background: Theme.zinc-950;
+    default-font-family: Theme.font-sans;
+
+    // 0 bibliothèque, 1 modding, 2 monitoring, 3 paramètres, 4 comptes
+    in-out property <int> page: 0;
+    in-out property <bool> win-maximized: false;
+    in property <[GameData]> games;
+    in property <[GameData]> recent;
+    in property <GameData> hero;
+    in property <bool> has-hero;
+    in property <string> hero-playtime;
+    in property <int> hero-unlocked;
+    in property <int> hero-total;
+    in property <int> installed-count;
+    in property <int> total-count;
+    in property <string> running-title;
+    in property <int> connected-count;
+    in-out property <string> search;
+    in-out property <int> filter: 0;
+    in property <[string]> tag-labels;
+    in property <bool> loading;
+    in property <int> filtered-total;
+    callback load-more();
+    in property <string> toast-text;
+    in property <int> toast-kind: 0;   // 0 info, 1 succès, 2 erreur
+    in property <bool> toast-visible;
+
+    callback close-clicked();
+    callback minimize-clicked();
+    callback maximize-clicked();
+    callback drag-window(length, length);
+    callback go-back();
+    callback go-forward();
+    callback hero-action();
+    callback play(string);
+    callback stop(string);
+    callback install(string);
+    callback toggle-favorite(string);
+    callback open-game(string);
+    callback uninstall(string);
+    callback open-folder(string);
+    callback refresh();
+    callback open-igdb();
+    callback search-changed(string);
+
+    changed search => { root.search-changed(root.search); }
+    changed filter => { root.search-changed(root.search); }
+
+    // Bordure de fenêtre (App.vue : border zinc-800/80 sauf si maximisée)
+    Rectangle {
+        border-width: root.win-maximized ? 0px : 1px;
+        border-color: Theme.border-subtle;
+        background: Theme.zinc-950;
+
+        VerticalLayout {
+            DesktopHeader {
+                page: root.page;
+                maximized: root.win-maximized;
+                running-title: root.running-title;
+                connected-count: root.connected-count;
+                games-count: root.total-count;
+                search-text <=> root.search;
+                navigate(p) => { root.page = p; }
+                go-back => { root.go-back(); }
+                go-forward => { root.go-forward(); }
+                search-submitted(t) => { root.page = 0; root.search-changed(t); }
+                close-clicked => { root.close-clicked(); }
+                minimize-clicked => { root.minimize-clicked(); }
+                maximize-clicked => { root.maximize-clicked(); }
+                drag-window(x, y) => { root.drag-window(x, y); }
+            }
+
+            Rectangle {
+                vertical-stretch: 1;
+                if root.page == 0: LibraryView {
+                    games: root.games; recent: root.recent; hero: root.hero; has-hero: root.has-hero;
+                    hero-playtime: root.hero-playtime; hero-unlocked: root.hero-unlocked; hero-total: root.hero-total;
+                    installed-count: root.installed-count; total-count: root.total-count;
+                    search <=> root.search;
+                    filter <=> root.filter;
+                    tag-labels: root.tag-labels;
+                    loading: root.loading;
+                    filtered-total: root.filtered-total;
+                    load-more => { root.load-more(); }
+                    hero-action => { root.hero-action(); }
+                    play(i) => { root.play(i); }
+                    stop(i) => { root.stop(i); }
+                    install(i) => { root.install(i); }
+                    toggle-favorite(i) => { root.toggle-favorite(i); }
+                    open-game(i) => { root.open-game(i); }
+                    uninstall(i) => { root.uninstall(i); }
+                    open-folder(i) => { root.open-folder(i); }
+                    refresh => { root.refresh(); }
+                    open-igdb => { root.open-igdb(); }
+                }
+                if root.page == 1: ModdingView { }
+                if root.page == 2: MonitorView { }
+                if root.page == 3: SettingsView {
+                    logo-steam: @image-url("assets/logos/steam-icon.svg"); logo-bnet: @image-url("assets/logos/battlenet-icon.svg");
+                    logo-epic: @image-url("assets/logos/epic-icon.svg"); logo-gog: @image-url("assets/logos/gog-icon.svg");
+                }
+                if root.page == 5: GameDetail { }
+                if root.page == 4: AccountsView {
+                    logo-steam: @image-url("assets/logos/steam-icon.svg"); logo-bnet: @image-url("assets/logos/battlenet-icon.svg");
+                    logo-epic: @image-url("assets/logos/epic-icon.svg"); logo-gog: @image-url("assets/logos/gog-icon.svg");
+                    logo-xbox: @image-url("assets/logos/xbox-icon.svg");
+                }
+            }
+        }
+    }
+
+    // Toast global (App.vue)
+    Rectangle {
+        x: parent.width - self.width - 24px;
+        y: parent.height - self.height - 24px + (root.toast-visible ? 0px : 48px);
+        opacity: root.toast-visible ? 1.0 : 0.0;
+        animate y { duration: 300ms; easing: ease-out; }
+        animate opacity { duration: 300ms; }
+        background: Theme.zinc-900; border-radius: 12px; border-width: 1px; border-color: Theme.amber-500.with-alpha(0.4);
+        drop-shadow-blur: 24px; drop-shadow-color: #000000aa;
+        min-width: tl.min-width; preferred-width: tl.preferred-width; height: 44px;
+        tl := HorizontalLayout {
+            padding-left: 16px; padding-right: 16px; spacing: 12px;
+            Ph {
+                weight: 1; width: 18px;
+                text: root.toast-kind == 1 ? Icons.check-circle : root.toast-kind == 2 ? Icons.warning : Icons.info;
+                color: root.toast-kind == 1 ? Theme.amber-400 : root.toast-kind == 2 ? Theme.rose-400 : Theme.sky-400;
+            }
+            Text { text: root.toast-text; font-size: 12px; font-weight: 500; color: #ffffff; vertical-alignment: center; }
+        }
+    }
+}

@@ -1,0 +1,13 @@
+export global Modding {
+    in-out property <int> screen: 0;          // 0 hub, 1 minecraft (hub), 2 minecraft (instance), 3 wow, 4 bethesda
+    in property <string> mc-account;
+    in property <int> mc-instances;
+    in property <string> mc-playtime;
+    in property <string> mc-active-name;
+    in property <int> wow-instances;
+    in property <int> wow-addons;
+    in property <int> beth-profiles;
+    callback open(int);
+    callback back();
+    callback launch-active-mc();
+}

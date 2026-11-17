@@ -1,0 +1,976 @@
+// Équivalent de src/views/monitoring/SystemMonitorView.vue et de ses composants
+import { ScrollView } from "std-widgets.slint";
+import { Theme, Icons } from "../theme.slint";
+import { Ph } from "../components/ph.slint";
+import { UiBadge, UiButton, UiInput, UiModal, UiSwitch } from "../components/ui.slint";
+
+export struct MonCore { id: string, pct: float, label: string, freq: string, temp: string, color: color }
+export struct MonPart { name: string, mount: string, fs: string, used: string, total: string, pct: float, color: color, removable: bool }
+export struct MonIface { name: string, addr: string, up: bool, wifi: bool, rx: string, tx: string }
+export struct MonProc { pid: string, name: string, command: string, user: string, cpu: string, mem: string, io: string, status: string, killable: bool }
+export struct MonGpuProc { pid: string, name: string, command: string, ptype: string, vram: string, sm: string, ram: string, cpu: string }
+export struct MonDisk { device: string, dtype: string, model: string, meta: string, health: string, health-ok: bool, temp: string, hours: string, wear: string, read: string, written: string, cycles: string, realloc: string, media: string, warning: string, source: string }
+export struct MonPkg { name: string, arch: string, evr: string, repo: string }
+
+export global Monitor {
+    // --- état général ---
+    in property <bool> loading: true;
+    in property <string> error;
+    in property <bool> has-metrics;
+    in property <bool> refreshing;
+    in property <bool> paused;
+    in-out property <int> interval-idx: 1;     // 500ms, 1s, 2s, 5s
+    in-out property <int> tab: 0;
+    in property <string> os-line;
+    in property <string> kernel;
+    in property <string> session;
+    in property <string> uptime;
+    in property <string> host;
+    in property <string> load1;
+    in property <string> load5;
+    in property <string> load15;
+    in property <int> gpu-procs-count: -1;
+    in property <int> all-procs-count: -1;
+    in property <int> smart-count: -1;
+    in property <int> dnf-badge: -1;
+    // --- CPU ---
+    in property <string> cpu-model;
+    in property <string> cpu-governor;
+    in property <string> cpu-usage;
+    in property <color> cpu-color;
+    in property <string> cpu-topology;
+    in property <string> cpu-temp;
+    in property <[MonCore]> cpu-cores;
+    in property <string> cpu-line;
+    in property <string> cpu-area;
+    in property <bool> has-battery;
+    in property <string> battery-label;
+    in property <string> battery-power;
+    in property <string> battery-pct;
+    // --- GPU ---
+    in property <bool> has-gpu;
+    in property <string> gpu-name;
+    in property <string> gpu-vendor;
+    in property <string> gpu-usage;
+    in property <color> gpu-color;
+    in property <string> gpu-driver;
+    in property <string> gpu-temp;
+    in property <string> gpu-line;
+    in property <string> gpu-area;
+    in property <bool> gpu-has-vram;
+    in property <string> gpu-vram-label;
+    in property <float> gpu-vram-pct;
+    in property <string> gpu-power;
+    in property <string> gpu-fan;
+    in property <string> gpu-hotspot;
+    in property <string> gpu-vram-temp;
+    // --- Mémoire ---
+    in property <string> ram-line-text;
+    in property <string> ram-usage;
+    in property <color> ram-color;
+    in property <string> ram-avail;
+    in property <string> ram-line;
+    in property <string> ram-area;
+    in property <float> ram-used-f;
+    in property <float> ram-cache-f;
+    in property <string> ram-used-gb;
+    in property <string> ram-cache-gb;
+    in property <string> swap-used;
+    in property <string> swap-total;
+    in property <string> swap-pct-label;
+    in property <float> swap-pct;
+    in property <color> swap-color;
+    // --- Stockage ---
+    in property <string> disk-read;
+    in property <string> disk-write;
+    in property <string> disk-count;
+    in property <[MonPart]> partitions;
+    in property <string> dr-line;
+    in property <string> dr-area;
+    in property <string> dw-line;
+    in property <string> dw-area;
+    // --- Réseau ---
+    in property <string> net-name;
+    in property <string> net-conn;
+    in property <string> net-product;
+    in property <string> net-latency;
+    in property <string> net-status;
+    in property <int> net-status-variant;
+    in property <string> net-down;
+    in property <string> net-up;
+    in property <string> net-total-rx;
+    in property <string> net-total-tx;
+    in property <string> nd-line;
+    in property <string> nd-area;
+    in property <string> nu-line;
+    in property <string> nu-area;
+    in property <[[string]]> net-props;       // [[label, valeur], ...]
+    in property <bool> net-wifi;
+    in property <[[string]]> wifi-props;
+    in property <[MonIface]> interfaces;
+    // --- Processus (vue d'ensemble) ---
+    in property <[MonProc]> procs;
+    in property <int> procs-count;
+    in-out property <string> proc-filter;
+    in property <int> sort-field: 1;          // 0 pid, 1 cpu, 2 mémoire
+    in property <bool> sort-desc: true;
+    // --- Tous les processus ---
+    in property <[MonProc]> all-procs;
+    in property <int> all-total;
+    in property <int> all-page: 1;
+    in property <int> all-pages: 1;
+    in-out property <string> all-filter;
+    in property <int> all-sort-field: 1;
+    in property <bool> all-sort-desc: true;
+    in property <bool> all-loading;
+    // --- Processus GPU ---
+    in property <[MonGpuProc]> gpu-procs;
+    in property <int> gpu-total;
+    in property <string> gpu-vram-total-label;
+    in-out property <string> gpu-filter;
+    in property <bool> gpu-loading;
+    // --- SMART ---
+    in property <[MonDisk]> smart;
+    in property <bool> smart-admin;
+    in property <bool> smart-loading;
+    // --- DNF ---
+    in property <bool> dnf-available;
+    in property <string> dnf-summary;
+    in property <string> dnf-last;
+    in property <[MonPkg]> dnf-pkgs;
+    in property <int> dnf-total;
+    in-out property <string> dnf-filter;
+    in property <bool> dnf-loading;
+    // --- Modale d'arrêt ---
+    in-out property <bool> kill-open;
+    in property <string> kill-name;
+    in property <string> kill-pid;
+    in property <string> kill-mem;
+    in property <string> kill-cpu;
+    in-out property <bool> kill-force;
+
+    callback set-interval(int);
+    callback toggle-pause();
+    callback refresh();
+    callback set-tab(int);
+    callback sort(int);
+    callback all-sort(int);
+    callback all-page-prev();
+    callback all-page-next();
+    callback all-refresh();
+    callback gpu-refresh();
+    callback smart-refresh();
+    callback smart-elevated();
+    callback dnf-refresh();
+    callback dnf-copy();
+    callback request-kill(string);
+    callback confirm-kill();
+    callback filters-changed();
+}
+
+// ---------------------------------------------------------------- briques
+
+component Spark inherits Rectangle {
+    in property <string> line;
+    in property <string> area;
+    in property <color> tint;
+    height: 52px;
+    // Tracé dessiné en 600×52 puis étiré à la largeur réelle (échelle X autour du centre)
+    Path {
+        x: (parent.width - 600px) / 2; width: 600px; height: parent.height;
+        transform-scale-x: parent.width / 600px;
+        viewbox-width: 600; viewbox-height: 52;
+        commands: root.area;
+        fill: @linear-gradient(180deg, root.tint.with-alpha(0.25) 0%, root.tint.with-alpha(0.0) 100%);
+    }
+    Path {
+        x: (parent.width - 600px) / 2; width: 600px; height: parent.height;
+        transform-scale-x: parent.width / 600px;
+        viewbox-width: 600; viewbox-height: 52;
+        commands: root.line;
+        stroke: root.tint; stroke-width: 2px; fill: transparent;
+    }
+}
+
+component MCard inherits Rectangle {
+    background: #18181b99;
+    border-radius: 16px; border-width: 1px; border-color: Theme.border-subtle;
+    drop-shadow-blur: 16px; drop-shadow-color: #00000055;
+    preferred-height: l.preferred-height;
+    min-height: l.min-height;
+    l := VerticalLayout { padding: 24px; spacing: 20px; @children }
+}
+
+component CardHead inherits HorizontalLayout {
+    in property <string> glyph;
+    in property <string> title;
+    in property <string> subtitle;
+    in property <string> badge;
+    in property <string> big;           // grand chiffre à droite
+    in property <string> big-sub;
+    in property <color> big-color: Theme.zinc-100;
+    spacing: 14px;
+    Rectangle {
+        width: 44px; height: 44px; border-radius: 12px;
+        background: Theme.amber-bg-faint; border-width: 1px; border-color: Theme.amber-border-soft;
+        Ph { text: root.glyph; weight: 1; font-size: 22px; color: Theme.amber-400; }
+    }
+    VerticalLayout {
+        horizontal-stretch: 1; alignment: center; spacing: 2px;
+        HorizontalLayout {
+            spacing: 8px; alignment: start;
+            Text { text: root.title; font-size: 16px; font-weight: 700; color: Theme.zinc-100; vertical-alignment: center; }
+            if root.badge != "": UiBadge { text: root.badge; variant: 1; }
+        }
+        Text { text: root.subtitle; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-400; overflow: elide; }
+    }
+    if root.big != "": VerticalLayout {
+        alignment: center; spacing: 2px;
+        HorizontalLayout {
+            alignment: end; spacing: 2px;
+            Text { text: root.big; font-family: Theme.font-mono; font-size: 30px; font-weight: 800; color: root.big-color; vertical-alignment: bottom; }
+            Text { text: "%"; font-family: Theme.font-mono; font-size: 14px; color: Theme.zinc-500; vertical-alignment: bottom; }
+        }
+        Text { text: root.big-sub; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-400; horizontal-alignment: right; }
+    }
+}
+
+component SparkSection inherits VerticalLayout {
+    in property <string> label;
+    in property <string> value;
+    in property <string> line;
+    in property <string> area;
+    in property <color> tint;
+    spacing: 6px;
+    HorizontalLayout {
+        Text { horizontal-stretch: 1; text: root.label; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-500; }
+        Text { text: root.value; font-family: Theme.font-mono; font-size: 11px; font-weight: 700; color: root.tint; }
+    }
+    Rectangle {
+        background: #09090b80; border-radius: 12px; border-width: 1px; border-color: #27272a99;
+        height: 68px;
+        Spark { x: 8px; y: 8px; width: parent.width - 16px; line: root.line; area: root.area; tint: root.tint; }
+    }
+}
+
+component Bar inherits Rectangle {
+    in property <float> pct;       // 0..1
+    in property <color> tint;
+    in property <length> bar-h: 6px;
+    height: bar-h; border-radius: self.height / 2; background: Theme.zinc-800; clip: true;
+    Rectangle { x: 0; width: parent.width * clamp(root.pct, 0, 1); height: parent.height; border-radius: self.height / 2; background: root.tint; animate width { duration: 400ms; easing: ease-out; } }
+}
+
+component KV inherits Rectangle {
+    in property <string> label;
+    in property <string> value;
+    in property <color> value-color: Theme.zinc-200;
+    background: #09090b80; border-radius: 10px; border-width: 1px; border-color: #27272a99;
+    min-height: 58px;
+    VerticalLayout {
+        padding: 10px; spacing: 3px; alignment: center;
+        Text { text: root.label; font-family: Theme.font-mono; font-size: 10px; font-weight: 600; color: Theme.zinc-500; }
+        Text { text: root.value; font-family: Theme.font-mono; font-size: 12px; font-weight: 700; color: root.value-color; overflow: elide; }
+    }
+}
+
+component Pill inherits Rectangle {
+    in property <string> text;
+    in property <bool> active;
+    callback clicked();
+    min-width: l.min-width; preferred-width: l.preferred-width;
+    border-radius: 8px;
+    background: active ? Theme.amber-500 : (ta.has-hover ? #27272a99 : transparent);
+    l := HorizontalLayout { padding-left: 10px; padding-right: 10px; Text { text: root.text; font-family: Theme.font-mono; font-size: 12px; font-weight: 600; vertical-alignment: center; color: root.active ? Theme.zinc-950 : (ta.has-hover ? Theme.zinc-200 : Theme.zinc-400); } }
+    ta := TouchArea { mouse-cursor: pointer; clicked => { root.clicked(); } }
+}
+
+component NavTab inherits Rectangle {
+    in property <string> glyph;
+    in property <string> text;
+    in property <int> badge: -1;
+    in property <bool> active;
+    callback clicked();
+    min-width: l.min-width; preferred-width: l.preferred-width;
+    border-radius: 12px;
+    background: active ? Theme.amber-500 : (ta.has-hover ? #27272a99 : transparent);
+    drop-shadow-blur: active ? 14px : 0px; drop-shadow-color: Theme.amber-glow;
+    l := HorizontalLayout {
+        padding-left: 20px; padding-right: 20px; spacing: 10px; alignment: center;
+        Ph { text: root.glyph; font-size: 16px; weight: root.active ? 2 : 0; color: root.active ? Theme.zinc-950 : (ta.has-hover ? Theme.zinc-200 : Theme.zinc-400); }
+        Text { text: root.text; font-size: 12px; font-weight: root.active ? 700 : 600; vertical-alignment: center; color: root.active ? Theme.zinc-950 : (ta.has-hover ? Theme.zinc-100 : Theme.zinc-400); }
+        if root.badge >= 0: Rectangle {
+            border-radius: 10px; height: 20px; y: 10px; background: root.active ? Theme.zinc-950 : Theme.zinc-800;
+            min-width: bt.preferred-width + 16px;
+            bt := Text { text: root.badge; font-family: Theme.font-mono; font-size: 10px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; color: root.active ? Theme.amber-400 : Theme.zinc-300; }
+        }
+    }
+    ta := TouchArea { mouse-cursor: pointer; clicked => { root.clicked(); } }
+}
+
+component Th inherits Rectangle {
+    in property <string> text;
+    in property <bool> sortable: false;
+    in property <bool> active: false;
+    in property <bool> desc: true;
+    in property <bool> right: false;
+    in property <bool> centered: false;
+    callback clicked();
+    Text {
+        width: parent.width;
+        text: root.text + (root.active ? (root.desc ? " ▾" : " ▴") : "");
+        font-family: Theme.font-mono; font-size: 10px; font-weight: 700;
+        horizontal-alignment: root.centered ? TextHorizontalAlignment.center : (root.right ? TextHorizontalAlignment.right : TextHorizontalAlignment.left);
+        color: root.active ? Theme.amber-400 : Theme.zinc-500; vertical-alignment: center;
+    }
+    if root.sortable: TouchArea { mouse-cursor: pointer; clicked => { root.clicked(); } }
+}
+
+component KillBtn inherits Rectangle {
+    in property <bool> enabled: true;
+    callback clicked();
+    width: 28px; height: 26px; border-radius: 8px;
+    background: ta.has-hover && root.enabled ? #f43f5e33 : transparent;
+    opacity: root.enabled ? 1.0 : 0.3;
+    Ph { text: Icons.x; weight: 2; font-size: 14px; color: Theme.rose-400; }
+    ta := TouchArea { enabled: root.enabled; mouse-cursor: pointer; clicked => { root.clicked(); } }
+}
+
+component Empty inherits Rectangle {
+    in property <string> text;
+    height: 64px;
+    Text { text: root.text; font-size: 12px; color: Theme.zinc-500; horizontal-alignment: center; vertical-alignment: center; }
+}
+
+component TableShell inherits Rectangle {
+    background: #18181b99; border-radius: 16px; border-width: 1px; border-color: Theme.border-subtle; clip: true;
+    preferred-height: l.preferred-height;
+    l := VerticalLayout { @children }
+}
+
+component SearchBar inherits Rectangle {
+    in-out property <string> text;
+    in property <string> placeholder;
+    callback edited();
+    height: 36px; width: 320px;
+    background: #09090bcc; border-radius: 10px; border-width: 1px;
+    border-color: ti.has-focus ? Theme.amber-500.with-alpha(0.7) : Theme.border-subtle;
+    Ph { x: 12px; text: Icons.search; font-size: 14px; color: Theme.zinc-400; width: 16px; }
+    ti := TextInput {
+        x: 36px; width: parent.width - 48px; y: 0px; height: parent.height; vertical-alignment: center;
+        font-size: 12px; color: Theme.zinc-100; text <=> root.text; edited => { root.edited(); }
+        selection-background-color: Theme.amber-500.with-alpha(0.3);
+    }
+    if root.text == "": Text { x: 36px; y: 0px; height: parent.height; vertical-alignment: center; text: root.placeholder; font-size: 12px; color: Theme.zinc-500; }
+}
+
+component RefreshBtn inherits Rectangle {
+    in property <bool> spinning;
+    callback clicked();
+    width: 36px; height: 36px; border-radius: 10px; background: ta.has-hover ? Theme.zinc-800 : Theme.zinc-900;
+    border-width: 1px; border-color: Theme.zinc-800;
+    Ph { text: Icons.refresh; font-size: 16px; color: ta.has-hover ? Theme.zinc-100 : Theme.zinc-400; }
+    ta := TouchArea { mouse-cursor: pointer; clicked => { root.clicked(); } }
+}
+
+// ---------------------------------------------------------------- cartes (vue d'ensemble)
+
+component CpuCard inherits VerticalLayout {
+    spacing: 16px;
+    MCard {
+        CardHead {
+            glyph: Icons.cpu; title: "Processeur (CPU)"; badge: Monitor.cpu-governor; subtitle: Monitor.cpu-model;
+            big: Monitor.cpu-usage; big-sub: Monitor.cpu-topology + (Monitor.cpu-temp != "" ? "  ·  " + Monitor.cpu-temp : ""); big-color: Monitor.cpu-color;
+        }
+        SparkSection { label: "HISTORIQUE CHARGE CPU (60s)"; value: Monitor.cpu-usage + "%"; line: Monitor.cpu-line; area: Monitor.cpu-area; tint: Monitor.cpu-color; }
+        VerticalLayout {
+            spacing: 10px;
+            HorizontalLayout {
+                Text { horizontal-stretch: 1; text: "CHARGE DÉTAILLÉE PAR CŒUR / THREAD"; font-family: Theme.font-mono; font-size: 11px; font-weight: 600; color: Theme.zinc-400; }
+                Text { text: Monitor.cpu-cores.length + " THREADS"; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-500; }
+            }
+            grid := Rectangle {
+                private property <int> cols: max(2, floor((self.width + 8px) / 118px));
+                private property <length> tile-w: (self.width - (cols - 1) * 8px) / cols;
+                height: ceil(Monitor.cpu-cores.length / cols) * 66px;
+                for c[i] in Monitor.cpu-cores: Rectangle {
+                    x: mod(i, grid.cols) * (grid.tile-w + 8px); y: floor(i / grid.cols) * 66px;
+                    width: grid.tile-w; height: 58px;
+                    background: #09090b99; border-radius: 10px; border-width: 1px; border-color: #27272a99;
+                    VerticalLayout {
+                        padding: 8px; spacing: 4px;
+                        HorizontalLayout {
+                            Text { horizontal-stretch: 1; text: "#" + c.id; font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-500; }
+                            Text { text: c.label; font-family: Theme.font-mono; font-size: 11px; font-weight: 700; color: c.color; }
+                        }
+                        Bar { pct: c.pct; tint: c.color; bar-h: 4px; }
+                        HorizontalLayout {
+                            Text { horizontal-stretch: 1; text: c.freq; font-family: Theme.font-mono; font-size: 9px; color: Theme.zinc-500; }
+                            Text { text: c.temp; font-family: Theme.font-mono; font-size: 9px; color: Theme.zinc-400; }
+                        }
+                    }
+                }
+            }
+        }
+        if Monitor.has-battery: Rectangle {
+            height: 44px; background: #09090b99; border-radius: 12px; border-width: 1px; border-color: #27272a99;
+            HorizontalLayout {
+                padding-left: 14px; padding-right: 14px; spacing: 10px;
+                Text { horizontal-stretch: 1; text: Monitor.battery-label; font-size: 12px; font-weight: 600; color: Theme.zinc-300; vertical-alignment: center; }
+                Text { text: Monitor.battery-power; font-family: Theme.font-mono; font-size: 12px; color: Theme.zinc-400; vertical-alignment: center; }
+                Text { text: Monitor.battery-pct; font-family: Theme.font-mono; font-size: 14px; font-weight: 800; color: Theme.emerald-400; vertical-alignment: center; }
+            }
+        }
+    }
+    if Monitor.has-gpu: MCard {
+        CardHead {
+            glyph: "\u{e32e}"; title: "Carte Graphique (GPU)"; badge: Monitor.gpu-vendor; subtitle: Monitor.gpu-name;
+            big: Monitor.gpu-usage; big-sub: (Monitor.gpu-driver != "" ? "Pilote " + Monitor.gpu-driver : "") + (Monitor.gpu-temp != "" ? "  ·  " + Monitor.gpu-temp : ""); big-color: Monitor.gpu-color;
+        }
+        SparkSection { label: "HISTORIQUE CHARGE GPU (60s)"; value: Monitor.gpu-usage + "%"; line: Monitor.gpu-line; area: Monitor.gpu-area; tint: Monitor.gpu-color; }
+        if Monitor.gpu-has-vram: VerticalLayout {
+            spacing: 6px;
+            HorizontalLayout {
+                Text { horizontal-stretch: 1; text: "MÉMOIRE VIDÉO (VRAM)"; font-family: Theme.font-mono; font-size: 11px; font-weight: 600; color: Theme.zinc-400; }
+                Text { text: Monitor.gpu-vram-label; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-300; }
+            }
+            Bar { pct: Monitor.gpu-vram-pct; tint: Monitor.gpu-color; bar-h: 8px; }
+        }
+        HorizontalLayout {
+            spacing: 10px;
+            KV { label: "PUISSANCE"; value: Monitor.gpu-power; }
+            KV { label: "VENTILATEUR"; value: Monitor.gpu-fan; }
+            KV { label: "TEMP. HOTSPOT"; value: Monitor.gpu-hotspot; }
+            KV { label: "TEMP. VRAM"; value: Monitor.gpu-vram-temp; }
+        }
+    }
+}
+
+component MemoryCard inherits VerticalLayout {
+    spacing: 16px;
+    MCard {
+        CardHead {
+            glyph: "\u{e1de}"; title: "Mémoire Vive (RAM & Swap)"; subtitle: Monitor.ram-line-text;
+            big: Monitor.ram-usage; big-sub: "Dispo : " + Monitor.ram-avail; big-color: Monitor.ram-color;
+        }
+        SparkSection { label: "HISTORIQUE MÉMOIRE (60s)"; value: Monitor.ram-usage + "%"; line: Monitor.ram-line; area: Monitor.ram-area; tint: Monitor.ram-color; }
+        VerticalLayout {
+            spacing: 8px;
+            HorizontalLayout {
+                Text { horizontal-stretch: 1; text: "RÉPARTITION MÉMOIRE"; font-family: Theme.font-mono; font-size: 11px; font-weight: 600; color: Theme.zinc-400; }
+                Text { text: "Cache/Buffers : " + Monitor.ram-cache-gb; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-500; }
+            }
+            Rectangle {
+                height: 14px; border-radius: 7px; background: Theme.zinc-800; clip: true;
+                Rectangle { x: 0; width: parent.width * Monitor.ram-used-f; height: parent.height; background: Theme.amber-500; }
+                Rectangle { x: parent.width * Monitor.ram-used-f; width: parent.width * Monitor.ram-cache-f; height: parent.height; background: Theme.sky-400.with-alpha(0.7); }
+            }
+            HorizontalLayout {
+                spacing: 18px; alignment: start;
+                HorizontalLayout { spacing: 6px; Rectangle { width: 8px; height: 8px; y: 4px; border-radius: 4px; background: Theme.amber-500; } Text { text: "Active (" + Monitor.ram-used-gb + ")"; font-size: 11px; color: Theme.zinc-400; } }
+                HorizontalLayout { spacing: 6px; Rectangle { width: 8px; height: 8px; y: 4px; border-radius: 4px; background: Theme.sky-400; } Text { text: "Cache/Buffers (" + Monitor.ram-cache-gb + ")"; font-size: 11px; color: Theme.zinc-400; } }
+                HorizontalLayout { spacing: 6px; Rectangle { width: 8px; height: 8px; y: 4px; border-radius: 4px; background: Theme.zinc-700; } Text { text: "Libre (" + Monitor.ram-avail + ")"; font-size: 11px; color: Theme.zinc-400; } }
+            }
+        }
+        VerticalLayout {
+            spacing: 6px;
+            HorizontalLayout {
+                Text { horizontal-stretch: 1; text: "FICHIER D'ÉCHANGE (SWAP)"; font-family: Theme.font-mono; font-size: 11px; font-weight: 600; color: Theme.zinc-400; }
+                Text { text: Monitor.swap-used + " / " + Monitor.swap-total + " (" + Monitor.swap-pct-label + ")"; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-300; }
+            }
+            Bar { pct: Monitor.swap-pct; tint: Monitor.swap-color; bar-h: 6px; }
+        }
+    }
+    MCard {
+        HorizontalLayout {
+            spacing: 14px;
+            Rectangle {
+                width: 44px; height: 44px; border-radius: 12px; background: Theme.amber-bg-faint; border-width: 1px; border-color: Theme.amber-border-soft;
+                Ph { text: Icons.hard-drive; weight: 1; font-size: 22px; color: Theme.amber-400; }
+            }
+            VerticalLayout {
+                horizontal-stretch: 1; alignment: center; spacing: 2px;
+                Text { text: "Stockage & Partitions"; font-size: 16px; font-weight: 700; color: Theme.zinc-100; }
+                Text { text: Monitor.disk-count; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-400; }
+            }
+            VerticalLayout { alignment: center; Text { text: "LECTURE"; font-family: Theme.font-mono; font-size: 9px; color: Theme.zinc-500; horizontal-alignment: right; } Text { text: Monitor.disk-read; font-family: Theme.font-mono; font-size: 14px; font-weight: 700; color: Theme.sky-400; horizontal-alignment: right; } }
+            VerticalLayout { alignment: center; Text { text: "ÉCRITURE"; font-family: Theme.font-mono; font-size: 9px; color: Theme.zinc-500; horizontal-alignment: right; } Text { text: Monitor.disk-write; font-family: Theme.font-mono; font-size: 14px; font-weight: 700; color: Theme.amber-400; horizontal-alignment: right; } }
+        }
+        HorizontalLayout {
+            spacing: 14px;
+            SparkSection { horizontal-stretch: 1; label: "LECTURE DISQUE"; value: Monitor.disk-read; line: Monitor.dr-line; area: Monitor.dr-area; tint: Theme.sky-400; }
+            SparkSection { horizontal-stretch: 1; label: "ÉCRITURE DISQUE"; value: Monitor.disk-write; line: Monitor.dw-line; area: Monitor.dw-area; tint: Theme.amber-400; }
+        }
+        VerticalLayout {
+            spacing: 10px;
+            for p in Monitor.partitions: Rectangle {
+                height: 66px; background: #09090b99; border-radius: 12px; border-width: 1px; border-color: #27272a99;
+                VerticalLayout {
+                    padding: 12px; spacing: 8px;
+                    HorizontalLayout {
+                        spacing: 10px;
+                        VerticalLayout {
+                            horizontal-stretch: 1;
+                            Text { text: p.mount; font-size: 12px; font-weight: 600; color: Theme.zinc-200; overflow: elide; }
+                            Text { text: p.name + " · " + p.fs + (p.removable ? " · amovible" : ""); font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-500; overflow: elide; }
+                        }
+                        Text { text: p.used + " / " + p.total; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-300; vertical-alignment: center; }
+                        Text { text: round(p.pct * 100) + "%"; font-family: Theme.font-mono; font-size: 12px; font-weight: 700; color: p.color; vertical-alignment: center; width: 40px; horizontal-alignment: right; }
+                    }
+                    Bar { pct: p.pct; tint: p.color; bar-h: 5px; }
+                }
+            }
+        }
+    }
+}
+
+component NetworkCard inherits MCard {
+    HorizontalLayout {
+        spacing: 14px;
+        Rectangle {
+            width: 44px; height: 44px; border-radius: 12px; background: Theme.amber-bg-faint; border-width: 1px; border-color: Theme.amber-border-soft;
+            Ph { text: "\u{e4ea}"; weight: 1; font-size: 22px; color: Theme.amber-400; }
+        }
+        VerticalLayout {
+            horizontal-stretch: 1; alignment: center; spacing: 2px;
+            HorizontalLayout {
+                spacing: 8px; alignment: start;
+                Text { text: Monitor.net-name; font-size: 16px; font-weight: 700; color: Theme.zinc-100; vertical-alignment: center; }
+                if Monitor.net-conn != "": UiBadge { text: Monitor.net-conn; variant: 0; }
+                UiBadge { text: Monitor.net-status; variant: Monitor.net-status-variant; dot: true; }
+            }
+            Text { text: Monitor.net-product + (Monitor.net-latency != "" ? "   ·   Ping : " + Monitor.net-latency : ""); font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-400; overflow: elide; }
+        }
+        VerticalLayout { alignment: center; Text { text: "↓ RÉCEPTION"; font-family: Theme.font-mono; font-size: 9px; color: Theme.zinc-500; horizontal-alignment: right; } Text { text: Monitor.net-down; font-family: Theme.font-mono; font-size: 16px; font-weight: 700; color: Theme.sky-400; horizontal-alignment: right; } Text { text: "Total " + Monitor.net-total-rx; font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-500; horizontal-alignment: right; } }
+        VerticalLayout { alignment: center; Text { text: "↑ ENVOI"; font-family: Theme.font-mono; font-size: 9px; color: Theme.zinc-500; horizontal-alignment: right; } Text { text: Monitor.net-up; font-family: Theme.font-mono; font-size: 16px; font-weight: 700; color: Theme.amber-400; horizontal-alignment: right; } Text { text: "Total " + Monitor.net-total-tx; font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-500; horizontal-alignment: right; } }
+    }
+    HorizontalLayout {
+        spacing: 14px;
+        SparkSection { horizontal-stretch: 1; label: "HISTORIQUE RÉCEPTION (60s)"; value: Monitor.net-down; line: Monitor.nd-line; area: Monitor.nd-area; tint: Theme.sky-400; }
+        SparkSection { horizontal-stretch: 1; label: "HISTORIQUE ENVOI (60s)"; value: Monitor.net-up; line: Monitor.nu-line; area: Monitor.nu-area; tint: Theme.amber-400; }
+    }
+    VerticalLayout {
+        spacing: 10px;
+        Text { text: "PROPRIÉTÉS DE CONNEXION & LIAISON MATÉRIELLE"; font-family: Theme.font-mono; font-size: 11px; font-weight: 600; color: Theme.zinc-400; }
+        gridp := Rectangle {
+            private property <int> cols: max(2, min(4, floor((self.width + 10px) / 230px)));
+            private property <length> tw: (self.width - (cols - 1) * 10px) / cols;
+            height: ceil(Monitor.net-props.length / cols) * 68px;
+            for kv[i] in Monitor.net-props: KV {
+                x: mod(i, gridp.cols) * (gridp.tw + 10px); y: floor(i / gridp.cols) * 68px;
+                width: gridp.tw; height: 58px; label: kv[0]; value: kv[1];
+            }
+        }
+    }
+    if Monitor.net-wifi: VerticalLayout {
+        spacing: 10px;
+        Text { text: "RÉSEAU WI-FI CONNECTÉ"; font-family: Theme.font-mono; font-size: 11px; font-weight: 600; color: Theme.zinc-400; }
+        HorizontalLayout { spacing: 10px; for kv in Monitor.wifi-props: KV { label: kv[0]; value: kv[1]; } }
+    }
+    if Monitor.interfaces.length > 0: VerticalLayout {
+        spacing: 10px;
+        HorizontalLayout {
+            Text { horizontal-stretch: 1; text: "Périphériques secondaires, conteneurs et interfaces virtuelles"; font-size: 11px; color: Theme.zinc-500; }
+            Text { text: Monitor.interfaces.length + " interface" + (Monitor.interfaces.length > 1 ? "s" : ""); font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-400; }
+        }
+        for f in Monitor.interfaces: Rectangle {
+            height: 40px; background: #09090b80; border-radius: 10px; border-width: 1px; border-color: #27272a80;
+            HorizontalLayout {
+                padding-left: 12px; padding-right: 12px; spacing: 10px;
+                Rectangle { width: 8px; height: 8px; y: 16px; border-radius: 4px; background: f.up ? Theme.emerald-400 : Theme.zinc-600; }
+                Text { text: f.name; font-family: Theme.font-mono; font-size: 12px; font-weight: 600; color: Theme.zinc-200; vertical-alignment: center; width: 140px; }
+                Text { horizontal-stretch: 1; text: f.addr; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-500; vertical-alignment: center; overflow: elide; }
+                Text { text: "↓ " + f.rx + "   ↑ " + f.tx; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-400; vertical-alignment: center; }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------- tableaux
+
+component ProcRow inherits Rectangle {
+    in property <MonProc> p;
+    in property <bool> show-status: false;
+    callback kill();
+    height: 46px;
+    background: ta.has-hover ? #27272a40 : transparent;
+    ta := TouchArea { }
+    Rectangle { y: parent.height - 1px; height: 1px; background: #27272a66; }
+    HorizontalLayout {
+        padding-left: 20px; padding-right: 20px; spacing: 12px;
+        Text { width: 64px; text: root.p.pid; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-500; vertical-alignment: center; }
+        VerticalLayout {
+            horizontal-stretch: 1; alignment: center;
+            Text { text: root.p.name; font-size: 12px; font-weight: 600; color: Theme.zinc-200; overflow: elide; }
+            Text { text: root.p.command; font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-500; overflow: elide; }
+        }
+        Text { width: 96px; text: root.p.user; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-400; vertical-alignment: center; overflow: elide; }
+        Text { width: 64px; text: root.p.cpu; font-family: Theme.font-mono; font-size: 12px; font-weight: 700; color: Theme.amber-400; vertical-alignment: center; horizontal-alignment: right; }
+        Text { width: 88px; text: root.p.mem; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-300; vertical-alignment: center; horizontal-alignment: right; }
+        Text { width: 120px; text: root.p.io; font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-500; vertical-alignment: center; horizontal-alignment: right; }
+        if root.show-status: Text { width: 70px; text: root.p.status; font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-400; vertical-alignment: center; }
+        Rectangle {
+            width: 56px;
+            if root.p.killable: KillBtn { clicked => { root.kill(); } }
+            if !root.p.killable: Text { text: "Protégé"; font-size: 10px; color: Theme.zinc-600; horizontal-alignment: center; vertical-alignment: center; }
+        }
+    }
+}
+
+component ProcHeader inherits Rectangle {
+    in property <bool> show-status: false;
+    in property <int> field: -1;
+    in property <bool> desc: true;
+    callback sort(int);
+    height: 36px; background: #09090b99;
+    HorizontalLayout {
+        padding-left: 20px; padding-right: 20px; spacing: 12px;
+        Th { width: 64px; text: "PID"; sortable: true; active: root.field == 0; desc: root.desc; clicked => { root.sort(0); } }
+        Th { horizontal-stretch: 1; text: "PROCESSUS / COMMANDE"; sortable: true; active: root.field == 3; desc: root.desc; clicked => { root.sort(3); } }
+        Th { width: 96px; text: "UTILISATEUR"; }
+        Th { width: 64px; text: "CPU"; right: true; sortable: true; active: root.field == 1; desc: root.desc; clicked => { root.sort(1); } }
+        Th { width: 88px; text: "MÉMOIRE"; right: true; sortable: true; active: root.field == 2; desc: root.desc; clicked => { root.sort(2); } }
+        Th { width: 120px; text: "I/O DISQUE"; right: true; }
+        if root.show-status: Th { width: 70px; text: "STATUT"; }
+        Th { width: 56px; text: "ACTION"; centered: true; }
+    }
+}
+
+component SectionHead inherits HorizontalLayout {
+    in property <string> title;
+    in property <string> subtitle;
+    spacing: 10px;
+    VerticalLayout {
+        horizontal-stretch: 1; alignment: center; spacing: 2px;
+        Text { text: root.title; font-size: 16px; font-weight: 700; color: Theme.zinc-100; }
+        Text { text: root.subtitle; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-400; }
+    }
+    @children
+}
+
+component OverviewTab inherits VerticalLayout {
+    spacing: 24px;
+    CpuCard { }
+    MemoryCard { }
+    NetworkCard { }
+    TableShell {
+        VerticalLayout {
+            padding: 20px; spacing: 12px;
+            HorizontalLayout {
+                SectionHead { title: "Gestionnaire de Processus"; subtitle: Monitor.procs-count + " processus actifs les plus consommateurs"; horizontal-stretch: 1; }
+                SearchBar { text <=> Monitor.proc-filter; placeholder: "Rechercher par PID, nom ou utilisateur..."; edited => { Monitor.filters-changed(); } }
+            }
+        }
+        ProcHeader { field: Monitor.sort-field; desc: Monitor.sort-desc; sort(f) => { Monitor.sort(f); } }
+        for p in Monitor.procs: ProcRow { p: p; kill => { Monitor.request-kill(p.pid); } }
+        if Monitor.procs.length == 0: Empty { text: "Aucun processus ne correspond aux critères."; }
+    }
+}
+
+component AllProcsTab inherits TableShell {
+    VerticalLayout {
+        padding: 20px; spacing: 12px;
+        HorizontalLayout {
+            spacing: 8px;
+            SectionHead { title: "Liste Complète des Processus"; subtitle: Monitor.all-total + " processus système"; horizontal-stretch: 1; }
+            SearchBar { text <=> Monitor.all-filter; placeholder: "Rechercher par PID, nom, utilisateur..."; edited => { Monitor.filters-changed(); } }
+            RefreshBtn { clicked => { Monitor.all-refresh(); } }
+        }
+    }
+    ProcHeader { show-status: true; field: Monitor.all-sort-field; desc: Monitor.all-sort-desc; sort(f) => { Monitor.all-sort(f); } }
+    for p in Monitor.all-procs: ProcRow { p: p; show-status: true; kill => { Monitor.request-kill(p.pid); } }
+    if Monitor.all-procs.length == 0: Empty { text: Monitor.all-loading ? "Collecte des processus système..." : "Aucun processus ne correspond aux critères."; }
+    Rectangle {
+        height: 48px; background: #09090b99;
+        HorizontalLayout {
+            padding-left: 20px; padding-right: 20px; spacing: 10px; alignment: end;
+            Text { text: "Page " + Monitor.all-page + " sur " + Monitor.all-pages; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-400; vertical-alignment: center; }
+            UiButton { y: 8px; variant: 1; size: 0; text: "Précédent"; enabled: Monitor.all-page > 1; clicked => { Monitor.all-page-prev(); } }
+            UiButton { y: 8px; variant: 1; size: 0; text: "Suivant"; enabled: Monitor.all-page < Monitor.all-pages; clicked => { Monitor.all-page-next(); } }
+        }
+    }
+}
+
+component GpuProcsTab inherits TableShell {
+    VerticalLayout {
+        padding: 20px; spacing: 12px;
+        HorizontalLayout {
+            spacing: 8px;
+            SectionHead { title: "Processus GPU Actifs"; subtitle: Monitor.gpu-total + " processus   ·   VRAM totale utilisée : " + Monitor.gpu-vram-total-label; horizontal-stretch: 1; }
+            SearchBar { text <=> Monitor.gpu-filter; placeholder: "Filtrer par nom, PID, commande..."; edited => { Monitor.filters-changed(); } }
+            RefreshBtn { clicked => { Monitor.gpu-refresh(); } }
+        }
+    }
+    Rectangle {
+        height: 36px; background: #09090b99;
+        HorizontalLayout {
+            padding-left: 20px; padding-right: 20px; spacing: 12px;
+            Th { width: 64px; text: "PID"; }
+            Th { horizontal-stretch: 1; text: "APPLICATION / COMMANDE"; }
+            Th { width: 150px; text: "TYPE CONTEXTE"; }
+            Th { width: 90px; text: "VRAM DÉDIÉE"; right: true; }
+            Th { width: 80px; text: "SM UTIL"; right: true; }
+            Th { width: 90px; text: "RAM HÔTE"; right: true; }
+            Th { width: 60px; text: "% CPU"; right: true; }
+            Th { width: 56px; text: "ACTION"; centered: true; }
+        }
+    }
+    for p in Monitor.gpu-procs: Rectangle {
+        height: 46px;
+        Rectangle { y: parent.height - 1px; height: 1px; background: #27272a66; }
+        HorizontalLayout {
+            padding-left: 20px; padding-right: 20px; spacing: 12px;
+            Text { width: 64px; text: p.pid; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-500; vertical-alignment: center; }
+            VerticalLayout {
+                horizontal-stretch: 1; alignment: center;
+                Text { text: p.name; font-size: 12px; font-weight: 600; color: Theme.zinc-200; overflow: elide; }
+                Text { text: p.command; font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-500; overflow: elide; }
+            }
+            Text { width: 150px; text: p.ptype; font-family: Theme.font-mono; font-size: 10px; color: Theme.sky-300; vertical-alignment: center; horizontal-alignment: left; overflow: elide; }
+            Text { width: 90px; horizontal-alignment: right; text: p.vram; font-family: Theme.font-mono; font-size: 11px; font-weight: 700; color: Theme.amber-400; vertical-alignment: center; }
+            Text { width: 80px; horizontal-alignment: right; text: p.sm; font-family: Theme.font-mono; font-size: 11px; color: Theme.emerald-400; vertical-alignment: center; }
+            Text { width: 90px; horizontal-alignment: right; text: p.ram; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-300; vertical-alignment: center; }
+            Text { width: 60px; horizontal-alignment: right; text: p.cpu; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-300; vertical-alignment: center; }
+            Rectangle { width: 56px; KillBtn { clicked => { Monitor.request-kill(p.pid); } } }
+        }
+    }
+    if Monitor.gpu-procs.length == 0: Empty { text: Monitor.gpu-loading ? "Recherche des processus GPU..." : "Aucun processus GPU actif trouvé."; }
+}
+
+component SmartTab inherits VerticalLayout {
+    spacing: 16px;
+    HorizontalLayout {
+        spacing: 10px;
+        Rectangle {
+            width: 44px; height: 44px; border-radius: 12px; background: Theme.amber-bg-faint; border-width: 1px; border-color: Theme.amber-border-soft;
+            Ph { text: Icons.shield-check; weight: 1; font-size: 22px; color: Theme.amber-400; }
+        }
+        SectionHead { title: "Diagnostic S.M.A.R.T. des Disques"; subtitle: Monitor.smart.length + " disques physiques"; horizontal-stretch: 1; }
+        UiButton { y: 4px; variant: Monitor.smart-admin ? 1 : 0; size: 0; icon: Icons.shield-check; text: Monitor.smart-admin ? "Réanalyser (Admin)" : "Autorisation Admin (smartctl)"; clicked => { Monitor.smart-elevated(); } }
+        RefreshBtn { y: 4px; clicked => { Monitor.smart-refresh(); } }
+    }
+    if !Monitor.smart-admin && Monitor.smart.length > 0: Rectangle {
+        background: Theme.amber-bg-faint; border-radius: 12px; border-width: 1px; border-color: Theme.amber-border-soft;
+        preferred-height: al.preferred-height;
+        al := HorizontalLayout { padding: 12px; Text { text: "Données sysfs standard affichées. Autorisez l'accès administrateur (pkexec smartctl) pour obtenir les registres S.M.A.R.T. complets."; font-size: 12px; color: Theme.amber-300; wrap: word-wrap; } }
+    }
+    for d in Monitor.smart: MCard {
+        HorizontalLayout {
+            spacing: 12px;
+            VerticalLayout {
+                horizontal-stretch: 1; spacing: 2px;
+                HorizontalLayout { spacing: 8px; alignment: start; Text { text: d.device; font-size: 16px; font-weight: 700; color: Theme.zinc-100; vertical-alignment: center; } UiBadge { text: d.dtype; variant: 5; } }
+                Text { text: d.model; font-size: 12px; color: Theme.zinc-300; }
+                Text { text: d.meta; font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-500; }
+            }
+            UiBadge { y: 4px; text: d.health; variant: d.health-ok ? 2 : 4; dot: true; large: true; }
+        }
+        HorizontalLayout { spacing: 10px; KV { label: "TEMPÉRATURE"; value: d.temp; } KV { label: "HEURES ALLUMÉ"; value: d.hours; } KV { label: "USURE CELLULES"; value: d.wear; } }
+        HorizontalLayout { spacing: 10px; KV { label: "TOTAL DONNÉES LUES"; value: d.read; } KV { label: "TOTAL DONNÉES ÉCRITES"; value: d.written; } KV { label: "CYCLES D'ALLUMAGE"; value: d.cycles; } }
+        HorizontalLayout { spacing: 10px; KV { label: "SECTEURS RÉALLOUÉS"; value: d.realloc; } KV { label: "ERREURS MÉDIAS"; value: d.media; } }
+        if d.warning != "": Text { text: "Avertissements critiques contrôleur : " + d.warning; font-size: 12px; color: Theme.rose-400; wrap: word-wrap; }
+        Text { text: d.source; font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-500; }
+    }
+    if Monitor.smart.length == 0: Empty { text: Monitor.smart-loading ? "Lecture des disques physiques..." : "Aucun disque détecté."; }
+}
+
+component DnfTab inherits VerticalLayout {
+    spacing: 16px;
+    HorizontalLayout {
+        spacing: 10px;
+        Rectangle {
+            width: 44px; height: 44px; border-radius: 12px; background: Theme.amber-bg-faint; border-width: 1px; border-color: Theme.amber-border-soft;
+            Ph { text: "\u{e390}"; weight: 1; font-size: 22px; color: Theme.amber-400; }
+        }
+        SectionHead { title: "Mises à Jour Système Linux (DNF)"; subtitle: Monitor.dnf-last; horizontal-stretch: 1; }
+        if Monitor.dnf-available: UiBadge { y: 10px; text: Monitor.dnf-summary; variant: Monitor.dnf-badge > 0 ? 1 : 2; dot: true; large: true; }
+        UiButton { y: 4px; variant: 1; size: 0; icon: Icons.refresh; text: Monitor.dnf-loading ? "Vérification..." : "Vérifier"; enabled: !Monitor.dnf-loading; clicked => { Monitor.dnf-refresh(); } }
+    }
+    if !Monitor.dnf-available: MCard {
+        Text { text: "Gestionnaire DNF non détecté"; font-size: 16px; font-weight: 700; color: Theme.zinc-100; horizontal-alignment: center; }
+        Text { text: "Ce système n'utilise pas DNF (Fedora / RHEL) ou la commande est introuvable."; font-size: 12px; color: Theme.zinc-400; horizontal-alignment: center; }
+    }
+    if Monitor.dnf-available: VerticalLayout {
+        spacing: 16px;
+        Rectangle {
+            background: #09090bcc; border-radius: 12px; border-width: 1px; border-color: Theme.border-subtle;
+            height: 52px;
+            HorizontalLayout {
+                padding-left: 16px; padding-right: 12px; spacing: 12px;
+                Text { text: "Commande pour appliquer les mises à jour :"; font-size: 12px; color: Theme.zinc-400; vertical-alignment: center; }
+                Text { horizontal-stretch: 1; text: "sudo dnf upgrade --refresh"; font-family: Theme.font-mono; font-size: 12px; font-weight: 700; color: Theme.amber-400; vertical-alignment: center; }
+                UiButton { y: 9px; variant: 1; size: 0; icon: Icons.copy; text: "Copier"; clicked => { Monitor.dnf-copy(); } }
+            }
+        }
+        TableShell {
+            VerticalLayout {
+                padding: 20px; spacing: 12px;
+                HorizontalLayout {
+                    SectionHead { title: "Paquets disponibles"; subtitle: Monitor.dnf-total + " paquets listés"; horizontal-stretch: 1; }
+                    SearchBar { text <=> Monitor.dnf-filter; placeholder: "Filtrer les paquets ou dépôts..."; edited => { Monitor.filters-changed(); } }
+                }
+            }
+            Rectangle {
+                height: 36px; background: #09090b99;
+                HorizontalLayout {
+                    padding-left: 20px; padding-right: 20px; spacing: 12px;
+                    Th { horizontal-stretch: 2; preferred-width: 0px; min-width: 0px; text: "PAQUET"; }
+                    Th { width: 100px; text: "ARCHITECTURE"; }
+                    Th { horizontal-stretch: 2; preferred-width: 0px; min-width: 0px; text: "NOUVELLE VERSION"; }
+                    Th { horizontal-stretch: 1; preferred-width: 0px; min-width: 0px; text: "DÉPÔT SOURCE"; }
+                }
+            }
+            for p in Monitor.dnf-pkgs: Rectangle {
+                height: 38px;
+                Rectangle { y: parent.height - 1px; height: 1px; background: #27272a66; }
+                HorizontalLayout {
+                    padding-left: 20px; padding-right: 20px; spacing: 12px;
+                    Text { horizontal-stretch: 2; preferred-width: 0px; min-width: 0px; horizontal-alignment: left; text: p.name; font-size: 12px; font-weight: 600; color: Theme.zinc-200; vertical-alignment: center; overflow: elide; }
+                    Text { width: 100px; horizontal-alignment: left; text: p.arch; font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-400; vertical-alignment: center; }
+                    Text { horizontal-stretch: 2; preferred-width: 0px; min-width: 0px; horizontal-alignment: left; text: p.evr; font-family: Theme.font-mono; font-size: 11px; color: Theme.emerald-400; vertical-alignment: center; overflow: elide; }
+                    Text { horizontal-stretch: 1; preferred-width: 0px; min-width: 0px; horizontal-alignment: left; text: p.repo; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-400; vertical-alignment: center; overflow: elide; }
+                }
+            }
+            if Monitor.dnf-pkgs.length == 0: Empty { text: Monitor.dnf-loading ? "Recherche des mises à jour DNF en cours..." : "Tous les paquets du système sont à jour !"; }
+        }
+    }
+}
+
+// ---------------------------------------------------------------- vue principale
+
+export component MonitorView inherits Rectangle {
+    background: Theme.zinc-950;
+
+    VerticalLayout {
+        // ---- en-tête fixe ----
+        Rectangle {
+            background: Theme.bg-header;
+            preferred-height: hl.preferred-height + 1px;
+            hl := VerticalLayout {
+                padding: 24px; padding-bottom: 12px; spacing: 14px;
+                HorizontalLayout {
+                    spacing: 14px;
+                    Rectangle {
+                        width: 52px; height: 52px; border-radius: 16px; background: Theme.amber-bg-faint; border-width: 1px; border-color: Theme.amber-border-soft;
+                        Ph { text: Icons.activity; weight: 2; font-size: 28px; color: Theme.amber-400; }
+                    }
+                    VerticalLayout {
+                        horizontal-stretch: 1; alignment: center; spacing: 3px;
+                        HorizontalLayout {
+                            spacing: 10px; alignment: start;
+                            Text { text: "Monitoring Système & Matériel"; font-size: 20px; font-weight: 800; color: Theme.zinc-100; vertical-alignment: center; }
+                            UiBadge { text: "TEMPS RÉEL"; variant: 1; }
+                        }
+                        Text { text: Monitor.os-line + "  •  Kernel " + Monitor.kernel + "  •  Session " + Monitor.session; font-size: 12px; color: Theme.zinc-400; overflow: elide; }
+                    }
+                    HorizontalLayout {
+                        spacing: 10px; alignment: end;
+                        Rectangle {
+                            y: 8px; height: 36px; background: Theme.zinc-900; border-radius: 12px; border-width: 1px; border-color: Theme.zinc-800;
+                            min-width: iv.min-width + 8px; preferred-width: iv.preferred-width + 8px;
+                            iv := HorizontalLayout {
+                                padding: 4px; spacing: 2px;
+                                Pill { text: "500 ms"; active: Monitor.interval-idx == 0; clicked => { Monitor.set-interval(0); } }
+                                Pill { text: "1 s"; active: Monitor.interval-idx == 1; clicked => { Monitor.set-interval(1); } }
+                                Pill { text: "2 s"; active: Monitor.interval-idx == 2; clicked => { Monitor.set-interval(2); } }
+                                Pill { text: "5 s"; active: Monitor.interval-idx == 3; clicked => { Monitor.set-interval(3); } }
+                            }
+                        }
+                        UiButton { y: 8px; variant: Monitor.paused ? 4 : 1; size: 0; icon: Monitor.paused ? Icons.play : "\u{e39e}"; text: Monitor.paused ? "Reprendre" : "Figer"; clicked => { Monitor.toggle-pause(); } }
+                        RefreshBtn { y: 8px; spinning: Monitor.refreshing; clicked => { Monitor.refresh(); } }
+                    }
+                }
+                if Monitor.has-metrics: Rectangle {
+                    height: 30px;
+                    Rectangle { y: 0px; height: 1px; background: #27272a99; }
+                    HorizontalLayout {
+                        padding-top: 10px; spacing: 18px;
+                        HorizontalLayout { spacing: 6px; alignment: start; Ph { text: Icons.clock; font-size: 14px; color: Theme.amber-400; width: 16px; } Text { text: "Uptime : " + Monitor.uptime; font-family: Theme.font-mono; font-size: 12px; color: Theme.zinc-200; vertical-alignment: center; } }
+                        Text { text: "Hôte : " + Monitor.host; font-family: Theme.font-mono; font-size: 12px; color: Theme.zinc-300; vertical-alignment: center; }
+                        Rectangle { horizontal-stretch: 1; }
+                        Text { text: "Charge Système :  1m: " + Monitor.load1 + "   5m: " + Monitor.load5 + "   15m: " + Monitor.load15; font-family: Theme.font-mono; font-size: 12px; color: Theme.zinc-300; vertical-alignment: center; }
+                    }
+                }
+            }
+            Rectangle { y: parent.height - 1px; height: 1px; background: Theme.border-subtle; }
+        }
+        // ---- navigation ----
+        Rectangle {
+            background: #09090bf2; height: 76px;
+            Rectangle {
+                x: (parent.width - self.width) / 2; y: 14px; height: 48px;
+                width: nv.preferred-width + 12px;
+                background: #18181be6; border-radius: 16px; border-width: 1px; border-color: #27272ae6;
+                drop-shadow-blur: 20px; drop-shadow-color: #00000066;
+                nv := HorizontalLayout {
+                    padding: 6px; spacing: 6px;
+                    NavTab { glyph: "\u{e464}"; text: "Vue d'ensemble"; active: Monitor.tab == 0; clicked => { Monitor.set-tab(0); } }
+                    NavTab { glyph: "\u{e32e}"; text: "Processus GPU"; badge: Monitor.gpu-procs-count; active: Monitor.tab == 1; clicked => { Monitor.set-tab(1); } }
+                    NavTab { glyph: Icons.sliders; text: "Tous les Processus"; badge: Monitor.all-procs-count; active: Monitor.tab == 2; clicked => { Monitor.set-tab(2); } }
+                    NavTab { glyph: Icons.shield-check; text: "Santé S.M.A.R.T."; badge: Monitor.smart-count; active: Monitor.tab == 3; clicked => { Monitor.set-tab(3); } }
+                    NavTab { glyph: "\u{e390}"; text: "Mises à jour (DNF)"; badge: Monitor.dnf-badge; active: Monitor.tab == 4; clicked => { Monitor.set-tab(4); } }
+                }
+            }
+            Rectangle { y: parent.height - 1px; height: 1px; background: Theme.border-subtle; }
+        }
+        // ---- contenu ----
+        ScrollView {
+            vertical-stretch: 1;
+            VerticalLayout {
+                padding-left: max(32px, (root.width - 1280px) / 2 + 32px);
+                padding-right: max(32px, (root.width - 1280px) / 2 + 32px);
+                padding-top: 32px; padding-bottom: 48px; spacing: 24px;
+                if Monitor.loading: VerticalLayout {
+                    alignment: center; spacing: 14px; padding-top: 80px;
+                    Rectangle { width: 64px; height: 64px; border-radius: 16px; background: Theme.amber-bg-faint; border-width: 1px; border-color: Theme.amber-border-soft; Ph { text: Icons.activity; weight: 2; font-size: 32px; color: Theme.amber-400; } }
+                    Text { text: "Interrogation des capteurs matériels et du noyau Linux..."; font-family: Theme.font-mono; font-size: 14px; color: Theme.zinc-400; horizontal-alignment: center; }
+                }
+                if Monitor.error != "": Rectangle {
+                    background: #f43f5e1a; border-radius: 16px; border-width: 1px; border-color: #f43f5e33;
+                    preferred-height: eb.preferred-height;
+                    eb := VerticalLayout { padding: 16px; spacing: 3px; Text { text: "Avertissement de collecte :"; font-family: Theme.font-mono; font-size: 12px; font-weight: 700; color: Theme.rose-400; } Text { text: Monitor.error; font-family: Theme.font-mono; font-size: 12px; color: Theme.rose-400; wrap: word-wrap; } }
+                }
+                if !Monitor.loading && Monitor.tab == 0 && Monitor.has-metrics: OverviewTab { }
+                if Monitor.tab == 1: GpuProcsTab { }
+                if Monitor.tab == 2: AllProcsTab { }
+                if Monitor.tab == 3: SmartTab { }
+                if Monitor.tab == 4: DnfTab { }
+                Rectangle { vertical-stretch: 1; }
+            }
+        }
+    }
+
+    // ---- modale d'arrêt de processus ----
+    UiModal {
+        open: Monitor.kill-open;
+        title: "Arrêter le processus";
+        subtitle: "Confirmation d'interruption système";
+        dialog-width: 448px;
+        close => { Monitor.kill-open = false; }
+        VerticalLayout {
+            spacing: 14px;
+            Text { text: "Voulez-vous terminer « " + Monitor.kill-name + " » (PID: " + Monitor.kill-pid + ") ?"; font-size: 13px; color: Theme.zinc-300; wrap: word-wrap; }
+            Rectangle {
+                background: Theme.zinc-950; border-radius: 12px; border-width: 1px; border-color: Theme.zinc-800;
+                preferred-height: kl.preferred-height;
+                kl := VerticalLayout {
+                    padding: 14px; spacing: 6px;
+                    HorizontalLayout { Text { horizontal-stretch: 1; text: "Processus :"; font-family: Theme.font-mono; font-size: 12px; color: Theme.zinc-500; } Text { text: Monitor.kill-name; font-family: Theme.font-mono; font-size: 12px; color: Theme.zinc-200; } }
+                    HorizontalLayout { Text { horizontal-stretch: 1; text: "PID :"; font-family: Theme.font-mono; font-size: 12px; color: Theme.zinc-500; } Text { text: Monitor.kill-pid; font-family: Theme.font-mono; font-size: 12px; color: Theme.zinc-200; } }
+                    HorizontalLayout { Text { horizontal-stretch: 1; text: "Mémoire :"; font-family: Theme.font-mono; font-size: 12px; color: Theme.zinc-500; } Text { text: Monitor.kill-mem; font-family: Theme.font-mono; font-size: 12px; color: Theme.zinc-200; } }
+                    HorizontalLayout { Text { horizontal-stretch: 1; text: "Charge CPU :"; font-family: Theme.font-mono; font-size: 12px; color: Theme.zinc-500; } Text { text: Monitor.kill-cpu; font-family: Theme.font-mono; font-size: 12px; color: Theme.zinc-200; } }
+                }
+            }
+            HorizontalLayout {
+                spacing: 12px;
+                Text { horizontal-stretch: 1; text: "Forcer l'arrêt immédiat (Signal SIGKILL / -9)"; font-size: 12px; color: Theme.zinc-300; vertical-alignment: center; }
+                UiSwitch { checked <=> Monitor.kill-force; }
+            }
+            HorizontalLayout {
+                spacing: 8px; alignment: end;
+                UiButton { variant: 3; size: 0; text: "Annuler"; clicked => { Monitor.kill-open = false; } }
+                UiButton { variant: 4; size: 0; text: Monitor.kill-force ? "Forcer (SIGKILL)" : "Terminer"; clicked => { Monitor.confirm-kill(); } }
+            }
+        }
+    }
+}
