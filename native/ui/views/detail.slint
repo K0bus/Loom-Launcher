@@ -2,8 +2,9 @@
 import { ScrollView } from "std-widgets.slint";
 import { Theme, Icons } from "../theme.slint";
 import { Ph } from "../components/ph.slint";
-import { UiBadge, UiButton, UiModal } from "../components/ui.slint";
+import { UiBadge, UiButton, UiModal, UiSwitch } from "../components/ui.slint";
 import { BackLink, Panel, Chip } from "../components/studio.slint";
+import { UiSelect, FieldLabel, SecretInput } from "../components/form.slint";
 import { GameData } from "../structs.slint";
 
 export struct AchRow { name: string, desc: string, rarity: string, unlocked: bool, icon: image, has-icon: bool }
@@ -39,8 +40,17 @@ export global Detail {
     in property <[[string]]> links;        // [libellé, url]
     in property <[[string]]> stores;
     in-out property <bool> uninstall-open;
+    in-out property <bool> cfg-open;
+    in-out property <int> cfg-runner: 0;
+    in-out property <bool> cfg-gamemode;
+    in-out property <bool> cfg-mangohud;
+    in-out property <string> cfg-env;
+    in property <string> launch-opts;
 
     callback back();
+    callback cfg-save();
+    callback cfg-copy();
+    callback cfg-refresh();
     callback play();
     callback stop();
     callback install();
@@ -165,6 +175,7 @@ export component GameDetail inherits Rectangle {
                         play := TouchArea { mouse-cursor: pointer; clicked => { if (Detail.game.running) { Detail.stop(); } else if (Detail.game.installed) { Detail.play(); } else { Detail.install(); } } }
                     }
                     UiButton { y: 0px; variant: 1; size: 1; icon: Detail.game.favorite ? Icons.star : Icons.star; text: Detail.game.favorite ? "Favori" : "Ajouter aux favoris"; clicked => { Detail.toggle-favorite(); } }
+                    UiButton { variant: 1; size: 1; icon: Icons.gear; text: "Runner"; clicked => { Detail.cfg-refresh(); Detail.cfg-open = true; } }
                     if Detail.game.installed: UiButton { variant: 1; size: 1; icon: Icons.folder-open; text: "Dossier"; clicked => { Detail.open-folder(); } }
                     if Detail.game.installed && !Detail.game.running: UiButton { variant: 2; size: 1; icon: Icons.x; text: "Désinstaller"; clicked => { Detail.uninstall-open = true; } }
                     Rectangle { horizontal-stretch: 1; }
@@ -375,6 +386,41 @@ export component GameDetail inherits Rectangle {
                 spacing: 8px; alignment: end;
                 UiButton { variant: 3; size: 0; text: "Annuler"; clicked => { Detail.uninstall-open = false; } }
                 UiButton { variant: 4; size: 0; text: "Désinstaller"; clicked => { Detail.uninstall-confirm(); } }
+            }
+        }
+    }
+
+    // ---- modale : configuration du runner ----
+    UiModal {
+        open: Detail.cfg-open; title: "Configuration du Runner"; subtitle: Detail.game.title; dialog-width: 512px;
+        close => { Detail.cfg-open = false; }
+        VerticalLayout {
+            spacing: 14px;
+            VerticalLayout { spacing: 6px; FieldLabel { text: "VERSION PROTON / WINE"; } UiSelect { options: ["GE-Proton 9-20 (Recommandé)", "Proton Experimental", "Wine Staging (Système)", "Linux Natif"]; current <=> Detail.cfg-runner; } }
+            HorizontalLayout {
+                spacing: 12px;
+                VerticalLayout { horizontal-stretch: 1; spacing: 2px; Text { text: "Activer Feral GameMode"; font-size: 14px; font-weight: 500; color: Theme.zinc-200; } Text { text: "Optimise les fréquences CPU & I/O scheduler"; font-size: 12px; color: Theme.zinc-400; } }
+                UiSwitch { checked <=> Detail.cfg-gamemode; }
+            }
+            HorizontalLayout {
+                spacing: 12px;
+                VerticalLayout { horizontal-stretch: 1; spacing: 2px; Text { text: "Affichage MangoHud (FPS / Temp)"; font-size: 14px; font-weight: 500; color: Theme.zinc-200; } Text { text: "Overlay Vulkan en jeu"; font-size: 12px; color: Theme.zinc-400; } }
+                UiSwitch { checked <=> Detail.cfg-mangohud; }
+            }
+            VerticalLayout { spacing: 6px; FieldLabel { text: "VARIABLES D'ENVIRONNEMENT PERSONNALISÉES"; } SecretInput { text <=> Detail.cfg-env; placeholder: "VKD3D_CONFIG=dxr DXVK_ASYNC=1"; } }
+            VerticalLayout {
+                spacing: 6px;
+                FieldLabel { text: Detail.game.platform-variant == 1 ? "APPLIQUÉ AU PRÉFIXE BATTLE.NET (GameMode, MangoHud, variables)" : "OPTIONS DE LANCEMENT STEAM"; }
+                Rectangle {
+                    background: #09090b; border-radius: 12px; border-width: 1px; border-color: Theme.zinc-800; preferred-height: lo.preferred-height;
+                    lo := HorizontalLayout { padding: 12px; spacing: 10px; Text { horizontal-stretch: 1; text: Detail.launch-opts; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-300; wrap: word-wrap; vertical-alignment: center; } UiButton { variant: 1; size: 0; icon: Icons.copy; text: "Copier"; clicked => { Detail.cfg-copy(); } } }
+                }
+                if Detail.game.platform-variant != 1: Text { text: "Steam ne permet pas de les imposer de l'extérieur : collez cette ligne dans Propriétés → Options de lancement."; font-size: 11px; color: Theme.zinc-500; wrap: word-wrap; }
+            }
+            HorizontalLayout {
+                spacing: 8px; alignment: end;
+                UiButton { variant: 3; size: 0; text: "Annuler"; clicked => { Detail.cfg-open = false; } }
+                UiButton { variant: 0; size: 0; text: "Enregistrer"; clicked => { Detail.cfg-save(); } }
             }
         }
     }

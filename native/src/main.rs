@@ -9,8 +9,10 @@ mod battlenet;
 mod images;
 mod accounts;
 mod detail;
+mod game_config;
 mod igdb;
 mod library;
+mod mcdata;
 mod nxm;
 mod mon;
 #[allow(dead_code)]
@@ -290,7 +292,7 @@ fn do_launch(id: String) {
                 toast(m, 1);
                 // Comportement « après le lancement d'un jeu » (Paramètres)
                 let after = settings::load().after_launch;
-                if after < 2 { pages::with_app(|a| a.window().set_minimized(true)); }
+                if after == 0 { pages::with_app(|a| a.window().set_minimized(true)); } else if after == 1 { pages::with_app(|a| { let _ = a.window().hide(); }); }
             }
             Err(e) => {
                 ctx().shared.lock().unwrap().launching = None;
@@ -404,7 +406,15 @@ fn main() {
     let app = AppWindow::new().unwrap();
 
     // --- Fenêtre ---
-    app.on_close_clicked(|| { let _ = slint::quit_event_loop(); });
+    // Fermer : réduit dans la barre d'état si « Close to Tray » est actif, sinon quitte
+    let w = app.as_weak();
+    app.on_close_clicked(move || {
+        if settings::load().close_to_tray {
+            if let Some(a) = w.upgrade() { let _ = a.window().hide(); }
+        } else {
+            let _ = slint::quit_event_loop();
+        }
+    });
     let w = app.as_weak();
     app.on_minimize_clicked(move || { if let Some(a) = w.upgrade() { a.window().set_minimized(true); } });
     let w = app.as_weak();
@@ -496,5 +506,75 @@ fn main() {
     rt.spawn(poll_loop());
     reload();
 
+    // Icône de la barre d'état (même rôle que le tray du Loom Tauri)
+    let tray = Tray::new().expect("icône de zone de notification");
+    let w = app.as_weak();
+    tray.on_show_window(move || { if let Some(a) = w.upgrade() { let _ = a.window().show(); a.window().set_minimized(false); } });
+    let w = app.as_weak();
+    tray.on_hide_window(move || { if let Some(a) = w.upgrade() { let _ = a.window().hide(); } });
+    let w = app.as_weak();
+    tray.on_toggle_window(move || {
+        if let Some(a) = w.upgrade() {
+            if a.window().is_visible() && !a.window().is_minimized() { let _ = a.window().hide(); }
+            else { let _ = a.window().show(); a.window().set_minimized(false); }
+        }
+    });
+    tray.on_quit_app(|| { let _ = slint::quit_event_loop(); });
+    tray.show().ok();
+
     app.run().unwrap();
+    drop(tray);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn game(id: &str, platform: Platform, installed: bool) -> Game {
+        Game { id: id.into(), title: id.into(), subtitle: String::new(), platform, installed, playtime_min: 0, last_played: 0, size_gb: 0.0,
+            genre: String::new(), cover_url: None, banner_url: None, install_path: None, description: None, ach: None, igdb_slug: None, igdb_id: None }
+    }
+
+    #[test]
+    fn library_filters_match_the_vue_tags() {
+        let mut s = Shared::default();
+        s.favorites.insert("steam-1".into());
+        let (a, b, c) = (game("steam-1", Platform::Steam, true), game("bnet-wow", Platform::BattleNet, false), game("steam-2", Platform::Steam, false));
+        assert!(passes(&a, &s, 0) && passes(&b, &s, 0) && passes(&c, &s, 0));
+        assert!(passes(&a, &s, 1) && !passes(&b, &s, 1));
+        assert!(!passes(&a, &s, 2) && passes(&b, &s, 2) && passes(&c, &s, 2));
+        assert!(passes(&a, &s, 3) && !passes(&b, &s, 3));
+        assert!(passes(&a, &s, 4) && !passes(&b, &s, 4));
+        assert!(passes(&b, &s, 5) && !passes(&a, &s, 5));
+    }
+
+    #[test]
+    fn playtime_is_shown_in_hours() {
+        assert_eq!(hours(0), "Non joué");
+        assert_eq!(hours(90), "1.5 h");
+        assert_eq!(hours(3618), "60.3 h");
+    }
+
+    #[test]
+    fn placeholder_colors_are_deterministic() {
+        assert_eq!(hue_for("steam-1"), hue_for("steam-1"));
+    }
+
+    #[test]
+    fn card_data_reflects_running_and_starting_states() {
+        let mut s = Shared::default();
+        let g = game("steam-1", Platform::Steam, true);
+        assert!(!to_data(&g, &s, false).running);
+        s.running = Some("steam-1".into());
+        let d = to_data(&g, &s, false);
+        assert!(d.running && !d.starting);
+        s.running = None;
+        s.launching = Some(("steam-1".into(), Instant::now()));
+        let d = to_data(&g, &s, false);
+        assert!(d.starting && !d.running);
+        assert_eq!(d.platform_variant, 3);
+        let uninstalled = to_data(&game("bnet-wow", Platform::BattleNet, false), &s, false);
+        assert_eq!(uninstalled.size_label, "À télécharger");
+        assert_eq!(uninstalled.platform_variant, 1);
+    }
 }

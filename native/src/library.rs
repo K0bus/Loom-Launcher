@@ -291,3 +291,45 @@ pub fn persist_bnet_playtime(uid: &str, delta: u64, now: i64) {
         let _ = db::update_battlenet_game_playtime(&conn, uid, delta, Some(now));
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn favorites_persist_between_sessions() {
+        crate::settings::with_temp_xdg(|_| {
+            assert!(load_favorites().is_empty());
+            let mut f = HashSet::new();
+            f.insert("steam-489830".to_string());
+            f.insert("bnet-wowf".to_string());
+            save_favorites(&f);
+            assert_eq!(load_favorites(), f);
+        });
+    }
+
+    #[test]
+    fn corrupted_favorites_file_is_ignored() {
+        crate::settings::with_temp_xdg(|_| {
+            std::fs::create_dir_all(favorites_path().parent().unwrap()).unwrap();
+            std::fs::write(favorites_path(), "{pas du json").unwrap();
+            assert!(load_favorites().is_empty());
+        });
+    }
+
+    #[test]
+    fn blizzard_art_table_is_valid_and_has_igdb_references() {
+        let art = blizzard_art();
+        assert!(art.len() >= 10);
+        let wowf = art.get("wowf").expect("WoW Forever présent");
+        assert_eq!(wowf.igdb_slug.as_deref(), Some("world-of-warcraft-forever"));
+        assert!(wowf.cover.as_deref().unwrap_or("").starts_with("https://"));
+    }
+
+    #[test]
+    fn open_folder_requires_an_existing_install_path() {
+        let g = Game { id: "steam-1".into(), title: "x".into(), subtitle: String::new(), platform: Platform::Steam, installed: true, playtime_min: 0, last_played: 0,
+            size_gb: 0.0, genre: String::new(), cover_url: None, banner_url: None, install_path: Some(PathBuf::from("/chemin/inexistant")), description: None, ach: None, igdb_slug: None, igdb_id: None };
+        assert!(open_folder(&g).is_err());
+    }
+}

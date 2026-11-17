@@ -5,7 +5,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 #[derive(Debug, Clone)]
@@ -57,8 +57,11 @@ fn vdf_value(line: &str) -> Option<String> {
     if parts.len() >= 4 { Some(parts[3].to_string()) } else { None }
 }
 
-pub fn scan_library() -> Vec<SteamGame> {
-    let base = steam_base();
+pub fn scan_library() -> Vec<SteamGame> { scan_library_at(&steam_base()) }
+
+/// Scan d'une installation Steam donnée (testable avec un faux dossier).
+pub fn scan_library_at(base: &Path) -> Vec<SteamGame> {
+    let base = base.to_path_buf();
     if !base.exists() {
         return Vec::new();
     }
@@ -378,4 +381,84 @@ pub fn achievements(appid: &str) -> Vec<Achievement> {
         if let Some(v) = achievements_from_file(&dir.join(format!("{appid}.json"))) { if !v.is_empty() { return v; } }
     }
     Vec::new()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn tmp(name: &str) -> PathBuf {
+        let d = std::env::temp_dir().join(format!("loom-test-{name}-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&d);
+        fs::create_dir_all(&d).unwrap();
+        d
+    }
+
+    fn fake_steam() -> PathBuf {
+        let base = tmp("steam");
+        fs::create_dir_all(base.join("steamapps")).unwrap();
+        fs::create_dir_all(base.join("config")).unwrap();
+        fs::create_dir_all(base.join("userdata/123/config")).unwrap();
+        fs::write(base.join("steamapps/appmanifest_489830.acf"),
+            "\"AppState\"\n{\n\t\"appid\"\t\t\"489830\"\n\t\"name\"\t\t\"Skyrim SE\"\n\t\"installdir\"\t\t\"Skyrim Special Edition\"\n\t\"StateFlags\"\t\t\"4\"\n\t\"SizeOnDisk\"\t\t\"2147483648\"\n}\n").unwrap();
+        // Runtime Proton et jeu non terminé : doivent être ignorés
+        fs::write(base.join("steamapps/appmanifest_1493710.acf"), "\"AppState\"\n{\n\"appid\" \"1493710\"\n\"name\" \"Proton Experimental\"\n\"StateFlags\" \"4\"\n}\n").unwrap();
+        fs::write(base.join("steamapps/appmanifest_999.acf"), "\"AppState\"\n{\n\"appid\" \"999\"\n\"name\" \"Pas fini\"\n\"StateFlags\" \"1026\"\n}\n").unwrap();
+        fs::write(base.join("userdata/123/config/localconfig.vdf"),
+            "\"UserLocalConfigStore\"\n{\n\"Software\"\n{\n\"apps\"\n{\n\"489830\"\n{\n\"LastPlayed\"\t\"1700000000\"\n\"Playtime\"\t\"600\"\n}\n\"4000\"\n{\n\"LastPlayed\"\t\"1600000000\"\n\"Playtime\"\t\"30\"\n}\n}\n}\n}\n").unwrap();
+        base
+    }
+
+    #[test]
+    fn scan_reads_installed_games_and_playtime() {
+        let games = scan_library_at(&fake_steam());
+        let sky = games.iter().find(|g| g.appid == "489830").expect("Skyrim détecté");
+        assert!(sky.installed);
+        assert_eq!(sky.name, "Skyrim SE");
+        assert_eq!(sky.playtime_minutes, 600);
+        assert_eq!(sky.last_played, 1_700_000_000);
+        assert_eq!(sky.size_gb, 2.0);
+        assert!(sky.install_path.as_ref().unwrap().ends_with("steamapps/common/Skyrim Special Edition"));
+    }
+
+    #[test]
+    fn scan_ignores_runtimes_and_unfinished_installs() {
+        let games = scan_library_at(&fake_steam());
+        assert!(!games.iter().any(|g| g.appid == "1493710"), "runtime Proton ignoré");
+        assert!(!games.iter().any(|g| g.appid == "999" && g.installed), "installation incomplète non installée");
+    }
+
+    #[test]
+    fn scan_lists_played_but_uninstalled_games() {
+        let games = scan_library_at(&fake_steam());
+        let g = games.iter().find(|g| g.appid == "4000").expect("jeu joué non installé");
+        assert!(!g.installed);
+        assert_eq!(g.playtime_minutes, 30);
+    }
+
+    #[test]
+    fn scan_of_missing_steam_is_empty() {
+        assert!(scan_library_at(Path::new("/chemin/inexistant/steam")).is_empty());
+    }
+
+    #[test]
+    fn achievements_are_parsed_from_librarycache() {
+        let d = tmp("ach");
+        let f = d.join("489830.json");
+        fs::write(&f, r#"[["achievements",{"data":{
+            "vecHighlight":[{"strID":"A","strName":"Premier","strDescription":"d","bAchieved":true,"flAchieved":12.5,"strImage":"abc"}],
+            "vecAchieved":[{"strID":"A","strName":"doublon","bAchieved":true}],
+            "vecUnachieved":[{"strID":"B","strName":"Second","bAchieved":false}]}}]]"#).unwrap();
+        let ach = achievements_from_file(&f).unwrap();
+        assert_eq!(ach.len(), 2, "les doublons sont ignorés");
+        assert_eq!(ach.iter().filter(|a| a.unlocked).count(), 1);
+        assert_eq!(ach[0].name, "Premier");
+        assert_eq!(ach[0].rarity, 12.5);
+    }
+
+    #[test]
+    fn urls_follow_steam_cdn_layout() {
+        assert!(cover_url("10").ends_with("/apps/10/library_600x900.jpg"));
+        assert!(banner_url("10").ends_with("/apps/10/library_hero.jpg"));
+    }
 }

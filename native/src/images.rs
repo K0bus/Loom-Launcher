@@ -39,3 +39,22 @@ fn image_ext(b: &[u8]) -> Option<&'static str> {
     else if b.len() > 12 && &b[0..4] == b"RIFF" && &b[8..12] == b"WEBP" { Some("webp") }
     else { None }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn image_formats_are_recognised_by_content() {
+        assert_eq!(image_ext(&[0xFF, 0xD8, 0xFF]), Some("jpg"));
+        assert_eq!(image_ext(&[0x89, b'P', b'N', b'G', 0, 0]), Some("png"));
+        assert_eq!(image_ext(b"RIFF\0\0\0\0WEBPVP8 "), Some("webp"));
+        assert_eq!(image_ext(b"<html>erreur</html>"), None, "une page d'erreur n'est pas mise en cache");
+    }
+
+    #[test]
+    fn cache_keys_are_stable_and_distinct() {
+        assert_eq!(stem_for("https://a/b.jpg"), stem_for("https://a/b.jpg"));
+        assert_ne!(stem_for("https://a/b.jpg"), stem_for("https://a/c.jpg"));
+    }
+}

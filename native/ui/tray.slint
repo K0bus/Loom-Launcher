@@ -1,0 +1,18 @@
+// Icône de zone de notification (barre d'état) : équivalent du tray Tauri.
+export component Tray inherits SystemTrayIcon {
+    callback show-window();
+    callback hide-window();
+    callback toggle-window();
+    callback quit-app();
+
+    icon: @image-url("assets/logo.png");
+    tooltip: "Loom Launcher";
+    title: "Loom Launcher";
+    clicked => { root.toggle-window(); }
+
+    Menu {
+        MenuItem { title: "Ouvrir Loom Launcher"; activated => { root.show-window(); } }
+        MenuItem { title: "Réduire dans la barre d'état"; activated => { root.hide-window(); } }
+        MenuItem { title: "Quitter Loom"; activated => { root.quit-app(); } }
+    }
+}

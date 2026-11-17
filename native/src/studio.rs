@@ -4,7 +4,7 @@ use crate::minecraft::{self, instance, launcher::{LaunchEvents, MinecraftExitEve
 use crate::modding::{self, GameAdapter};
 use crate::pages::with_app;
 use crate::{battlenet::wow, db, images, toast, ctx, AppWindow};
-use crate::{Beth, BethConflict, BethConflictMod, BethMod, BethPlugin, McCat, McInst, McLog, McMod, Minecraft, Modding, Wow, WowAddon, WowCat, WowChar, WowInst};
+use crate::{Beth, BethConflict, BethConflictMod, BethMod, BethPlugin, McCat, McInst, McLog, McMod, McPack, McSave, McServer, Minecraft, Modding, Wow, WowAddon, WowCat, WowChar, WowInst};
 use slint::{Color, ComponentHandle, ModelRc, SharedString, VecModel};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::{Mutex, OnceLock};
@@ -57,6 +57,11 @@ struct McState {
     catalog: Vec<crate::modding::UnifiedModSearchResult>,
     versions: Vec<String>,
     installing: HashSet<String>,
+    servers: Vec<(crate::mcdata::Server, Option<crate::mcdata::PingResult>)>,
+    pinging: bool,
+    saves: Vec<crate::mcdata::SaveInfo>,
+    packs: Vec<crate::mcdata::Modpack>,
+    packs_installing: HashSet<String>,
 }
 static MC: OnceLock<Mutex<McState>> = OnceLock::new();
 fn mc() -> std::sync::MutexGuard<'static, McState> { MC.get().unwrap().lock().unwrap() }
@@ -109,6 +114,12 @@ fn mc_apply(a: &AppWindow) {
     g.set_instances(model(s.instances.iter().filter(|i| q.is_empty() || i.name.to_lowercase().contains(&q)).map(|i| mc_inst(i, &s)).collect()));
     g.set_versions(model(s.versions.iter().map(|v| ss(v.clone())).collect()));
     g.set_launching(s.launching.is_some());
+    g.set_packs(model(s.packs.iter().map(|p| {
+        let (icon, has) = load_img(&Some(p.icon_url.clone()).filter(|u| !u.is_empty()));
+        McPack { title: ss(p.title.clone()), author: ss(p.author.clone()), downloads: ss(compact(p.downloads)), summary: ss(p.summary.clone()), loader: ss(p.loader.to_uppercase()),
+            loader_variant: loader_variant(&p.loader), mc_version: ss(p.mc_version.clone()), source: ss(p.source.to_uppercase()), icon, has_icon: has,
+            installing: s.packs_installing.contains(&format!("{}:{}", p.source, p.id)) }
+    }).collect()));
     let m = a.global::<Modding>();
     m.set_mc_instances(s.instances.len() as i32);
     let total: u64 = s.instances.iter().map(|i| i.playtime_seconds.unwrap_or(0)).sum();
@@ -123,6 +134,18 @@ fn mc_apply(a: &AppWindow) {
         let inst_mods = mc_mods::get_installed_mods(&sel.id).unwrap_or_default();
         let names: Vec<String> = inst_mods.iter().map(|m| m.name.to_lowercase()).collect();
         g.set_mods(model(inst_mods.iter().map(|m| McMod { id: ss(m.id.clone()), name: ss(m.name.clone()), file: ss(m.filename.clone()), provider: ss(m.provider.to_uppercase()), enabled: m.is_enabled }).collect()));
+        g.set_servers(model(s.servers.iter().map(|(sv, p)| McServer {
+            name: ss(sv.name.clone()), ip: ss(sv.ip.clone()), online: p.as_ref().map(|p| p.online).unwrap_or(false), checked: p.is_some(),
+            ping: ss(p.as_ref().filter(|p| p.online).map(|p| format!("{} ms", p.ping_ms)).unwrap_or_default()),
+            motd: ss(p.as_ref().map(|p| p.motd.clone()).unwrap_or_default()),
+            players: ss(p.as_ref().map(|p| format!("{}/{}", p.players_online, p.players_max)).unwrap_or_default()),
+            version: ss(p.as_ref().map(|p| p.version.clone()).unwrap_or_default()),
+        }).collect()));
+        g.set_srv_pinging(s.pinging);
+        g.set_saves(model(s.saves.iter().map(|v| McSave {
+            folder: ss(v.folder.clone()), name: ss(v.name.clone()), mode: ss(v.mode_label()), version: ss(v.version.clone()),
+            last_played: ss(fmt_ago(if v.last_played_ms > 0 { Some(v.last_played_ms) } else { None })), size: ss(crate::mon::bytes_pub(v.size_bytes)),
+        }).collect()));
         g.set_catalog(model(s.catalog.iter().map(|c| {
             let (icon, has) = load_img(&c.icon_url);
             McCat { id: ss(c.id.clone()), name: ss(c.name.clone()), summary: ss(c.summary.clone()), author: ss(c.author.clone()), downloads: ss(compact(c.downloads)),
@@ -199,7 +222,117 @@ fn mc_stop(id: String) {
     toast(if killed > 0 { "Arrêt de Minecraft demandé" } else { "Aucun processus Minecraft trouvé" }, 0);
 }
 
+fn mc_load_instance_data(ping: bool) {
+    let Some(id) = mc().selected.clone() else { return };
+    ctx().rt.spawn(async move {
+        let (servers, saves) = {
+            let id = id.clone();
+            tokio::task::spawn_blocking(move || (crate::mcdata::get_servers(&id).unwrap_or_default(), crate::mcdata::list_saves(&id))).await.unwrap_or_default()
+        };
+        {
+            let mut s = mc();
+            if s.selected.as_deref() != Some(id.as_str()) { return; }
+            s.servers = servers.into_iter().map(|sv| (sv, None)).collect();
+            s.saves = saves;
+        }
+        mc_refresh_soon();
+        if ping { mc_ping_all(); }
+    });
+}
+
+fn mc_ping_all() {
+    let list: Vec<String> = { let mut s = mc(); if s.pinging { return; } s.pinging = true; s.servers.iter().map(|(sv, _)| sv.ip.clone()).collect() };
+    mc_refresh_soon();
+    ctx().rt.spawn(async move {
+        let handles: Vec<_> = list.into_iter().map(|ip| tokio::task::spawn_blocking(move || { let (h, p) = crate::mcdata::split_address(&ip); (ip, crate::mcdata::ping_server(&h, p, std::time::Duration::from_secs(4))) })).collect();
+        let mut results = HashMap::new();
+        for h in handles { if let Ok((ip, r)) = h.await { results.insert(ip, r); } }
+        {
+            let mut s = mc();
+            for (sv, p) in s.servers.iter_mut() { if let Some(r) = results.remove(&sv.ip) { *p = Some(r); } }
+            s.pinging = false;
+        }
+        mc_refresh_soon();
+    });
+}
+
+fn wire_mc_extra(app: &AppWindow) {
+    let g = app.global::<Minecraft>();
+    let w = app.as_weak();
+    g.on_server_add(move || {
+        let Some(a) = w.upgrade() else { return };
+        let g = a.global::<Minecraft>();
+        let ip = g.get_srv_ip().trim().to_string();
+        let name = { let n = g.get_srv_name().trim().to_string(); if n.is_empty() { ip.clone() } else { n } };
+        let Some(id) = mc().selected.clone() else { return };
+        let mut list: Vec<crate::mcdata::Server> = mc().servers.iter().map(|(s, _)| s.clone()).collect();
+        list.push(crate::mcdata::Server { name, ip, icon: None, hidden: None, accept_textures: None });
+        match crate::mcdata::save_servers(&id, &list) {
+            Ok(_) => { g.set_srv_name("".into()); g.set_srv_ip("".into()); toast("Serveur ajouté", 1); mc_load_instance_data(true); }
+            Err(e) => toast(e, 2),
+        }
+    });
+    g.on_server_delete(|i| {
+        let Some(id) = mc().selected.clone() else { return };
+        let mut list: Vec<crate::mcdata::Server> = mc().servers.iter().map(|(s, _)| s.clone()).collect();
+        if (i as usize) < list.len() { list.remove(i as usize); }
+        match crate::mcdata::save_servers(&id, &list) { Ok(_) => { toast("Serveur supprimé", 1); mc_load_instance_data(false); } Err(e) => toast(e, 2) }
+    });
+    g.on_servers_ping(|| mc_ping_all());
+    g.on_save_backup(|folder| {
+        let Some(id) = mc().selected.clone() else { return };
+        toast("Sauvegarde de la carte en cours…", 0);
+        ctx().rt.spawn(async move {
+            let f = folder.to_string();
+            match tokio::task::spawn_blocking(move || crate::mcdata::backup_save(&id, &f)).await.map_err(|e| e.to_string()).and_then(|r| r) {
+                Ok(p) => toast(format!("Sauvegarde créée : {}", p.display()), 1),
+                Err(e) => toast(format!("Sauvegarde impossible : {e}"), 2),
+            }
+        });
+    });
+    g.on_save_delete(|folder| {
+        let Some(id) = mc().selected.clone() else { return };
+        match crate::mcdata::delete_save(&id, &folder) { Ok(_) => { toast("Carte supprimée", 1); mc_load_instance_data(false); } Err(e) => toast(e, 2) }
+    });
+    g.on_save_open(|folder| {
+        let Some(id) = mc().selected.clone() else { return };
+        let p = crate::mcdata::saves_dir(&id).join(folder.as_str());
+        if p.is_dir() { let _ = open::that_detached(p); } else { toast("Dossier introuvable", 2); }
+    });
+    let w = app.as_weak();
+    g.on_packs_search(move || {
+        let Some(a) = w.upgrade() else { return };
+        let g = a.global::<Minecraft>();
+        let q = g.get_pack_query().to_string();
+        let prov = ["all", "modrinth", "curseforge"][g.get_pack_provider().clamp(0, 2) as usize];
+        g.set_pack_loading(true);
+        ctx().rt.spawn(async move {
+            let list = crate::mcdata::search_modpacks(&ctx().client, &q, prov, 24).await;
+            download(list.iter().map(|p| p.icon_url.clone()).filter(|u| !u.is_empty()).collect());
+            mc().packs = list;
+            with_app(|a| a.global::<Minecraft>().set_pack_loading(false));
+            mc_refresh_soon();
+        });
+    });
+    g.on_pack_install(|idx| {
+        let Some(pack) = mc().packs.get(idx as usize).cloned() else { return };
+        let key = format!("{}:{}", pack.source, pack.id);
+        mc().packs_installing.insert(key.clone());
+        mc_refresh_soon();
+        toast(format!("Installation du modpack « {} » (téléchargement de tous les mods, cela peut être long)…", pack.title), 0);
+        ctx().rt.spawn(async move {
+            match crate::mcdata::install_modpack(&ctx().client, &pack).await {
+                Ok(_) => { toast(format!("Modpack « {} » installé", pack.title), 1); mc_reload(); }
+                Err(e) => toast(format!("Installation du modpack impossible : {e}"), 2),
+            }
+            mc().packs_installing.remove(&key);
+            mc_refresh_soon();
+        });
+    });
+}
+
 fn wire_mc(app: &AppWindow) {
+    wire_mc_extra(app);
     let g = app.global::<Minecraft>();
     let w = app.as_weak();
     g.on_open_instance(move |id| {
@@ -217,6 +350,7 @@ fn wire_mc(app: &AppWindow) {
             }
         }
         mc_refresh_soon();
+        mc_load_instance_data(false);
     });
     let w = app.as_weak();
     g.on_back_hub(move || { if let Some(a) = w.upgrade() { a.global::<Modding>().set_screen(1); } });
@@ -314,7 +448,7 @@ fn wire_mc(app: &AppWindow) {
             Err(e) => toast(e, 2),
         }
     });
-    g.on_load_tab(|_| mc_refresh_soon());
+    g.on_load_tab(|t| { if t == 3 { mc_load_instance_data(true); } else if t == 4 { mc_load_instance_data(false); } mc_refresh_soon(); });
 }
 
 // =============================================================== WoW
@@ -675,6 +809,26 @@ fn wire_beth(app: &AppWindow) {
             p.deployment_path = Some(path);
             match db::open_db().map_err(|e| e.to_string()).and_then(|c| db::insert_profile(&c, &p).map_err(|e| e.to_string())) { Ok(_) => { toast("Dossier du jeu enregistré", 1); beth_load(); } Err(e) => toast(e, 2) }
         }
+    });
+    g.on_install_local(|| {
+        let (game, pid) = { let s = bs(); (s.game, s.profile.as_ref().map(|p| p.id.clone())) };
+        let Some(pid) = pid else { toast("Créez d'abord un profil pour ce jeu", 2); return };
+        with_app(|a| a.global::<Beth>().set_busy(true));
+        ctx().rt.spawn(async move {
+            let picked = tokio::task::spawn_blocking(|| crate::settings::pick_file("Choisir une archive de mod", "*.zip *.7z *.rar")).await.ok().flatten();
+            match picked {
+                Some(path) => {
+                    toast("Extraction et installation du mod…", 0);
+                    match crate::nxm::install_local(GAME_IDS[game], &pid, std::path::PathBuf::from(path)).await {
+                        Ok(name) => toast(format!("« {name} » installé et déployé"), 1),
+                        Err(e) => toast(format!("Installation impossible : {e}"), 2),
+                    }
+                }
+                None => toast("Aucun fichier sélectionné (zenity / kdialog requis)", 0),
+            }
+            with_app(|a| a.global::<Beth>().set_busy(false));
+            beth_load();
+        });
     });
     g.on_register_nxm(|| match crate::nxm::register_handler(true) { Ok(_) => toast("Liens nxm:// associés à Loom natif", 1), Err(e) => toast(e, 2) });
     let w = app.as_weak();

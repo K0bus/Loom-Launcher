@@ -8,7 +8,7 @@ description = "Loom Launcher - native Slint UI"
 [workspace]
 
 [dependencies]
-slint = { version = "1.8", default-features = false, features = ["std", "backend-winit", "renderer-skia", "compat-1-2", "unstable-winit-030"] }
+slint = { version = "1.8", default-features = false, features = ["std", "backend-winit", "renderer-skia", "compat-1-2", "unstable-winit-030", "system-tray"] }
 tokio = { version = "1", features = ["full"] }
 # Dépendances requises par les modules de src-tauri montés tels quels (db, battlenet)
 serde = { version = "1.0", features = ["derive"] }
@@ -24,6 +24,8 @@ uuid = { version = "1.0", features = ["v4"] }
 sha1 = "0.10"
 sysinfo = "0.31"
 zip = "2.2"
+fastnbt = "2"
+walkdir = "2"
 flate2 = "1.0"
 tar = "0.4"
 async-trait = "0.1"

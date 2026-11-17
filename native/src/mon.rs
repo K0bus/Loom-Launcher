@@ -49,6 +49,7 @@ fn bytes(b: u64) -> String {
     let (kb, mb, gb) = (b as f64 / 1024.0, b as f64 / 1048576.0, b as f64 / 1073741824.0);
     if gb >= 1.0 { format!("{gb:.2} Go") } else if mb >= 1.0 { format!("{mb:.1} Mo") } else { format!("{kb:.0} Ko") }
 }
+pub(crate) fn bytes_pub(b: u64) -> String { bytes(b) }
 fn gb1(b: u64) -> String { format!("{:.1} Go", b as f64 / 1073741824.0) }
 fn rate(b: u64) -> String {
     let mb = b as f64 / 1048576.0;
@@ -524,4 +525,85 @@ pub fn wire(app: &AppWindow) {
         if due || first { poll_once(); }
     });
     std::mem::forget(timer);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sizes_use_french_units() {
+        assert_eq!(bytes(2 * 1024 * 1024 * 1024), "2.00 Go");
+        assert_eq!(bytes(5 * 1024 * 1024), "5.0 Mo");
+        assert_eq!(bytes(2048), "2 Ko");
+        assert_eq!(mem(512 * 1024 * 1024), "512 Mo");
+        assert_eq!(mem(3 * 1024 * 1024 * 1024), "3.0 Go");
+        assert_eq!(gb1(1073741824), "1.0 Go");
+    }
+
+    #[test]
+    fn throughput_scales() {
+        assert_eq!(rate(0), "0 B/s");
+        assert_eq!(rate(2048), "2.0 Ko/s");
+        assert_eq!(rate(5 * 1024 * 1024), "5.00 Mo/s");
+        assert_eq!(rate(20 * 1024 * 1024), "20.0 Mo/s");
+        assert_eq!(io(0, 0), "-");
+        assert_eq!(io(1024 * 1024, 1024 * 1024), "2.0 Mo/s");
+        assert_eq!(freq(4500), "4.50 GHz");
+        assert_eq!(freq(800), "800 MHz");
+    }
+
+    #[test]
+    fn history_is_capped_at_sixty_points() {
+        let mut q = VecDeque::new();
+        for i in 0..100 { push(&mut q, i as f32); }
+        assert_eq!(q.len(), 60);
+        assert_eq!(*q.front().unwrap(), 40.0);
+    }
+
+    #[test]
+    fn sparkline_paths_are_well_formed() {
+        let mut q = VecDeque::new();
+        let (flat, _) = spark(&q, 0.0, Some(100.0));
+        assert!(flat.starts_with("M 0 52"), "série vide = ligne plate");
+        for v in [0.0, 50.0, 100.0] { q.push_back(v); }
+        let (line, area) = spark(&q, 0.0, Some(100.0));
+        assert!(line.starts_with("M 0.0 50.0"), "0 % en bas : {line}");
+        assert!(line.contains("L 600.0 2.0"), "100 % en haut : {line}");
+        assert!(area.ends_with("Z") && area.contains("L 600 52 L 0 52"));
+    }
+
+    #[test]
+    fn metric_colors_switch_at_75_and_90() {
+        assert_eq!(metric_color(10.0), col(0x10b981));
+        assert_eq!(metric_color(75.0), col(0xf59e0b));
+        assert_eq!(metric_color(95.0), col(0xf43f5e));
+    }
+
+    fn proc(pid: u32, name: &str, cpu: f32, mem: u64) -> ProcessSnapshot {
+        ProcessSnapshot { pid, name: name.into(), command: format!("/usr/bin/{name}"), user: Some("k0bus".into()), cpu_usage: cpu, memory_bytes: mem,
+            disk_read_bytes_per_sec: 0, disk_write_bytes_per_sec: 0, status: "Sleep".into() }
+    }
+
+    #[test]
+    fn processes_sort_and_filter() {
+        let mut l = vec![proc(3, "zed", 1.0, 300), proc(1, "alpha", 50.0, 100), proc(2, "mid", 10.0, 900)];
+        sort_procs(&mut l, 1, true);
+        assert_eq!(l[0].name, "alpha");
+        sort_procs(&mut l, 2, true);
+        assert_eq!(l[0].name, "mid");
+        sort_procs(&mut l, 3, false);
+        assert_eq!(l[0].name, "alpha");
+        assert!(matches(&l[0], "alp") && matches(&l[0], "k0b") && matches(&l[0], "1") && !matches(&l[0], "zzz"));
+    }
+
+    #[test]
+    fn critical_processes_cannot_be_killed() {
+        assert!(kill_process(0, false).is_err());
+        assert!(kill_process(1, true).is_err());
+        assert!(kill_process(std::process::id(), false).is_err());
+        assert!(!proc_row(&proc(1, "systemd", 0.0, 0)).killable);
+        assert!(!proc_row(&proc(500, "loom-native", 0.0, 0)).killable);
+        assert!(proc_row(&proc(500, "firefox", 0.0, 0)).killable);
+    }
 }

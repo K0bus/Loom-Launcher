@@ -198,7 +198,7 @@ export component SettingsView inherits Rectangle {
                     }
                     SwitchRow {
                         label: "Réduire dans la barre d'état au clic sur fermer (Close to Tray)";
-                        description: "Réglage conservé et partagé avec l'app Tauri. La zone de notification n'est pas encore disponible en natif : la fermeture quitte l'application.";
+                        description: "Le bouton de fermeture masque la fenêtre au lieu d'interrompre l'application ; l'icône de la barre d'état permet de la rouvrir ou de quitter.";
                         checked <=> Settings.close-to-tray;
                     }
                     VerticalLayout {

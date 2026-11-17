@@ -50,6 +50,7 @@ export global Beth {
     callback save-path();
     callback pick-path();
     callback save-nexus();
+    callback install-local();
     callback register-nxm();
     callback load-tab(int);
 }
@@ -132,7 +133,11 @@ export component BethesdaStudio inherits Rectangle {
                         }
                     }
                     if Beth.tab == 0: Panel {
-                        Text { text: "MODS DU PROFIL (par priorité de chargement)"; font-family: Theme.font-mono; font-size: 12px; font-weight: 700; color: Theme.zinc-300; }
+                        HorizontalLayout {
+                            spacing: 10px;
+                            Text { horizontal-stretch: 1; text: "MODS DU PROFIL (par priorité de chargement)"; font-family: Theme.font-mono; font-size: 12px; font-weight: 700; color: Theme.zinc-300; vertical-alignment: center; }
+                            SmallBtn { glyph: Icons.folder-plus; text: Beth.busy ? "Installation..." : "Installer depuis une archive"; enabled: !Beth.busy; clicked => { Beth.install-local(); } }
+                        }
                         VerticalLayout {
                             for m in Beth.mods: Rectangle {
                                 height: 52px;
@@ -148,7 +153,7 @@ export component BethesdaStudio inherits Rectangle {
                                     Rectangle { width: 30px; SmallBtn { y: 12px; glyph: Icons.x; danger: true; clicked => { Beth.mod-delete(m.id); } } }
                                 }
                             }
-                            if Beth.mods.length == 0: Text { text: "Aucun mod dans ce profil. L'installation passe par Nexus Mods (clé API requise) ou une archive locale."; font-size: 12px; color: Theme.zinc-500; horizontal-alignment: center; wrap: word-wrap; height: 60px; vertical-alignment: center; }
+                            if Beth.mods.length == 0: Text { text: "Aucun mod dans ce profil. Installez-en depuis une archive locale (.zip, .7z, .rar) ou via Nexus Mods (« Mod Manager Download », clé API requise)."; font-size: 12px; color: Theme.zinc-500; horizontal-alignment: center; wrap: word-wrap; height: 60px; vertical-alignment: center; }
                         }
                     }
                     if Beth.tab == 1: Panel {

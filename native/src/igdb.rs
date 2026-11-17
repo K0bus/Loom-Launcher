@@ -143,3 +143,34 @@ pub async fn fetch(client: &reqwest::Client, slug: Option<&str>, id: Option<i64>
     store(&key, &out);
     Ok(out)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn igdb_payload_is_parsed() {
+        let v = serde_json::json!({
+            "name": "World of Warcraft: Forever", "slug": "world-of-warcraft-forever", "summary": "Résumé",
+            "total_rating": 74.6, "first_release_date": 1_700_000_000,
+            "genres": [{"name": "MMORPG"}, {"name": "Adventure"}],
+            "cover": {"image_id": "co1"}, "artworks": [{"image_id": "ar1"}], "screenshots": [{"image_id": "sc1"}, {"image_id": "sc2"}],
+            "involved_companies": [{"developer": false, "company": {"name": "Éditeur"}}, {"developer": true, "company": {"name": "Blizzard"}}]
+        });
+        let g = parse_game(&v);
+        assert_eq!(g.name, "World of Warcraft: Forever");
+        assert_eq!(g.genres, vec!["MMORPG", "Adventure"]);
+        assert_eq!(g.developer, "Blizzard");
+        assert_eq!(g.release_year, Some(2023));
+        assert_eq!(g.cover_url().unwrap(), "https://images.igdb.com/igdb/image/upload/t_cover_big_2x/co1.jpg");
+        assert_eq!(g.banner_url().unwrap(), "https://images.igdb.com/igdb/image/upload/t_1080p/ar1.jpg");
+        assert_eq!(g.shots().len(), 2);
+    }
+
+    #[test]
+    fn banner_falls_back_to_a_screenshot() {
+        let g = IgdbGame { screenshot_ids: vec!["s".into()], ..Default::default() };
+        assert!(g.banner_url().unwrap().contains("/s.jpg"));
+        assert!(IgdbGame::default().banner_url().is_none());
+    }
+}

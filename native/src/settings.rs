@@ -184,6 +184,16 @@ pub fn pick_directory(title: &str, default: &str) -> Option<String> {
     if p.is_empty() { None } else { Some(p) }
 }
 
+/// Sélecteur de fichier (zenity puis kdialog) — archives de mods.
+pub fn pick_file(title: &str, patterns: &str) -> Option<String> {
+    let out = Command::new("zenity")
+        .args(["--file-selection", &format!("--title={title}"), &format!("--file-filter=Archives | {patterns}")])
+        .output().ok().filter(|o| o.status.success())
+        .or_else(|| Command::new("kdialog").args(["--getopenfilename", &dirs::home_dir().unwrap_or_default().to_string_lossy(), patterns]).output().ok().filter(|o| o.status.success()))?;
+    let p = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    if p.is_empty() { None } else { Some(p) }
+}
+
 pub fn open_directory(path: &str) -> Result<(), String> {
     let p = expand(path);
     let _ = fs::create_dir_all(&p);
@@ -258,5 +268,112 @@ pub fn sys_info() -> SysInfo {
         display,
         kernel,
         ram: format!("{:.1} GB / {:.1} GB", used, total),
+    }
+}
+
+/// Verrou partagé par les tests qui redirigent XDG_DATA_HOME / XDG_CONFIG_HOME.
+#[cfg(test)]
+pub(crate) static TEST_ENV: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// Variante pour les tests async : renvoie le verrou et la racine temporaire.
+#[cfg(test)]
+pub(crate) fn temp_xdg_guard() -> (std::sync::MutexGuard<'static, ()>, std::path::PathBuf) {
+    let g = TEST_ENV.lock().unwrap_or_else(|e| e.into_inner());
+    let root = std::env::temp_dir().join(format!("loom-xdg-{}-{}", std::process::id(), uuid::Uuid::new_v4().simple()));
+    std::fs::create_dir_all(&root).unwrap();
+    std::env::set_var("XDG_DATA_HOME", root.join("data"));
+    std::env::set_var("XDG_CONFIG_HOME", root.join("config"));
+    (g, root)
+}
+
+#[cfg(test)]
+pub(crate) fn with_temp_xdg<R>(f: impl FnOnce(&std::path::Path) -> R) -> R {
+    let _g = TEST_ENV.lock().unwrap_or_else(|e| e.into_inner());
+    let root = std::env::temp_dir().join(format!("loom-xdg-{}-{}", std::process::id(), uuid::Uuid::new_v4().simple()));
+    std::fs::create_dir_all(&root).unwrap();
+    std::env::set_var("XDG_DATA_HOME", root.join("data"));
+    std::env::set_var("XDG_CONFIG_HOME", root.join("config"));
+    let r = f(&root);
+    let _ = std::fs::remove_dir_all(&root);
+    r
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn defaults_match_the_vue_app() {
+        let d = AppSettings::default();
+        assert!(d.close_to_tray && d.gamemode && d.mangohud && d.notifications && d.check_updates);
+        assert!(!d.autostart && !d.start_minimized);
+        assert_eq!(d.inst, [true, true, false, false]);
+        assert_eq!((d.runner, d.accent, d.after_launch), (0, 0, 0));
+    }
+
+    #[test]
+    fn save_then_load_roundtrips_every_field() {
+        with_temp_xdg(|_| {
+            let mut s = AppSettings::default();
+            s.start_minimized = true; s.close_to_tray = false; s.after_launch = 2; s.accent = 3; s.runner = 2;
+            s.inst = [false, true, true, true]; s.dir_games = "/mnt/jeux".into(); s.igdb_id = "cid".into(); s.igdb_secret = "sec".into();
+            save(&s).unwrap();
+            let l = load();
+            assert!(l.start_minimized && !l.close_to_tray);
+            assert_eq!((l.after_launch, l.accent, l.runner), (2, 3, 2));
+            assert_eq!(l.inst, [false, true, true, true]);
+            assert_eq!(l.dir_games, "/mnt/jeux");
+            assert_eq!((l.igdb_id.as_str(), l.igdb_secret.as_str()), ("cid", "sec"));
+        });
+    }
+
+    #[test]
+    fn shared_settings_json_keeps_fields_written_by_the_tauri_app() {
+        with_temp_xdg(|_| {
+            let path = backend_path();
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(&path, r#"{"nexusApiKey":"CLE","champInconnu":42,"startMinimized":false}"#).unwrap();
+            let mut s = load();
+            s.start_minimized = true;
+            save(&s).unwrap();
+            let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+            assert_eq!(v["nexusApiKey"], "CLE", "clé Nexus conservée");
+            assert_eq!(v["champInconnu"], 42, "champs inconnus conservés");
+            assert_eq!(v["startMinimized"], true);
+            assert_eq!(v["defaultRunner"], "proton-ge");
+        });
+    }
+
+    #[test]
+    fn autostart_is_the_presence_of_the_desktop_file() {
+        with_temp_xdg(|_| {
+            assert!(!load().autostart);
+            set_autostart(true, true).unwrap();
+            let f = autostart_file().unwrap();
+            let txt = std::fs::read_to_string(&f).unwrap();
+            assert!(txt.contains("--minimized") && txt.contains("Type=Application"));
+            assert!(load().autostart);
+            set_autostart(false, false).unwrap();
+            assert!(!f.exists() && !load().autostart);
+        });
+    }
+
+    #[test]
+    fn tilde_is_expanded() {
+        assert!(expand("~/x").ends_with("x") && !expand("~/x").to_string_lossy().starts_with('~'));
+        assert_eq!(expand("/abs"), PathBuf::from("/abs"));
+    }
+
+    #[test]
+    fn unknown_choices_fall_back_to_defaults() {
+        assert_eq!(idx(&RUNNERS, Some("inconnu"), 1), 1);
+        assert_eq!(idx(&RUNNERS, Some("native"), 0), 2);
+        assert_eq!(idx(&ACCENTS, None, 4), 4);
+    }
+
+    #[test]
+    fn system_info_is_filled() {
+        let i = sys_info();
+        assert!(i.version.contains("Slint") && !i.kernel.is_empty() && i.ram.contains("GB"));
     }
 }

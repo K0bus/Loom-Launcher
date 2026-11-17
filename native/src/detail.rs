@@ -151,6 +151,9 @@ fn links_for(g: &Game) -> Vec<Vec<SharedString>> {
     }
 }
 
+fn cfg_runner_label(id: &str) -> String { crate::game_config::load(id).runner_label().to_string() }
+
+#[allow(dead_code)]
 fn runner_label() -> String {
     let s = crate::settings::load();
     ["GE-Proton 9-20", "Proton Experimental", "Linux Natif", "Wine Staging"][s.runner.min(3)].to_string()
@@ -170,18 +173,18 @@ pub fn apply(a: &AppWindow) {
     d.set_last_played(ss(if g.last_played > 0 {
         chrono::DateTime::from_timestamp(g.last_played, 0).map(|t| t.with_timezone(&chrono::Local).format("%d/%m/%Y").to_string()).unwrap_or_default()
     } else { "Jamais".into() }));
-    d.set_runner(ss(if g.platform == Platform::BattleNet { "Loom Wine 64".to_string() } else { runner_label() }));
+    d.set_runner(ss(if g.platform == Platform::BattleNet { "Loom Wine 64".to_string() } else { cfg_runner_label(&id) }));
     d.set_links(model(links_for(g).into_iter().map(|v| model(v)).collect()));
     d.set_stores(model(vec![]));
-    let settings = crate::settings::load();
+    let cfg = crate::game_config::load(&id);
     let prefix = match g.platform {
         Platform::BattleNet => crate::db::open_db().ok().and_then(|c| crate::db::get_battlenet_config(&c).ok()).map(|c| c.wine_prefix_path).unwrap_or_default(),
         Platform::Steam => appid(g).map(|a| steam::steam_base().join(format!("steamapps/compatdata/{a}/pfx"))).filter(|p| p.exists()).map(|p| p.to_string_lossy().to_string()).unwrap_or_else(|| "~/.local/share/wine/default".into()),
     };
     let kv = |a: &str, b: String| model(vec![ss(a), ss(b)]);
     let mut rows = vec![
-        kv(if g.platform == Platform::BattleNet { "Runner Wine" } else { "Compatibility tool" }, runner_label()),
-        kv("GameMode / MangoHUD", format!("{} / {}", if settings.gamemode { "GameMode ON" } else { "GameMode OFF" }, if settings.mangohud { "MangoHud ON" } else { "MangoHud OFF" })),
+        kv(if g.platform == Platform::BattleNet { "Runner Wine" } else { "Compatibility tool" }, cfg.runner_label().to_string()),
+        kv("GameMode / MangoHUD", format!("{} / {}", if cfg.gamemode { "GameMode ON" } else { "GameMode OFF" }, if cfg.mangohud { "MangoHud ON" } else { "MangoHud OFF" })),
         kv("WINEPREFIX", prefix),
     ];
     if let Some(p) = &g.install_path { rows.push(kv("Emplacement disque", p.to_string_lossy().to_string())); }
@@ -223,8 +226,43 @@ pub fn open(a: &AppWindow, id: &str) {
     apply(a);
 }
 
+fn fill_cfg(a: &AppWindow) {
+    let Some(id) = CURRENT.lock().unwrap().clone() else { return };
+    let c = crate::game_config::load(&id);
+    let d = a.global::<Detail>();
+    d.set_cfg_runner(c.runner_index() as i32);
+    d.set_cfg_gamemode(c.gamemode);
+    d.set_cfg_mangohud(c.mangohud);
+    d.set_cfg_env(ss(c.env.clone()));
+    d.set_launch_opts(ss(c.launch_options()));
+}
+
+fn read_cfg(a: &AppWindow) -> crate::game_config::GameConfig {
+    let d = a.global::<Detail>();
+    crate::game_config::GameConfig { runner: crate::game_config::RUNNERS[d.get_cfg_runner().clamp(0, 3) as usize].to_string(), gamemode: d.get_cfg_gamemode(), mangohud: d.get_cfg_mangohud(), env: d.get_cfg_env().trim().to_string() }
+}
+
 pub fn wire(app: &AppWindow) {
     let _ = EXTRA.set(Mutex::new(HashMap::new()));
+    let w = app.as_weak();
+    app.global::<Detail>().on_cfg_refresh(move || { if let Some(a) = w.upgrade() { fill_cfg(&a); } });
+    let w = app.as_weak();
+    app.global::<Detail>().on_cfg_copy(move || {
+        let Some(a) = w.upgrade() else { return };
+        let c = read_cfg(&a);
+        if crate::accounts::copy_to_clipboard(&c.launch_options()) { toast("Options de lancement copiées", 1) } else { toast("Aucun utilitaire de presse-papiers (wl-copy / xclip)", 2) }
+    });
+    let w = app.as_weak();
+    app.global::<Detail>().on_cfg_save(move || {
+        let Some(a) = w.upgrade() else { return };
+        let Some(id) = CURRENT.lock().unwrap().clone() else { return };
+        let c = read_cfg(&a);
+        let r = crate::game_config::save(&id, &c).and_then(|_| if id.starts_with("bnet-") { crate::game_config::apply_to_battlenet(&c) } else { Ok(()) });
+        match r {
+            Ok(_) => { a.global::<Detail>().set_cfg_open(false); toast("Configuration du runner enregistrée", 1); crate::request_refresh(); }
+            Err(e) => toast(e, 2),
+        }
+    });
     let d = app.global::<Detail>();
     let w = app.as_weak();
     d.on_back(move || { if let Some(a) = w.upgrade() { a.set_page(0); } });
@@ -262,4 +300,40 @@ pub fn wire(app: &AppWindow) {
             with_app(move |a| { let d = a.global::<Detail>(); if ok { if let Some(img) = crate::load_image_pub(&Some(full)) { d.set_shot_big(img); d.set_shot_ready(true); } } });
         });
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn markup_is_removed_from_news() {
+        assert_eq!(strip_markup("[b]Mise à jour[/b] <p>Correctifs &amp; ajouts</p>"), "Mise à jour Correctifs & ajouts");
+        assert_eq!(strip_markup("  a   b  "), "a b");
+    }
+
+    #[test]
+    fn dates_are_formatted_day_month_year() {
+        let d = ago_date(1_700_000_000);
+        assert_eq!(d.len(), 10);
+        assert_eq!(&d[2..3], "/");
+    }
+
+    #[test]
+    fn achievement_icons_resolve_to_the_steam_cdn() {
+        let g = Game { id: "steam-489830".into(), title: String::new(), subtitle: String::new(), platform: Platform::Steam, installed: true, playtime_min: 0,
+            last_played: 0, size_gb: 0.0, genre: String::new(), cover_url: None, banner_url: None, install_path: None, description: None, ach: None, igdb_slug: None, igdb_id: None };
+        assert_eq!(ach_icon(&g, "abc").unwrap(), "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/489830/abc.jpg");
+        assert_eq!(ach_icon(&g, "https://x/y.png").unwrap(), "https://x/y.png");
+        assert!(ach_icon(&g, "").is_none());
+    }
+
+    #[test]
+    fn store_links_depend_on_platform() {
+        let mut g = Game { id: "steam-10".into(), title: String::new(), subtitle: String::new(), platform: Platform::Steam, installed: false, playtime_min: 0,
+            last_played: 0, size_gb: 0.0, genre: String::new(), cover_url: None, banner_url: None, install_path: None, description: None, ach: None, igdb_slug: None, igdb_id: None };
+        assert_eq!(links_for(&g).len(), 6);
+        g.id = "bnet-wow".into(); g.platform = Platform::BattleNet;
+        assert_eq!(links_for(&g).len(), 2);
+    }
 }
