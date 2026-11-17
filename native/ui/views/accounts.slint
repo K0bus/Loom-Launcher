@@ -1,0 +1,546 @@
+// Équivalent de src/views/AccountsView.vue (+ BlizzardAuthModal / MicrosoftAuthModal)
+import { ScrollView } from "std-widgets.slint";
+import { Theme, Icons } from "../theme.slint";
+import { Ph } from "../components/ph.slint";
+import { UiBadge, UiButton, UiModal } from "../components/ui.slint";
+import { SectionTitle, FieldLabel, SecretInput } from "../components/form.slint";
+import { ListRow } from "../structs.slint";
+
+export global Accounts {
+    // Steam (détection locale réelle)
+    in property <bool> steam-connected;
+    in property <string> steam-name;
+    in property <string> steam-user;
+    in property <string> steam-id;
+    in property <string> steam-path;
+    in property <int> steam-installed;
+    in property <int> steam-total;
+    in property <bool> steam-syncing;
+    in property <[ListRow]> steam-installed-list;
+    in property <[ListRow]> steam-other-list;
+    // Battle.net
+    in property <bool> bnet-connected;
+    in property <string> bnet-tag;
+    in property <image> bnet-avatar;
+    in property <bool> bnet-has-avatar;
+    in property <string> bnet-prefix;
+    in property <string> bnet-runner;
+    in property <string> bnet-options;
+    in property <int> bnet-installed;
+    in property <int> bnet-owned;
+    in property <bool> bnet-scanning;
+    in property <bool> bnet-busy;
+    in property <[ListRow]> bnet-installed-list;
+    in property <[ListRow]> bnet-owned-list;
+    // Microsoft / Xbox
+    in property <bool> ms-connected;
+    in property <string> ms-name;
+    in property <image> ms-avatar;
+    in property <bool> ms-has-avatar;
+    // Modales
+    in-out property <bool> external-open;
+    in-out property <string> external-path;
+    in property <bool> external-busy;
+    in-out property <bool> blizz-open;
+    in-out property <string> blizz-id;
+    in-out property <string> blizz-secret;
+    in property <bool> blizz-authenticating;
+    in property <bool> blizz-configured;
+    in property <string> blizz-error;
+    in-out property <bool> ms-open;
+    in property <string> ms-code;
+    in property <string> ms-uri;
+    in property <int> ms-state: 0;      // 0 attente, 1 succès, 2 échec
+    in property <string> ms-error;
+
+    callback sync-steam();
+    callback bnet-scan();
+    callback bnet-action();
+    callback bnet-open-api();
+    callback external-submit(string);
+    callback blizz-save();
+    callback blizz-connect();
+    callback open-dev-portal();
+    callback ms-action();
+    callback ms-open-link();
+    callback ms-copy-code();
+    callback not-available(string);
+    callback open-library-bnet();
+}
+
+component CardShell inherits Rectangle {
+    in property <image> watermark;
+    background: #18181b99;
+    border-radius: 16px; border-width: 1px;
+    border-color: Theme.border-subtle;
+    clip: true;
+    drop-shadow-blur: 16px; drop-shadow-color: #00000055;
+    min-width: 280px;
+    // Filigrane de la plateforme (haut gauche, légèrement incliné)
+    Image {
+        x: -24px; y: -24px; width: 150px; height: 150px;
+        source: root.watermark; colorize: #ffffff14; image-fit: contain; transform-rotation: -12deg;
+    }
+    VerticalLayout {
+        padding: 24px; spacing: 20px;
+        @children
+    }
+}
+
+component CardHeader inherits HorizontalLayout {
+    in property <image> logo;
+    in property <color> brand;
+    in property <string> title;
+    in property <string> subtitle;
+    in property <bool> connected;
+    in property <image> avatar;
+    in property <bool> has-avatar;
+    spacing: 14px;
+    Rectangle {
+        width: 48px; height: 48px;
+        Rectangle {
+            width: 48px; height: 48px; border-radius: 12px; clip: true;
+            background: root.has-avatar ? Theme.zinc-950 : root.brand.with-alpha(0.12);
+            border-width: 1px; border-color: root.has-avatar ? Theme.amber-500.with-alpha(0.4) : root.brand.with-alpha(0.35);
+            if root.has-avatar: Image { source: root.avatar; width: 48px; height: 48px; image-fit: cover; }
+            if !root.has-avatar: Image { source: root.logo; width: 24px; height: 24px; colorize: root.brand; image-fit: contain; }
+        }
+        if root.connected: Rectangle {
+            x: 34px; y: 34px; width: 16px; height: 16px; border-radius: 8px;
+            background: Theme.emerald-500; border-width: 2px; border-color: Theme.zinc-900;
+        }
+    }
+    VerticalLayout {
+        horizontal-stretch: 1; alignment: center; spacing: 2px;
+        Text { text: root.title; font-size: 14px; font-weight: 700; color: Theme.zinc-100; overflow: elide; }
+        Text { text: root.subtitle; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-400; overflow: elide; }
+    }
+    UiBadge {
+        y: 2px; text: root.connected ? "DÉTECTÉ" : "NON LIÉ";
+        variant: root.connected ? 2 : 0; dot: root.connected;
+    }
+}
+
+component Detail inherits HorizontalLayout {
+    in property <string> label;
+    in property <string> value;
+    in property <color> value-color: Theme.zinc-300;
+    in property <bool> bold: false;
+    spacing: 8px;
+    Text { text: root.label; font-size: 12px; font-weight: 500; color: Theme.zinc-500; vertical-alignment: center; }
+    Text {
+        horizontal-stretch: 1; text: root.value; horizontal-alignment: right; overflow: elide;
+        font-family: Theme.font-mono; font-size: 11px; font-weight: root.bold ? 700 : 400; color: root.value-color;
+    }
+}
+
+component DetailBox inherits Rectangle {
+    background: #09090bb3; border-radius: 12px; border-width: 1px; border-color: #27272ab3;
+    preferred-height: l.preferred-height;
+    l := VerticalLayout { padding: 12px; spacing: 8px; @children }
+}
+
+component GhostRowButton inherits Rectangle {
+    in property <string> text;
+    in property <string> glyph;
+    in property <bool> enabled: true;
+    callback clicked();
+    height: 34px; border-radius: 12px; border-width: 1px;
+    background: ta.has-hover && root.enabled ? Theme.zinc-800 : #09090bcc;
+    border-color: ta.has-hover && root.enabled ? Theme.amber-500.with-alpha(0.4) : Theme.zinc-800;
+    opacity: root.enabled ? 1.0 : 0.6;
+    HorizontalLayout {
+        alignment: center; spacing: 8px;
+        Ph { text: root.glyph; font-size: 14px; color: Theme.amber-400; }
+        Text { text: root.text; font-size: 11px; font-weight: 500; color: ta.has-hover ? Theme.amber-300 : Theme.zinc-300; vertical-alignment: center; }
+    }
+    ta := TouchArea { enabled: root.enabled; mouse-cursor: pointer; clicked => { root.clicked(); } }
+}
+
+// Liste dépliable avec onglets (jeux détectés)
+component GameList inherits VerticalLayout {
+    in property <string> label-open;
+    in property <string> label-closed;
+    in property <string> tab-a;
+    in property <string> tab-b;
+    in property <[ListRow]> list-a;
+    in property <[ListRow]> list-b;
+    in-out property <bool> open: false;
+    in-out property <int> tab: 0;
+    spacing: 8px;
+    Rectangle {
+        height: 22px;
+        HorizontalLayout {
+            Text { horizontal-stretch: 1; text: root.open ? root.label-open : root.label-closed; font-size: 11px; font-weight: 500; color: tg.has-hover ? Theme.amber-300 : Theme.amber-400; vertical-alignment: center; }
+            Ph { text: root.open ? Icons.caret-up : Icons.caret-down; font-size: 12px; color: Theme.amber-400; width: 16px; }
+        }
+        tg := TouchArea { mouse-cursor: pointer; clicked => { root.open = !root.open; } }
+    }
+    if root.open: VerticalLayout {
+        spacing: 8px;
+        Rectangle {
+            height: 32px; background: Theme.zinc-950; border-radius: 8px; border-width: 1px; border-color: Theme.zinc-800;
+            HorizontalLayout {
+                padding: 4px; spacing: 6px;
+                Rectangle {
+                    border-radius: 4px; border-width: 1px;
+                    background: root.tab == 0 ? Theme.emerald-500.with-alpha(0.2) : transparent;
+                    border-color: root.tab == 0 ? Theme.emerald-500.with-alpha(0.4) : transparent;
+                    Text { text: root.tab-a; font-size: 11px; font-weight: 500; horizontal-alignment: center; vertical-alignment: center; color: root.tab == 0 ? Theme.emerald-300 : Theme.zinc-400; }
+                    TouchArea { mouse-cursor: pointer; clicked => { root.tab = 0; } }
+                }
+                Rectangle {
+                    border-radius: 4px; border-width: 1px;
+                    background: root.tab == 1 ? Theme.amber-500.with-alpha(0.2) : transparent;
+                    border-color: root.tab == 1 ? Theme.amber-500.with-alpha(0.4) : transparent;
+                    Text { text: root.tab-b; font-size: 11px; font-weight: 500; horizontal-alignment: center; vertical-alignment: center; color: root.tab == 1 ? Theme.amber-300 : Theme.zinc-400; }
+                    TouchArea { mouse-cursor: pointer; clicked => { root.tab = 1; } }
+                }
+            }
+        }
+        ScrollView {
+            height: 192px;
+            VerticalLayout {
+                spacing: 6px;
+                for r in (root.tab == 0 ? root.list-a : root.list-b): Rectangle {
+                    height: 38px; background: #09090b80; border-radius: 8px; border-width: 1px; border-color: #27272a80;
+                    HorizontalLayout {
+                        padding-left: 8px; padding-right: 8px; spacing: 8px;
+                        VerticalLayout {
+                            horizontal-stretch: 1; alignment: center;
+                            Text { text: r.name; font-size: 11px; font-weight: 500; color: Theme.zinc-200; overflow: elide; }
+                            if r.detail != "": Text { text: r.detail; font-family: Theme.font-mono; font-size: 9px; color: Theme.zinc-500; overflow: elide; }
+                        }
+                        Text { text: r.badge; font-family: Theme.font-mono; font-size: 10px; vertical-alignment: center;
+                            color: r.badge-variant == 1 ? Theme.emerald-400 : r.badge-variant == 2 ? Theme.purple-300 : r.badge-variant == 3 ? Theme.amber-400.with-alpha(0.8) : Theme.zinc-500; }
+                    }
+                }
+            }
+        }
+    }
+}
+
+component Footer inherits VerticalLayout {
+    in property <string> note;
+    spacing: 0px;
+    Rectangle { height: 1px; background: Theme.border-subtle; }
+    HorizontalLayout {
+        padding-top: 16px; spacing: 12px;
+        Text { horizontal-stretch: 1; text: root.note; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-500; vertical-alignment: center; overflow: elide; }
+        @children
+    }
+}
+
+export component AccountsView inherits Rectangle {
+    background: Theme.zinc-950;
+    in property <image> logo-steam;
+    in property <image> logo-bnet;
+    in property <image> logo-epic;
+    in property <image> logo-gog;
+    in property <image> logo-xbox;
+
+    ScrollView {
+        VerticalLayout {
+            padding-left: max(56px, (root.width - 1280px) / 2 + 56px);
+            padding-right: max(56px, (root.width - 1280px) / 2 + 56px);
+            padding-top: 24px; padding-bottom: 64px; spacing: 32px;
+
+            // ---------- En-tête ----------
+            HorizontalLayout {
+                spacing: 16px;
+                VerticalLayout {
+                    horizontal-stretch: 1; spacing: 4px;
+                    HorizontalLayout {
+                        spacing: 12px; alignment: start;
+                        Ph { weight: 1; text: Icons.user-check; font-size: 32px; color: Theme.amber-400; width: 36px; }
+                        Text { text: "Hub de Plateformes & Comptes"; font-size: 30px; font-weight: 900; color: Theme.zinc-100; vertical-alignment: center; }
+                    }
+                    Text { text: "Détection réelle des clients et liaisons officielles sans données fictives"; font-size: 12px; color: Theme.zinc-400; }
+                }
+                Rectangle {
+                    y: 4px; height: 46px; background: Theme.bg-card; border-radius: 16px; border-width: 1px; border-color: Theme.border-subtle;
+                    min-width: pl.min-width; preferred-width: pl.preferred-width;
+                    pl := HorizontalLayout {
+                        padding: 6px; spacing: 6px;
+                        Text { text: "PLATEFORMES"; font-family: Theme.font-mono; font-size: 11px; font-weight: 600; color: Theme.zinc-400; vertical-alignment: center; }
+                        for l[i] in [root.logo-steam, root.logo-epic, root.logo-xbox, root.logo-gog, root.logo-bnet]: Rectangle {
+                            width: 32px; border-radius: 8px; background: #09090bcc; border-width: 1px; border-color: Theme.zinc-800;
+                            Image { source: l; width: 16px; height: 16px; image-fit: contain;
+                                colorize: [Theme.steam-blue, #ffffff, #107c10, #b44aff, #00aeff][i]; }
+                        }
+                    }
+                }
+            }
+
+            // ---------- Rangée 1 : Steam · Epic · Xbox ----------
+            HorizontalLayout {
+                spacing: 24px;
+
+                // Steam
+                CardShell {
+                    watermark: root.logo-steam;
+                    CardHeader {
+                        logo: root.logo-steam; brand: Theme.steam-blue;
+                        title: Accounts.steam-connected && Accounts.steam-name != "" ? Accounts.steam-name : "Steam";
+                        subtitle: Accounts.steam-connected && Accounts.steam-user != "" ? "@" + Accounts.steam-user : "Valve Corporation";
+                        connected: Accounts.steam-connected;
+                    }
+                    Text { text: "Client Steam natif détecté avec manifeste ACF des jeux installés."; font-size: 12px; color: Theme.zinc-400; wrap: word-wrap; }
+                    if Accounts.steam-connected: VerticalLayout {
+                        spacing: 12px;
+                        DetailBox {
+                            Detail { label: "Répertoire local :"; value: Accounts.steam-path; }
+                            Detail { label: "Jeux installés :"; value: Accounts.steam-installed + " jeux locaux"; value-color: Theme.emerald-400; bold: true; }
+                            Detail { label: "Bibliothèque totale :"; value: Accounts.steam-total + " jeux (" + (Accounts.steam-total - Accounts.steam-installed) + " non installés)"; value-color: Theme.amber-400; bold: true; }
+                            if Accounts.steam-id != "": Detail { label: "SteamID64 :"; value: Accounts.steam-id; value-color: Theme.zinc-400; }
+                        }
+                        GameList {
+                            label-open: "Masquer la liste"; label-closed: "Parcourir les " + Accounts.steam-total + " jeux détectés";
+                            tab-a: "Installés (" + Accounts.steam-installed + ")";
+                            tab-b: "Non installés (" + (Accounts.steam-total - Accounts.steam-installed) + ")";
+                            list-a: Accounts.steam-installed-list; list-b: Accounts.steam-other-list;
+                        }
+                    }
+                    Rectangle { vertical-stretch: 1; }
+                    Footer {
+                        note: Accounts.steam-connected ? "Détecté sur " + Accounts.steam-path : "Aucun compte lié";
+                        if Accounts.steam-connected: UiButton {
+                            variant: 1; size: 0; icon: Icons.refresh; text: Accounts.steam-syncing ? "Synchronisation..." : "Synchroniser";
+                            enabled: !Accounts.steam-syncing; clicked => { Accounts.sync-steam(); }
+                        }
+                    }
+                }
+
+                // Epic
+                CardShell {
+                    watermark: root.logo-epic;
+                    CardHeader { logo: root.logo-epic; brand: #ffffff; title: "Epic Games"; subtitle: "Epic Games, Inc."; connected: false; }
+                    Text { text: "Aucune installation ou session active détectée."; font-size: 12px; color: Theme.zinc-400; wrap: word-wrap; }
+                    Rectangle { vertical-stretch: 1; }
+                    Footer {
+                        note: "Aucun compte lié";
+                        UiButton { variant: 0; size: 0; icon: Icons.link; text: "Associer"; clicked => { Accounts.not-available("Epic Games"); } }
+                    }
+                }
+
+                // Xbox / Microsoft
+                CardShell {
+                    watermark: root.logo-xbox;
+                    CardHeader {
+                        logo: root.logo-xbox; brand: #107c10;
+                        title: Accounts.ms-connected ? Accounts.ms-name + " (Xbox Live)" : "Xbox / Microsoft";
+                        subtitle: Accounts.ms-connected ? "@" + Accounts.ms-name : "Microsoft Gaming";
+                        connected: Accounts.ms-connected; avatar: Accounts.ms-avatar; has-avatar: Accounts.ms-connected && Accounts.ms-has-avatar;
+                    }
+                    Text { text: Accounts.ms-connected ? "Session Minecraft / Xbox Live active." : "Aucune session Minecraft ou profil Xbox Live connecté."; font-size: 12px; color: Theme.zinc-400; wrap: word-wrap; }
+                    Rectangle { vertical-stretch: 1; }
+                    Footer {
+                        note: Accounts.ms-connected ? "Session active" : "Aucun compte lié";
+                        UiButton {
+                            variant: Accounts.ms-connected ? 2 : 0; size: 0;
+                            icon: Accounts.ms-connected ? Icons.unlink : Icons.link;
+                            text: Accounts.ms-connected ? "Déconnecter" : "Associer";
+                            clicked => { Accounts.ms-action(); }
+                        }
+                    }
+                }
+            }
+
+            // ---------- Rangée 2 : GOG · Battle.net ----------
+            HorizontalLayout {
+                spacing: 24px;
+
+                CardShell {
+                    watermark: root.logo-gog;
+                    CardHeader { logo: root.logo-gog; brand: #b44aff; title: "GOG Galaxy"; subtitle: "CD PROJEKT"; connected: false; }
+                    Text { text: "Aucun compte GOG.com lié actuellement."; font-size: 12px; color: Theme.zinc-400; wrap: word-wrap; }
+                    Rectangle { vertical-stretch: 1; }
+                    Footer {
+                        note: "Aucun compte lié";
+                        UiButton { variant: 0; size: 0; icon: Icons.link; text: "Associer"; clicked => { Accounts.not-available("GOG Galaxy"); } }
+                    }
+                }
+
+                // Battle.net (2 colonnes de large)
+                CardShell {
+                    horizontal-stretch: 2;
+                    watermark: root.logo-bnet;
+                    CardHeader {
+                        logo: root.logo-bnet; brand: #00aeff;
+                        title: Accounts.bnet-connected ? Accounts.bnet-tag + " (Blizzard)" : "Battle.net";
+                        subtitle: Accounts.bnet-connected ? "@" + Accounts.bnet-tag : "Blizzard Entertainment";
+                        connected: Accounts.bnet-connected; avatar: Accounts.bnet-avatar; has-avatar: Accounts.bnet-has-avatar;
+                    }
+                    Text { text: "Gestion du préfixe Wine dédié (~/.local/share/loom/prefixes/battlenet/) et authentification OAuth2 Blizzard."; font-size: 12px; color: Theme.zinc-400; wrap: word-wrap; }
+                    DetailBox {
+                        Detail { label: "Préfixe Wine géré :"; value: Accounts.bnet-prefix; }
+                        Detail { label: "Exécutable Runner :"; value: Accounts.bnet-runner + " (64-bit)"; value-color: Theme.amber-400; }
+                        Detail { label: "Jeux détectés en local :"; value: Accounts.bnet-installed + " jeux"; value-color: Theme.emerald-400; bold: true; }
+                        Detail { label: "Licences Blizzard (Cloud) :"; value: Accounts.bnet-owned + " jeux possédés"; value-color: Theme.amber-400; bold: true; }
+                        Rectangle { height: 1px; background: #27272a99; }
+                        Detail { label: "Optimisations :"; value: Accounts.bnet-options; }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        GhostRowButton { glyph: Icons.refresh; text: Accounts.bnet-scanning ? "Scan..." : "Scanner local"; enabled: !Accounts.bnet-scanning; clicked => { Accounts.bnet-scan(); } }
+                        GhostRowButton { glyph: Icons.folder-plus; text: "Dossier externe"; clicked => { Accounts.external-open = true; } }
+                    }
+                    if Accounts.bnet-installed + Accounts.bnet-owned > 0: Rectangle {
+                        height: 36px; border-radius: 12px; border-width: 1px;
+                        background: bl.has-hover ? Theme.amber-500.with-alpha(0.2) : Theme.amber-bg-faint;
+                        border-color: Theme.amber-border-soft;
+                        HorizontalLayout {
+                            alignment: center; spacing: 8px;
+                            Ph { text: Icons.gamepad; font-size: 16px; color: Theme.amber-400; }
+                            Text { text: "Voir les " + (Accounts.bnet-installed + Accounts.bnet-owned) + " jeux dans ma Bibliothèque"; font-size: 12px; font-weight: 600; color: Theme.amber-300; vertical-alignment: center; }
+                        }
+                        bl := TouchArea { mouse-cursor: pointer; clicked => { Accounts.open-library-bnet(); } }
+                    }
+                    if Accounts.bnet-installed + Accounts.bnet-owned > 0: GameList {
+                        label-open: "Masquer les jeux"; label-closed: "Parcourir les " + (Accounts.bnet-installed + Accounts.bnet-owned) + " jeux Battle.net";
+                        tab-a: "Installés (" + Accounts.bnet-installed + ")"; tab-b: "Licences Cloud (" + Accounts.bnet-owned + ")";
+                        list-a: Accounts.bnet-installed-list; list-b: Accounts.bnet-owned-list;
+                    }
+                    Rectangle { vertical-stretch: 1; }
+                    Footer {
+                        note: Accounts.bnet-connected ? "Session Battle.net liée" : "Aucun compte lié";
+                        HorizontalLayout {
+                            spacing: 8px;
+                            UiButton { variant: 2; size: 0; icon: Icons.key; text: "API"; clicked => { Accounts.bnet-open-api(); } }
+                            UiButton {
+                                variant: Accounts.bnet-connected ? 2 : 0; size: 0; enabled: !Accounts.bnet-busy;
+                                icon: Accounts.bnet-connected ? Icons.unlink : Icons.link;
+                                text: Accounts.bnet-connected ? "Déconnecter" : "Lier Blizzard";
+                                clicked => { Accounts.bnet-action(); }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ---------- Modale : dossier externe Battle.net ----------
+    UiModal {
+        open: Accounts.external-open;
+        title: "Ajouter un Répertoire Externe Battle.net";
+        subtitle: "Spécifiez le chemin absolu du dossier d'installation (ex: /mnt/games/Blizzard/World of Warcraft)";
+        dialog-width: 448px;
+        close => { Accounts.external-open = false; }
+        VerticalLayout {
+            spacing: 8px;
+            FieldLabel { text: "CHEMIN DU RÉPERTOIRE"; }
+            SecretInput { text <=> Accounts.external-path; placeholder: "/mnt/games/Blizzard/World of Warcraft"; }
+            Text { text: "Le répertoire doit contenir un fichier .build.info et les exécutables officiels de Blizzard."; font-size: 11px; color: Theme.zinc-500; wrap: word-wrap; }
+            HorizontalLayout {
+                padding-top: 8px; spacing: 8px; alignment: end;
+                UiButton { variant: 3; size: 0; text: "Annuler"; clicked => { Accounts.external-open = false; } }
+                UiButton {
+                    variant: 0; size: 0; text: Accounts.external-busy ? "Analyse..." : "Valider et Scanner";
+                    enabled: Accounts.external-path != "" && !Accounts.external-busy;
+                    clicked => { Accounts.external-submit(Accounts.external-path); }
+                }
+            }
+        }
+    }
+
+    // ---------- Modale : identifiants API Blizzard ----------
+    UiModal {
+        open: Accounts.blizz-open;
+        title: "Connexion Officielle Blizzard Battle.net";
+        subtitle: "Authentification OAuth 2.0 sécurisée via oauth.battle.net";
+        dialog-width: 576px;
+        close => { Accounts.blizz-open = false; }
+        if Accounts.blizz-authenticating: VerticalLayout {
+            alignment: center; spacing: 14px; padding-top: 16px; padding-bottom: 16px;
+            Rectangle {
+                width: 64px; height: 64px; border-radius: 32px; background: Theme.amber-bg-faint; border-width: 1px; border-color: Theme.amber-border;
+                Ph { text: Icons.refresh; font-size: 30px; color: Theme.amber-400; }
+            }
+            Text { text: "Authentification en cours dans votre navigateur"; font-size: 16px; font-weight: 600; color: Theme.zinc-100; horizontal-alignment: center; }
+            Text { text: "Une fenêtre de votre navigateur s'est ouverte sur le portail officiel oauth.battle.net. Identifiez-vous et autorisez Loom pour synchroniser votre compte."; font-size: 12px; color: Theme.zinc-400; wrap: word-wrap; horizontal-alignment: center; }
+            Text { text: "En attente du retour de Blizzard... (Délai : 120s)"; font-family: Theme.font-mono; font-size: 12px; color: Theme.zinc-500; horizontal-alignment: center; }
+        }
+        if !Accounts.blizz-authenticating: VerticalLayout {
+            spacing: 16px;
+            Rectangle {
+                background: Theme.amber-bg-faint; border-radius: 12px; border-width: 1px; border-color: Theme.amber-border-soft;
+                preferred-height: ib.preferred-height;
+                ib := VerticalLayout {
+                    padding: 16px; spacing: 6px;
+                    Text { text: "VRAI OAUTH 2.0 BLIZZARD (DIRECT & SANS INTERMÉDIAIRE)"; font-size: 12px; font-weight: 600; color: Theme.amber-400; }
+                    Text { text: "Pour relier votre véritable compte Battle.net, renseignez vos identifiants d'API Blizzard Client. La création est 100% gratuite et prend 30 secondes."; font-size: 12px; color: Theme.zinc-300; wrap: word-wrap; }
+                }
+            }
+            Rectangle {
+                background: Theme.zinc-950; border-radius: 12px; border-width: 1px; border-color: Theme.zinc-800;
+                preferred-height: gb.preferred-height;
+                gb := VerticalLayout {
+                    padding: 14px; spacing: 8px;
+                    HorizontalLayout {
+                        Text { horizontal-stretch: 1; text: "Comment obtenir vos clés d'API Blizzard :"; font-size: 12px; font-weight: 500; color: Theme.zinc-200; }
+                        Text { text: "Ouvrir develop.battle.net ↗"; font-size: 11px; font-weight: 500; color: Theme.amber-400; TouchArea { mouse-cursor: pointer; clicked => { Accounts.open-dev-portal(); } } }
+                    }
+                    Text { text: "1. Connectez-vous sur develop.battle.net et cliquez sur « Create Client ».\n2. Nommez-le « Loom Launcher » et cochez les autorisations standard.\n3. Dans « Redirect URLs », ajoutez les URLs locales http://localhost:8999/… (voir la doc Loom).\n4. Copiez votre Client ID et votre Client Secret ci-dessous."; font-size: 11px; color: Theme.zinc-400; wrap: word-wrap; }
+                }
+            }
+            VerticalLayout { spacing: 6px; FieldLabel { text: "BLIZZARD CLIENT ID *"; } SecretInput { text <=> Accounts.blizz-id; placeholder: "Ex: d8a9f234bc56..."; } }
+            VerticalLayout { spacing: 6px; FieldLabel { text: "BLIZZARD CLIENT SECRET *"; } SecretInput { text <=> Accounts.blizz-secret; secret: true; placeholder: "••••••••••••••••••••••••••••••••"; } }
+            if Accounts.blizz-error != "": Rectangle {
+                background: #ef44441a; border-radius: 12px; border-width: 1px; border-color: #ef44444d;
+                preferred-height: eb.preferred-height;
+                eb := VerticalLayout {
+                    padding: 12px; spacing: 4px;
+                    Text { text: "Erreur d'authentification :"; font-size: 12px; font-weight: 500; color: #f87171; }
+                    Text { text: Accounts.blizz-error; font-size: 12px; color: #fca5a5; wrap: word-wrap; }
+                }
+            }
+            HorizontalLayout {
+                spacing: 8px; alignment: end;
+                UiButton { variant: 3; size: 0; text: "Annuler"; clicked => { Accounts.blizz-open = false; } }
+                if Accounts.blizz-configured && (Accounts.blizz-id == "" || Accounts.blizz-secret == ""): UiButton {
+                    variant: 2; size: 0; text: "Se connecter avec les clés enregistrées"; clicked => { Accounts.blizz-connect(); }
+                }
+                UiButton {
+                    variant: 0; size: 0; text: "Enregistrer et se connecter";
+                    enabled: Accounts.blizz-id != "" && Accounts.blizz-secret != "";
+                    clicked => { Accounts.blizz-save(); }
+                }
+            }
+        }
+    }
+
+    // ---------- Modale : connexion Microsoft (device code) ----------
+    UiModal {
+        open: Accounts.ms-open;
+        title: "Connexion Microsoft / Xbox";
+        subtitle: "Authentification par code appareil (device code)";
+        dialog-width: 448px;
+        close => { Accounts.ms-open = false; }
+        if Accounts.ms-state == 0: VerticalLayout {
+            spacing: 14px; alignment: center;
+            Text { text: "Rendez-vous sur la page ci-dessous et saisissez ce code :"; font-size: 12px; color: Theme.zinc-400; horizontal-alignment: center; wrap: word-wrap; }
+            Rectangle {
+                height: 64px; background: Theme.zinc-950; border-radius: 12px; border-width: 1px; border-color: Theme.amber-border;
+                Text { text: Accounts.ms-code != "" ? Accounts.ms-code : "..."; font-family: Theme.font-mono; font-size: 28px; font-weight: 800; color: Theme.amber-400; horizontal-alignment: center; vertical-alignment: center; }
+            }
+            Text { text: Accounts.ms-uri; font-family: Theme.font-mono; font-size: 12px; color: Theme.zinc-300; horizontal-alignment: center; }
+            HorizontalLayout {
+                spacing: 8px; alignment: center;
+                UiButton { variant: 1; size: 0; icon: Icons.external; text: "Ouvrir la page"; clicked => { Accounts.ms-open-link(); } }
+                UiButton { variant: 1; size: 0; icon: Icons.copy; text: "Copier le code"; clicked => { Accounts.ms-copy-code(); } }
+            }
+            Text { text: "En attente de votre validation..."; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-500; horizontal-alignment: center; }
+        }
+        if Accounts.ms-state == 1: VerticalLayout {
+            spacing: 8px; alignment: center; padding-top: 12px; padding-bottom: 12px;
+            Text { text: "Connexion réussie !"; font-size: 16px; font-weight: 700; color: Theme.zinc-100; horizontal-alignment: center; }
+            Text { text: "Bienvenue dans Loom Launcher, " + Accounts.ms-name; font-family: Theme.font-mono; font-size: 12px; color: Theme.emerald-400; horizontal-alignment: center; }
+        }
+        if Accounts.ms-state == 2: VerticalLayout {
+            spacing: 8px; alignment: center; padding-top: 12px; padding-bottom: 12px;
+            Text { text: "Échec de l'authentification"; font-size: 16px; font-weight: 700; color: Theme.rose-400; horizontal-alignment: center; }
+            Text { text: Accounts.ms-error; font-family: Theme.font-mono; font-size: 12px; color: Theme.zinc-400; horizontal-alignment: center; wrap: word-wrap; }
+        }
+    }
+}

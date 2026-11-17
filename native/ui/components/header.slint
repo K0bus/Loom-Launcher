@@ -1,0 +1,223 @@
+// Équivalent de src/components/layout/DesktopWindowHeader.vue
+import { Theme, Icons } from "../theme.slint";
+import { Ph } from "ph.slint";
+import { UiInput } from "ui.slint";
+
+component RoundIconButton inherits Rectangle {
+    in property <string> glyph;
+    in property <bool> active: false;
+    in property <bool> highlight: false;   // état "téléchargement en cours"
+    in property <bool> dot: false;
+    callback clicked();
+    width: 32px; height: 32px;
+    border-radius: 16px;
+    background: (active || highlight) ? (active ? Theme.zinc-900 : Theme.amber-bg) : (ta.has-hover ? #18181bcc : transparent);
+    border-width: (active || highlight) ? 1px : 0px;
+    border-color: active ? Theme.amber-500.with-alpha(0.4) : Theme.amber-500.with-alpha(0.3);
+    Ph {
+        text: root.glyph;
+        font-size: 16px;
+        color: (active || highlight) ? Theme.amber-400 : (ta.has-hover ? Theme.zinc-200 : Theme.zinc-400);
+    }
+    if dot: Rectangle {
+        x: parent.width - 10px; y: 6px; width: 6px; height: 6px;
+        border-radius: 3px; background: Theme.emerald-400;
+    }
+    ta := TouchArea { mouse-cursor: pointer; clicked => { root.clicked(); } }
+}
+
+component WinControl inherits Rectangle {
+    in property <string> glyph;
+    in property <bool> danger: false;
+    callback clicked();
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: ta.has-hover ? (danger ? #e11d48e6 : #27272acc) : transparent;
+    Ph {
+        text: root.glyph; font-size: 12px;
+        color: ta.has-hover ? (danger ? #ffffff : Theme.zinc-100) : Theme.zinc-400;
+    }
+    ta := TouchArea { mouse-cursor: pointer; clicked => { root.clicked(); } }
+}
+
+component NavPill inherits Rectangle {
+    in property <string> text;
+    in property <string> glyph;
+    in property <bool> active;
+    in property <bool> accent-idle: false;  // "Modding" : texte ambre au repos
+    callback clicked();
+    min-width: l.min-width;
+    preferred-width: l.preferred-width;
+    border-radius: self.height / 2;
+    background: active ? Theme.amber-500 : transparent;
+    l := HorizontalLayout {
+        padding-left: glyph != "" ? 14px : 16px;
+        padding-right: glyph != "" ? 14px : 16px;
+        spacing: 6px;
+        alignment: center;
+        if root.glyph != "": Ph {
+            weight: 1; text: root.glyph; font-size: 12px;
+            color: root.active ? Theme.zinc-950 : (root.accent-idle ? Theme.amber-400 : Theme.zinc-400);
+        }
+        Text {
+            text: root.text;
+            font-size: 12px;
+            font-weight: active ? 700 : (root.glyph != "" ? 500 : 600);
+            vertical-alignment: center;
+            color: active ? Theme.zinc-950
+                : root.accent-idle ? (ta.has-hover ? Theme.amber-300 : Theme.amber-400.with-alpha(0.9))
+                : (ta.has-hover ? Theme.zinc-200 : Theme.zinc-400);
+        }
+    }
+    ta := TouchArea { mouse-cursor: pointer; clicked => { root.clicked(); } }
+}
+
+export component DesktopHeader inherits Rectangle {
+    // page : 0 bibliothèque, 1 modding, 2 monitoring, 3 paramètres, 4 comptes
+    in property <int> page;
+    in property <bool> maximized;
+    in property <string> running-title;
+    in property <int> downloads-active;
+    in property <bool> downloads-done;
+    in property <int> connected-count;
+    in property <string> username: "k0bus";
+    in property <int> games-count;
+    in-out property <string> search-text;
+
+    callback navigate(int);
+    callback go-back();
+    callback go-forward();
+    callback search-submitted(string);
+    callback downloads-clicked();
+    callback notifications-clicked();
+    callback close-clicked();
+    callback minimize-clicked();
+    callback maximize-clicked();
+    callback drag-window(length, length);
+
+    height: 53px;
+    background: Theme.bg-header;
+
+    // Fond = zone de drag (tout ce qui est interactif est posé par-dessus)
+    bg-ta := TouchArea {
+        pointer-event(e) => {
+            if (e.kind == PointerEventKind.down && e.button == PointerEventButton.left) {
+                root.drag-window(bg-ta.mouse-x, bg-ta.mouse-y);
+            }
+        }
+        double-clicked => { root.maximize-clicked(); }
+    }
+
+    HorizontalLayout {
+        padding-left: 24px; padding-right: 24px;
+        padding-top: 10px; padding-bottom: 11px;
+        spacing: 12px;
+
+        // --- Gauche : logo, historique, pills ---
+        Rectangle {
+            width: 32px;
+            Image {
+                source: @image-url("../assets/logo.png");
+                width: 28px; height: 28px; image-fit: contain;
+            }
+            TouchArea { mouse-cursor: pointer; clicked => { root.navigate(0); } }
+        }
+        HorizontalLayout {
+            spacing: 0px;
+            RoundIconButton { glyph: Icons.arrow-left; clicked => { root.go-back(); } }
+            RoundIconButton { glyph: Icons.arrow-right; clicked => { root.go-forward(); } }
+        }
+        Rectangle {
+            background: #18181bcc;
+            border-radius: 16px;
+            border-width: 1px;
+            border-color: Theme.border-subtle;
+            min-width: pills.min-width + 8px;
+            preferred-width: pills.preferred-width + 8px;
+            pills := HorizontalLayout {
+                padding: 4px;
+                spacing: 4px;
+                NavPill { text: "Bibliothèque"; active: root.page == 0; clicked => { root.navigate(0); } }
+                NavPill { text: "Modding"; glyph: Icons.stack; accent-idle: true; active: root.page == 1; clicked => { root.navigate(1); } }
+            }
+        }
+
+        // --- Centre : recherche ---
+        Rectangle { horizontal-stretch: 1; min-width: 12px; }
+        UiInput {
+            pill: true;
+            preferred-width: 448px; max-width: 448px; min-width: 200px; horizontal-stretch: 2;
+            icon: Icons.search;
+            text <=> root.search-text;
+            placeholder: root.games-count > 0 ? "Rechercher parmi vos " + root.games-count + " jeux..." : "Rechercher un jeu (Ctrl+K)...";
+            accepted(t) => { root.search-submitted(t); }
+        }
+        Rectangle { horizontal-stretch: 1; min-width: 12px; }
+
+        // --- Droite ---
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: end;
+
+            if root.running-title != "": Rectangle {
+                background: Theme.amber-bg;
+                border-radius: 16px; border-width: 1px; border-color: Theme.amber-500.with-alpha(0.4);
+                height: 28px; y: 2px;
+                min-width: rl.min-width; preferred-width: rl.preferred-width;
+                rl := HorizontalLayout {
+                    padding-left: 12px; padding-right: 12px; spacing: 8px;
+                    Rectangle { width: 8px; height: 8px; y: 10px; border-radius: 4px; background: Theme.amber-400; }
+                    Text { text: "En cours : " + root.running-title; color: Theme.amber-300; font-size: 12px; font-weight: 500; vertical-alignment: center; }
+                }
+            }
+
+            RoundIconButton {
+                glyph: Icons.download;
+                highlight: root.downloads-active > 0;
+                dot: root.downloads-active == 0 && root.downloads-done;
+                clicked => { root.downloads-clicked(); }
+            }
+            RoundIconButton { glyph: Icons.bell; clicked => { root.notifications-clicked(); } }
+            RoundIconButton { glyph: Icons.activity; active: root.page == 2; clicked => { root.navigate(2); } }
+            RoundIconButton { glyph: Icons.gear; active: root.page == 3; clicked => { root.navigate(3); } }
+
+            // Profil
+            Rectangle {
+                y: 2px; height: 28px;
+                border-radius: 14px; border-width: 1px;
+                background: root.page == 4 ? Theme.amber-bg : (pt.has-hover ? #27272ae6 : #18181bcc);
+                border-color: root.page == 4 ? Theme.amber-500.with-alpha(0.5) : (pt.has-hover ? Theme.amber-500.with-alpha(0.5) : Theme.border-subtle);
+                min-width: pl.min-width; preferred-width: pl.preferred-width;
+                pl := HorizontalLayout {
+                    padding-left: 6px; padding-right: 12px; spacing: 8px;
+                    Rectangle {
+                        width: 24px; height: 24px; y: 1px;
+                        border-radius: 12px; background: Theme.amber-500.with-alpha(0.2);
+                        border-width: 1px; border-color: Theme.amber-500.with-alpha(0.4);
+                        Text { text: "K"; color: Theme.amber-300; font-size: 12px; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
+                    }
+                    Text {
+                        text: root.username; font-size: 12px; font-weight: 500; vertical-alignment: center;
+                        color: root.page == 4 ? Theme.amber-300 : (pt.has-hover ? Theme.amber-300 : Theme.zinc-300);
+                    }
+                    if root.connected-count > 0: Rectangle {
+                        width: 6px; height: 6px; y: 11px; border-radius: 3px; background: Theme.emerald-400;
+                        drop-shadow-blur: 6px; drop-shadow-color: #34d399cc;
+                    }
+                }
+                pt := TouchArea { mouse-cursor: pointer; clicked => { root.navigate(4); } }
+            }
+
+            Rectangle { width: 1px; height: 16px; y: 8px; background: Theme.zinc-800; }
+
+            HorizontalLayout {
+                spacing: 4px;
+                WinControl { y: 2px; glyph: Icons.minus; clicked => { root.minimize-clicked(); } }
+                WinControl { y: 2px; glyph: root.maximized ? Icons.copy : Icons.square; clicked => { root.maximize-clicked(); } }
+                WinControl { y: 2px; glyph: Icons.x; danger: true; clicked => { root.close-clicked(); } }
+            }
+        }
+    }
+
+    Rectangle { y: parent.height - 1px; height: 1px; background: Theme.border-subtle; }
+}

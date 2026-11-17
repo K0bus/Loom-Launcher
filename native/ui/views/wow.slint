@@ -1,0 +1,197 @@
+// Équivalent de WowModdingView.vue (instances, addons installés, catalogue CurseForge, personnages)
+import { ScrollView } from "std-widgets.slint";
+import { Theme, Icons } from "../theme.slint";
+import { Ph } from "../components/ph.slint";
+import { UiBadge, UiButton, UiInput, UiSwitch } from "../components/ui.slint";
+import { Modding } from "modding_state.slint";
+import { BackLink, TabBar, TabPill, Panel, Stat, Chip, SmallBtn, EmptyState, Hero } from "../components/studio.slint";
+
+export struct WowInst { id: string, name: string, flavor: string, version: string, addons: int, installed: bool }
+export struct WowAddon { id: string, folder: string, title: string, version: string, author: string, notes: string, enabled: bool, update: bool, latest: string, size: string }
+export struct WowCat { name: string, summary: string, author: string, downloads: string, icon: image, has-icon: bool, installed: bool, installing: bool }
+export struct WowChar { name: string, realm: string, level: string, cls: string, faction: string, race: string }
+
+export global Wow {
+    in property <[WowInst]> instances;
+    in-out property <int> sel: 0;
+    in-out property <int> tab: 0;
+    in property <[WowAddon]> addons;
+    in-out property <string> addon-filter;
+    in property <[WowCat]> catalog;
+    in-out property <string> cat-query;
+    in-out property <int> cat-sort: 0;
+    in property <bool> cat-loading;
+    in property <[WowChar]> chars;
+    in property <int> updates;
+    in property <bool> loading;
+    in property <bool> exporting;
+    callback select-instance(int);
+    callback toggle(string);
+    callback uninstall(string);
+    callback update-addon(string);
+    callback search();
+    callback install(int);
+    callback open-folder();
+    callback export();
+    callback refresh();
+    callback filter-changed();
+}
+
+component AddonRow inherits Rectangle {
+    in property <WowAddon> a;
+    height: 64px;
+    Rectangle { y: parent.height - 1px; height: 1px; background: #27272a66; }
+    HorizontalLayout {
+        padding-left: 16px; padding-right: 16px; spacing: 12px;
+        VerticalLayout {
+            horizontal-stretch: 1; alignment: center; spacing: 2px;
+            HorizontalLayout { spacing: 8px; alignment: start; Text { text: root.a.title; font-size: 13px; font-weight: 700; color: root.a.enabled ? Theme.zinc-100 : Theme.zinc-500; vertical-alignment: center; } if root.a.update: UiBadge { text: "MISE À JOUR " + root.a.latest; variant: 1; } }
+            Text { text: root.a.notes != "" ? root.a.notes : root.a.folder; font-size: 11px; color: Theme.zinc-400; overflow: elide; }
+        }
+        Text { width: 120px; text: "v" + root.a.version; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-300; vertical-alignment: center; overflow: elide; }
+        Text { width: 120px; text: root.a.author; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-500; vertical-alignment: center; overflow: elide; }
+        Text { width: 70px; text: root.a.size; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-500; vertical-alignment: center; horizontal-alignment: right; }
+        if root.a.update: Rectangle { width: 90px; SmallBtn { y: 18px; glyph: Icons.download; text: "Mettre à jour"; clicked => { Wow.update-addon(root.a.id); } } }
+        if !root.a.update: Rectangle { width: 0px; }
+        UiSwitch { y: 20px; checked: root.a.enabled; toggled(c) => { Wow.toggle(root.a.id); } }
+        Rectangle { width: 30px; SmallBtn { y: 18px; glyph: Icons.x; danger: true; clicked => { Wow.uninstall(root.a.id); } } }
+    }
+}
+
+export component WowStudio inherits Rectangle {
+    background: Theme.zinc-950;
+    ScrollView {
+        VerticalLayout {
+            Hero {
+                hero-height: 250px; hue: #7f1d1d;
+                HorizontalLayout {
+                    x: 56px; y: 22px; width: parent.width - 112px; height: 40px; spacing: 10px;
+                    BackLink { text: "Retour au Hub Modding"; clicked => { Modding.back(); } }
+                    UiBadge { y: 6px; text: "WOW ADDONS ENGINE"; variant: 1; }
+                    UiBadge { y: 6px; text: "CURSEFORGE CORE"; variant: 0; }
+                    Rectangle { horizontal-stretch: 1; }
+                    SmallBtn { y: 6px; glyph: Icons.download; text: Wow.exporting ? "Export..." : "Exporter"; enabled: !Wow.exporting; clicked => { Wow.export(); } }
+                    SmallBtn { y: 6px; glyph: Icons.folder-open; text: "Dossier AddOns"; clicked => { Wow.open-folder(); } }
+                }
+                HorizontalLayout {
+                    x: 56px; y: parent.height - 108px; width: parent.width - 112px; height: 84px; spacing: 18px;
+                    Rectangle { width: 72px; height: 72px; border-radius: 18px; background: #18181bcc; border-width: 1px; border-color: Theme.zinc-700; Ph { text: "\u{e5ba}"; weight: 1; font-size: 34px; color: Theme.amber-400; } }
+                    VerticalLayout {
+                        alignment: center; spacing: 4px;
+                        HorizontalLayout { spacing: 10px; alignment: start; Text { text: "World of Warcraft Addons Studio"; font-size: 28px; font-weight: 800; color: #ffffff; vertical-alignment: center; } UiBadge { text: "PRÊT"; variant: 2; } }
+                        Text { text: "Gestionnaire natif d'addons : explorez, installez et maintenez vos modules d'interface à jour depuis CurseForge."; font-size: 12px; color: Theme.zinc-300; }
+                    }
+                }
+            }
+            VerticalLayout {
+                padding-left: max(56px, (root.width - 1280px) / 2 + 56px); padding-right: max(56px, (root.width - 1280px) / 2 + 56px);
+                padding-top: 24px; padding-bottom: 64px; spacing: 20px;
+
+                // sélecteur d'instances
+                HorizontalLayout {
+                    spacing: 12px;
+                    for inst[i] in Wow.instances: Rectangle {
+                        height: 76px; horizontal-stretch: 1; border-radius: 16px; border-width: 1px;
+                        background: Wow.sel == i ? Theme.amber-bg-faint : #18181b99;
+                        border-color: Wow.sel == i ? Theme.amber-border : (ita.has-hover ? Theme.amber-500.with-alpha(0.3) : Theme.border-subtle);
+                        VerticalLayout {
+                            padding: 14px; spacing: 3px; alignment: center;
+                            HorizontalLayout { spacing: 8px; Text { horizontal-stretch: 1; text: inst.name; font-size: 14px; font-weight: 700; color: Wow.sel == i ? Theme.amber-400 : Theme.zinc-100; overflow: elide; } if !inst.installed: UiBadge { text: "ABSENT"; variant: 0; } }
+                            Text { text: inst.flavor + "  ·  " + inst.version + "  ·  " + inst.addons + " addons"; font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-500; overflow: elide; }
+                        }
+                        ita := TouchArea { mouse-cursor: pointer; clicked => { Wow.select-instance(i); } }
+                    }
+                }
+                if Wow.instances.length == 0: EmptyState { glyph: Icons.gamepad; title: "Aucune installation de WoW détectée"; text: "Installez World of Warcraft via Battle.net (préfixe Wine) pour gérer vos addons."; }
+
+                HorizontalLayout {
+                    alignment: start;
+                    TabBar {
+                        TabPill { glyph: Icons.stack; text: "AddOns Installés"; badge: Wow.addons.length; active: Wow.tab == 0; dot: Wow.updates > 0; clicked => { Wow.tab = 0; } }
+                        TabPill { glyph: Icons.globe; text: "Catalogue CurseForge"; active: Wow.tab == 1; clicked => { Wow.tab = 1; if (Wow.catalog.length == 0) { Wow.search(); } } }
+                        TabPill { glyph: Icons.users; text: "Personnages"; badge: Wow.chars.length; active: Wow.tab == 2; clicked => { Wow.tab = 2; } }
+                    }
+                }
+
+                if Wow.tab == 0: VerticalLayout {
+                    spacing: 12px;
+                    HorizontalLayout {
+                        spacing: 10px;
+                        UiInput { horizontal-stretch: 1; icon: Icons.search; placeholder: "Filtrer les addons installés..."; text <=> Wow.addon-filter; edited(t) => { Wow.filter-changed(); } }
+                        UiButton { variant: 1; size: 1; icon: Icons.refresh; text: Wow.loading ? "Analyse..." : "Vérifier les mises à jour"; enabled: !Wow.loading; clicked => { Wow.refresh(); } }
+                    }
+                    if Wow.updates > 0: Rectangle {
+                        background: Theme.amber-bg-faint; border-radius: 12px; border-width: 1px; border-color: Theme.amber-border-soft; height: 40px;
+                        Text { text: Wow.updates + " mise(s) à jour disponible(s)"; font-size: 12px; font-weight: 600; color: Theme.amber-300; horizontal-alignment: center; vertical-alignment: center; }
+                    }
+                    Panel {
+                        VerticalLayout {
+                            for a in Wow.addons: AddonRow { a: a; }
+                            if Wow.addons.length == 0: Text { text: Wow.loading ? "Analyse du dossier AddOns..." : "Aucun addon installé pour cette version."; font-size: 12px; color: Theme.zinc-500; horizontal-alignment: center; height: 60px; vertical-alignment: center; }
+                        }
+                    }
+                }
+                if Wow.tab == 1: VerticalLayout {
+                    spacing: 12px;
+                    Panel {
+                        HorizontalLayout {
+                            spacing: 10px;
+                            UiInput { horizontal-stretch: 1; icon: Icons.search; placeholder: "Rechercher des addons (Questie, Details, DBM, Auctionator)..."; text <=> Wow.cat-query; accepted(t) => { Wow.search(); } }
+                            UiButton { variant: 0; size: 1; text: "Rechercher"; clicked => { Wow.search(); } }
+                        }
+                        HorizontalLayout {
+                            spacing: 8px; alignment: start;
+                            Text { text: "Tri :"; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-400; vertical-alignment: center; }
+                            Chip { text: "Populaires"; active: Wow.cat-sort == 0; clicked => { Wow.cat-sort = 0; Wow.search(); } }
+                            Chip { text: "Récents"; active: Wow.cat-sort == 1; clicked => { Wow.cat-sort = 1; Wow.search(); } }
+                            Chip { text: "Plus téléchargés"; active: Wow.cat-sort == 2; clicked => { Wow.cat-sort = 2; Wow.search(); } }
+                        }
+                    }
+                    Panel {
+                        VerticalLayout {
+                            for c[i] in Wow.catalog: Rectangle {
+                                height: 80px;
+                                Rectangle { y: parent.height - 1px; height: 1px; background: #27272a66; }
+                                HorizontalLayout {
+                                    padding: 12px; spacing: 14px;
+                                    Rectangle {
+                                        width: 52px; height: 52px; border-radius: 12px; clip: true; background: Theme.zinc-950; border-width: 1px; border-color: Theme.zinc-800;
+                                        if c.has-icon: Image { source: c.icon; width: 52px; height: 52px; image-fit: cover; }
+                                        if !c.has-icon: Ph { text: Icons.stack; font-size: 22px; color: Theme.zinc-600; }
+                                    }
+                                    VerticalLayout {
+                                        horizontal-stretch: 1; alignment: center; spacing: 3px;
+                                        Text { text: c.name; font-size: 14px; font-weight: 700; color: Theme.zinc-100; overflow: elide; }
+                                        Text { text: c.summary; font-size: 11px; color: Theme.zinc-400; overflow: elide; }
+                                        Text { text: "par " + c.author + "   ·   ↓ " + c.downloads; font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-500; }
+                                    }
+                                    UiButton { y: 14px; variant: c.installed ? 1 : 0; size: 0; enabled: !c.installed && !c.installing; icon: c.installed ? Icons.check : Icons.download; text: c.installed ? "Installé" : c.installing ? "Installation..." : "Installer"; clicked => { Wow.install(i); } }
+                                }
+                            }
+                            if Wow.catalog.length == 0: Text { text: Wow.cat-loading ? "Recherche CurseForge en cours..." : "Aucun résultat."; font-size: 12px; color: Theme.zinc-500; horizontal-alignment: center; height: 60px; vertical-alignment: center; }
+                        }
+                    }
+                }
+                if Wow.tab == 2: Panel {
+                    Text { text: "PERSONNAGES DÉTECTÉS"; font-family: Theme.font-mono; font-size: 12px; font-weight: 700; color: Theme.zinc-300; }
+                    VerticalLayout {
+                        for c in Wow.chars: Rectangle {
+                            height: 48px;
+                            Rectangle { y: parent.height - 1px; height: 1px; background: #27272a66; }
+                            HorizontalLayout {
+                                padding-left: 12px; padding-right: 12px; spacing: 12px;
+                                Text { horizontal-stretch: 1; text: c.name; font-size: 13px; font-weight: 700; color: Theme.zinc-100; vertical-alignment: center; }
+                                Text { width: 160px; text: c.realm; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-400; vertical-alignment: center; }
+                                Text { width: 60px; text: c.level; font-family: Theme.font-mono; font-size: 11px; color: Theme.amber-400; vertical-alignment: center; }
+                                Text { width: 130px; text: c.cls; font-size: 11px; color: Theme.zinc-300; vertical-alignment: center; }
+                                Text { width: 110px; text: c.faction; font-size: 11px; color: Theme.zinc-400; vertical-alignment: center; }
+                            }
+                        }
+                        if Wow.chars.length == 0: Text { text: "Aucun personnage détecté dans les SavedVariables."; font-size: 12px; color: Theme.zinc-500; horizontal-alignment: center; height: 60px; vertical-alignment: center; }
+                    }
+                }
+                Rectangle { vertical-stretch: 1; }
+            }
+        }
+    }
+}

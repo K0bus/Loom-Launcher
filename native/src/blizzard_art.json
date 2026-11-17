@@ -1,0 +1,181 @@
+{
+ "wow": {
+  "cover": "https://images.igdb.com/igdb/image/upload/t_cover_big/co8b7k.jpg",
+  "banner": "https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/bltfe806acfa8672377/6a87bb854b66aa218691cf56/BG_Masthead_2600_Desktop.jpg",
+  "genre": [
+   "MMORPG",
+   "Fantasy",
+   "Aventure"
+  ],
+  "desc": "Explorez Azeroth dans The War Within. Affrontez les menaces souterraines et unissez les factions.",
+  "igdb_id": 123,
+  "igdb_slug": "world-of-warcraft"
+ },
+ "wow_classic": {
+  "cover": "https://images.igdb.com/igdb/image/upload/t_cover_big/co1trz.jpg",
+  "banner": "https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/bltfe806acfa8672377/6a87bb854b66aa218691cf56/BG_Masthead_2600_Desktop.jpg",
+  "genre": [
+   "MMORPG",
+   "Classique"
+  ],
+  "desc": "L'expérience originelle et authentique de World of Warcraft Classic.",
+  "igdb_id": 75379,
+  "igdb_slug": "world-of-warcraft-classic"
+ },
+ "wow_classic_era": {
+  "cover": "https://images.igdb.com/igdb/image/upload/t_cover_big/co7bkt.jpg",
+  "banner": "https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/bltfe806acfa8672377/6a87bb854b66aa218691cf56/BG_Masthead_2600_Desktop.jpg",
+  "genre": [
+   "MMORPG",
+   "Season of Discovery",
+   "Runes"
+  ],
+  "desc": "World of Warcraft Classic: Season of Discovery, runes de classe novatrices et raids réinventés.",
+  "igdb_id": 275175,
+  "igdb_slug": "world-of-warcraft-classic-season-of-discovery"
+ },
+ "wowf": {
+  "cover": "https://images.igdb.com/igdb/image/upload/t_cover_big/co7bkq.jpg",
+  "banner": "https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/bltfe806acfa8672377/6a87bb854b66aa218691cf56/BG_Masthead_2600_Desktop.jpg",
+  "genre": [
+   "MMORPG",
+   "Forever",
+   "Classic+"
+  ],
+  "desc": "World of Warcraft: Forever sous Linux. Réinterprétation permanente d'Azeroth au niveau 60 (Classic+) avec nouvelles zones et donjons.",
+  "igdb_id": 417650,
+  "igdb_slug": "world-of-warcraft-forever"
+ },
+ "fenris": {
+  "cover": "https://images.igdb.com/igdb/image/upload/t_cover_big/co69sm.jpg",
+  "banner": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2344520/library_hero.jpg",
+  "genre": [
+   "Action-RPG",
+   "Hack\\",
+   "Slash",
+   "Dark Fantasy"
+  ]
+ },
+ "pro": {
+  "cover": "https://images.igdb.com/igdb/image/upload/t_cover_big/co885f.jpg",
+  "banner": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2357570/library_hero.jpg",
+  "genre": [
+   "FPS",
+   "Hero Shooter",
+   "Gratuit",
+   "Free-to-Play",
+   "Compétitif"
+  ]
+ },
+ "w3": {
+  "cover": "https://images.igdb.com/igdb/image/upload/t_cover_big/co1rrv.jpg",
+  "banner": "https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/blt668d39048ffb606f/6a9792a96cec0d4229b141a2/masthead_desktop.png",
+  "genre": [
+   "STR",
+   "Stratégie",
+   "Fantasy"
+  ]
+ },
+ "odin": {
+  "cover": "https://images.igdb.com/igdb/image/upload/t_cover_big/coa8id.jpg",
+  "banner": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1938090/library_hero.jpg",
+  "genre": [
+   "FPS",
+   "Battle Royale",
+   "Gratuit",
+   "Free-to-Play"
+  ]
+ },
+ "hs": {
+  "cover": "https://images.igdb.com/igdb/image/upload/t_cover_big/co1sh2.jpg",
+  "banner": "https://blz-contentstack-images.akamaized.net/v3/assets/bltc965041283bac56c/blt2a00940d7f28339b/64bea585e26c5443e04bc2a4/Masthead.png",
+  "genre": [
+   "Cartes à collectionner",
+   "Stratégie",
+   "Gratuit",
+   "Free-to-Play"
+  ]
+ },
+ "sc2": {
+  "cover": "https://images.igdb.com/igdb/image/upload/t_cover_big/co1tnn.jpg",
+  "banner": "https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/bltb017c0048472fd04/69646379b1b0ff9682e39241/terran_background_2600.webp",
+  "genre": [
+   "STR",
+   "Science-Fiction",
+   "Gratuit",
+   "Free-to-Play",
+   "Compétitif"
+  ]
+ },
+ "hero": {
+  "cover": "https://lutris.net/media/igdb/hots_grid_264x352.webp",
+  "banner": "https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/blta8d048de9718bc10/6a97a0ae2924f59b018aa920/masthead_desktop.png",
+  "genre": [
+   "MOBA",
+   "Arène",
+   "Gratuit",
+   "Free-to-Play"
+  ]
+ },
+ "anbs": {
+  "cover": "https://images.igdb.com/igdb/image/upload/t_cover_big/co2pwy.jpg",
+  "banner": "https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/bltd1d54d0ae64bba83/6a2053f8927dbbbf1e03bc77/di-masthead-bg_XL_warlock_2600.webp",
+  "genre": [
+   "Action-RPG",
+   "Hack\\",
+   "Slash",
+   "Gratuit",
+   "Free-to-Play"
+  ]
+ },
+ "osi": {
+  "cover": "https://images.igdb.com/igdb/image/upload/t_cover_big/co3gbk.jpg",
+  "banner": "https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/blt6c60900c9bb4c4d8/6972a545d855f0a07c5d7824/masthead_overview_2600.png",
+  "genre": [
+   "Action-RPG",
+   "Hack\\",
+   "Slash"
+  ]
+ },
+ "diablo3": {
+  "cover": "https://images.igdb.com/igdb/image/upload/t_cover_big/co2l1u.jpg",
+  "banner": "https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/blt9843230b12d957ea/6a8f5e2b2924f5fb788aa851/masthead_2600.png",
+  "genre": [
+   "Action-RPG",
+   "Hack\\",
+   "Slash"
+  ]
+ },
+ "s1": {
+  "cover": "https://images.igdb.com/igdb/image/upload/t_cover_big/co3wal.jpg",
+  "banner": "https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/bltb017c0048472fd04/69646379b1b0ff9682e39241/terran_background_2600.webp",
+  "genre": [
+   "STR",
+   "Science-Fiction"
+  ]
+ },
+ "w1r": {
+  "cover": "https://images.igdb.com/igdb/image/upload/t_cover_big/co1xup.jpg",
+  "banner": "https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/blt668d39048ffb606f/6a9792a96cec0d4229b141a2/masthead_desktop.png",
+  "genre": [
+   "STR",
+   "Rétro"
+  ]
+ },
+ "w2r": {
+  "cover": "https://images.igdb.com/igdb/image/upload/t_cover_big/co3wix.jpg",
+  "banner": "https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/blt668d39048ffb606f/6a9792a96cec0d4229b141a2/masthead_desktop.png",
+  "genre": [
+   "STR",
+   "Rétro"
+  ]
+ },
+ "rtro": {
+  "cover": "https://lutris.net/media/igdb/blizarcade.jpg",
+  "banner": "https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/blta8d048de9718bc10/6a97a0ae2924f59b018aa920/masthead_desktop.png",
+  "genre": [
+   "Arcade",
+   "Rétro"
+  ]
+ }
+}

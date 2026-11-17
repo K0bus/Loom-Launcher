@@ -1,0 +1,119 @@
+// Briques communes aux studios de modding
+import { Theme, Icons } from "../theme.slint";
+import { Ph } from "ph.slint";
+import { UiBadge, UiButton } from "ui.slint";
+
+export component BackLink inherits Rectangle {
+    in property <string> text;
+    callback clicked();
+    min-width: l.min-width; preferred-width: l.preferred-width; height: 28px;
+    l := HorizontalLayout {
+        spacing: 8px;
+        Ph { text: Icons.arrow-left; font-size: 14px; color: ta.has-hover ? Theme.amber-400 : Theme.zinc-400; width: 16px; }
+        Text { text: root.text; font-size: 12px; font-weight: 500; vertical-alignment: center; color: ta.has-hover ? Theme.amber-400 : Theme.zinc-400; }
+    }
+    ta := TouchArea { mouse-cursor: pointer; clicked => { root.clicked(); } }
+}
+
+export component TabPill inherits Rectangle {
+    in property <string> glyph;
+    in property <string> text;
+    in property <int> badge: -1;
+    in property <bool> active;
+    in property <bool> dot: false;
+    callback clicked();
+    min-width: l.min-width; preferred-width: l.preferred-width;
+    border-radius: 12px;
+    background: active ? Theme.amber-500 : (ta.has-hover ? #18181b99 : transparent);
+    drop-shadow-blur: active ? 12px : 0px; drop-shadow-color: Theme.amber-500.with-alpha(0.2);
+    l := HorizontalLayout {
+        padding-left: 16px; padding-right: 16px; spacing: 8px; alignment: center;
+        if root.glyph != "": Ph { text: root.glyph; font-size: 14px; color: root.active ? Theme.zinc-950 : Theme.zinc-400; }
+        Text { text: root.text; font-family: Theme.font-mono; font-size: 12px; font-weight: 700; vertical-alignment: center; color: root.active ? Theme.zinc-950 : (ta.has-hover ? Theme.zinc-200 : Theme.zinc-400); }
+        if root.badge >= 0: Rectangle {
+            height: 18px; y: 11px; border-radius: 9px; background: root.active ? Theme.zinc-950 : Theme.zinc-800; min-width: bt.preferred-width + 14px;
+            bt := Text { text: root.badge; font-family: Theme.font-mono; font-size: 10px; horizontal-alignment: center; vertical-alignment: center; color: root.active ? Theme.amber-400 : Theme.zinc-300; }
+        }
+        if root.dot: Rectangle { width: 8px; height: 8px; y: 16px; border-radius: 4px; background: Theme.emerald-400; }
+    }
+    ta := TouchArea { mouse-cursor: pointer; clicked => { root.clicked(); } }
+}
+
+export component TabBar inherits Rectangle {
+    background: #18181b99; border-radius: 16px; border-width: 1px; border-color: Theme.border-subtle;
+    min-width: l.min-width; preferred-width: l.preferred-width; height: 52px;
+    l := HorizontalLayout { padding: 6px; spacing: 4px; alignment: start; @children }
+}
+
+export component Panel inherits Rectangle {
+    background: #18181b99; border-radius: 16px; border-width: 1px; border-color: Theme.border-subtle;
+    preferred-height: l.preferred-height; min-height: l.min-height;
+    l := VerticalLayout { padding: 20px; spacing: 14px; @children }
+}
+
+export component Stat inherits VerticalLayout {
+    in property <string> label;
+    in property <string> value;
+    in property <color> tint: Theme.zinc-100;
+    spacing: 2px;
+    Text { text: root.label; font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-500; }
+    Text { text: root.value; font-family: Theme.font-mono; font-size: 14px; font-weight: 700; color: root.tint; overflow: elide; }
+}
+
+export component Chip inherits Rectangle {
+    in property <string> text;
+    in property <bool> active;
+    callback clicked();
+    min-width: l.min-width; preferred-width: l.preferred-width; height: 30px; border-radius: 15px; border-width: 1px;
+    background: active ? Theme.amber-500 : (ta.has-hover ? #27272acc : #18181bcc);
+    border-color: active ? Theme.amber-400 : Theme.border-subtle;
+    l := HorizontalLayout { padding-left: 12px; padding-right: 12px; Text { text: root.text; font-size: 12px; font-weight: root.active ? 700 : 500; vertical-alignment: center; color: root.active ? Theme.zinc-950 : Theme.zinc-300; } }
+    ta := TouchArea { mouse-cursor: pointer; clicked => { root.clicked(); } }
+}
+
+export component SmallBtn inherits Rectangle {
+    in property <string> glyph;
+    in property <string> text;
+    in property <bool> danger: false;
+    in property <bool> enabled: true;
+    callback clicked();
+    min-width: l.min-width; preferred-width: l.preferred-width; height: 28px; border-radius: 8px; border-width: 1px;
+    background: ta.has-hover && root.enabled ? (root.danger ? #f43f5e26 : Theme.zinc-800) : #09090bcc;
+    border-color: ta.has-hover && root.enabled ? (root.danger ? #f43f5e66 : Theme.amber-500.with-alpha(0.4)) : Theme.zinc-800;
+    opacity: root.enabled ? 1.0 : 0.5;
+    l := HorizontalLayout {
+        padding-left: 10px; padding-right: 10px; spacing: 6px; alignment: center;
+        if root.glyph != "": Ph { text: root.glyph; font-size: 13px; color: root.danger ? Theme.rose-400 : Theme.amber-400; width: 14px; }
+        if root.text != "": Text { text: root.text; font-size: 11px; font-weight: 500; vertical-alignment: center; color: root.danger ? Theme.rose-400 : Theme.zinc-300; }
+    }
+    ta := TouchArea { enabled: root.enabled; mouse-cursor: pointer; clicked => { root.clicked(); } }
+}
+
+export component EmptyState inherits Rectangle {
+    in property <string> glyph;
+    in property <string> title;
+    in property <string> text;
+    background: #18181b4d; border-radius: 16px; border-width: 1px; border-color: #27272a99;
+    preferred-height: l.preferred-height;
+    l := VerticalLayout {
+        padding: 40px; spacing: 10px; alignment: center;
+        Rectangle { width: 56px; height: 56px; border-radius: 28px; background: Theme.zinc-800; x: (parent.width - 56px) / 2; Ph { text: root.glyph; weight: 1; font-size: 26px; color: Theme.zinc-400; } }
+        Text { text: root.title; font-size: 16px; font-weight: 700; color: Theme.zinc-200; horizontal-alignment: center; }
+        Text { text: root.text; font-size: 12px; color: Theme.zinc-500; horizontal-alignment: center; wrap: word-wrap; }
+    }
+}
+
+export component Hero inherits Rectangle {
+    in property <image> art;
+    in property <bool> has-art;
+    in property <color> hue: Theme.zinc-800;
+    in property <length> hero-height: 220px;
+    height: hero-height; clip: true; background: Theme.zinc-950;
+    if root.has-art: Image { source: root.art; width: parent.width; height: parent.height; image-fit: cover; }
+    if !root.has-art: Rectangle { background: @linear-gradient(135deg, root.hue, Theme.zinc-950); }
+    Rectangle { background: @radial-gradient(circle, Theme.amber-500.with-alpha(0.18) 0%, transparent 70%); }
+    Rectangle { background: @linear-gradient(90deg, #09090bd9 0%, #09090b4d 50%, #09090bb3 100%); }
+    Rectangle { background: @linear-gradient(0deg, #09090b 0%, #09090b66 50%, transparent 100%); }
+    Rectangle { y: parent.height - 1px; height: 1px; background: Theme.border-subtle; }
+    @children
+}

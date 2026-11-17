@@ -1,0 +1,246 @@
+// Équivalent de src/components/games/GameCard.vue
+import { Theme, Icons } from "../theme.slint";
+import { Ph } from "ph.slint";
+import { UiBadge } from "ui.slint";
+import { GameData } from "../structs.slint";
+
+component MenuRow inherits Rectangle {
+    in property <string> glyph;
+    in property <string> text;
+    in property <bool> danger: false;
+    callback clicked();
+    height: 36px;
+    border-radius: 6px;
+    background: ta.has-hover ? Theme.zinc-800 : transparent;
+    HorizontalLayout {
+        padding-left: 10px; spacing: 10px;
+        Ph { text: root.glyph; font-size: 14px; color: root.danger ? Theme.rose-400 : Theme.zinc-400; width: 16px; }
+        Text { text: root.text; font-size: 12px; vertical-alignment: center; color: root.danger ? Theme.rose-400 : Theme.zinc-200; }
+    }
+    ta := TouchArea { mouse-cursor: pointer; clicked => { root.clicked(); } }
+}
+
+export component GameCard inherits Rectangle {
+    in property <GameData> game;
+    callback select();
+    callback play();
+    callback stop();
+    callback install();
+    callback toggle-favorite();
+    callback uninstall();
+    callback open-folder();
+
+    private property <bool> hovered: card.has-hover || play-ta.has-hover || fav-ta.has-hover || cfg-ta.has-hover || inst-ta.has-hover;
+    private property <bool> installed-menu: game.installed;
+    private property <length> poster-h: self.width * 4 / 3;
+
+    height: poster-h + 100px;
+    background: #18181bcc;
+    border-radius: 16px;
+    border-width: 1px;
+    border-color: hovered ? Theme.amber-border-hover : Theme.border-subtle;
+    clip: true;
+    y: 0px;
+    // Survol : léger zoom, rotation (effet 3D) et halo lumineux derrière la carte
+    z: hovered ? 10 : 0;
+    transform-scale: hovered ? 1.035 : 1.0;
+    transform-rotation: hovered ? 1.4deg : 0deg;
+    drop-shadow-blur: hovered ? 40px : 8px;
+    drop-shadow-color: hovered ? Theme.amber-500.with-alpha(0.5) : #00000066;
+    animate transform-scale { duration: 220ms; easing: ease-out; }
+    animate transform-rotation { duration: 260ms; easing: ease-out; }
+    animate drop-shadow-blur { duration: 260ms; easing: ease-out; }
+    animate drop-shadow-color { duration: 260ms; }
+    animate border-color { duration: 200ms; }
+
+    card := TouchArea { mouse-cursor: pointer; clicked => { root.select(); } }
+
+    // --- Poster 3:4 ---
+    Rectangle {
+        x: 0px; y: 0px; width: parent.width; height: root.poster-h;
+        background: Theme.zinc-950;
+        clip: true;
+
+        if root.game.has-cover: Image {
+            source: root.game.cover; width: parent.width; height: parent.height; image-fit: cover;
+            opacity: root.game.installed || root.hovered ? 1.0 : 0.7;
+            transform-scale: root.hovered ? 1.07 : 1.0;
+            animate transform-scale { duration: 320ms; easing: ease-out; }
+            animate opacity { duration: 200ms; }
+        }
+        if !root.game.has-cover: Rectangle {
+            background: @linear-gradient(160deg, root.game.hue, Theme.zinc-950);
+            Text {
+                text: root.game.title; color: #ffffff59; font-size: 18px; font-weight: 800;
+                horizontal-alignment: center; vertical-alignment: center; wrap: word-wrap;
+                width: parent.width - 24px;
+            }
+        }
+        // Dégradé sombre
+        Rectangle {
+            background: @linear-gradient(0deg, #09090b 0%, #09090b33 50%, transparent 100%);
+            opacity: root.hovered ? 0.9 : 0.8;
+        }
+
+        // Badges haut
+        HorizontalLayout {
+            x: 12px; y: 12px; width: parent.width - 24px; height: 26px;
+            spacing: 6px;
+            alignment: start;
+            if root.game.installed: Rectangle {
+                // Pastille « installé » : coche blanche sur fond vert, qui se déploie en « ✓ INSTALLÉ » au survol
+                width: root.hovered ? 88px : 22px; height: 22px; border-radius: 11px; clip: true; border-width: 1px;
+                background: root.hovered ? #052e16f2 : Theme.emerald-500;
+                border-color: root.hovered ? #10b98180 : Theme.emerald-500;
+                animate width { duration: 240ms; easing: ease-out; }
+                animate background { duration: 200ms; }
+                animate border-color { duration: 200ms; }
+                Ph { x: 0px; y: 0px; width: 20px; height: 20px; text: Icons.check; weight: 2; font-size: 12px; color: #ffffff; }
+                Text {
+                    x: 22px; y: 0px; height: 20px; text: "INSTALLÉ"; font-family: Theme.font-mono; font-size: 9px; font-weight: 700;
+                    color: Theme.emerald-300; vertical-alignment: center; opacity: root.hovered ? 1.0 : 0.0;
+                    animate opacity { duration: 220ms; }
+                }
+            }
+            if !root.game.installed: Rectangle {
+                background: #09090be6; border-radius: 6px; border-width: 1px; border-color: #3f3f4699;
+                min-width: bl.min-width; preferred-width: bl.preferred-width; height: 20px;
+                bl := HorizontalLayout {
+                    padding-left: 6px; padding-right: 6px;
+                    Text { text: "BIBLIOTHÈQUE"; font-family: Theme.font-mono; font-size: 9px; color: Theme.zinc-400; vertical-alignment: center; }
+                }
+            }
+            Rectangle { horizontal-stretch: 1; }
+        }
+        // Vignette provider : bas gauche
+        UiBadge {
+            x: 12px; y: parent.height - 12px - 20px; width: self.preferred-width; height: self.preferred-height;
+            text: root.game.platform; variant: root.game.platform-variant; has-logo: true;
+            logo: root.game.platform-variant == 1 ? @image-url("../assets/logos/battlenet-icon.svg") : @image-url("../assets/logos/steam-icon.svg");
+        }
+        // Favori
+        Rectangle {
+            x: parent.width - 12px - 28px; y: 10px; width: 28px; height: 28px;
+            border-radius: 14px;
+            background: fav-ta.has-hover ? Theme.zinc-800 : #09090be6;
+            Ph {
+                weight: root.game.favorite ? 1 : 0;
+                text: Icons.star; font-size: 14px;
+                color: root.game.favorite || fav-ta.has-hover ? Theme.amber-400 : Theme.zinc-400;
+            }
+            fav-ta := TouchArea { mouse-cursor: pointer; clicked => { root.toggle-favorite(); } }
+        }
+
+        // Action centrale au survol
+        if root.hovered: Rectangle {
+            if root.game.running: Rectangle {
+                width: 56px; height: 56px; x: (parent.width - 56px) / 2; y: (parent.height - 56px) / 2;
+                border-radius: 28px; background: play-ta.has-hover ? Theme.rose-500 : Theme.rose-600;
+                drop-shadow-blur: 24px; drop-shadow-color: #e11d4866;
+                Ph { weight: 1; text: Icons.stop; font-size: 24px; color: #ffffff; }
+            }
+            if !root.game.running && root.game.starting: Rectangle {
+                width: 170px; height: 38px; x: (parent.width - 170px) / 2; y: (parent.height - 38px) / 2;
+                border-radius: 19px; background: Theme.amber-500;
+                Text { text: "Lancement..."; color: Theme.zinc-950; font-size: 12px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+            }
+            if !root.game.running && !root.game.starting && root.game.installed: Rectangle {
+                width: 56px; height: 56px; x: (parent.width - 56px) / 2; y: (parent.height - 56px) / 2;
+                border-radius: 28px; background: play-ta.has-hover ? Theme.amber-400 : Theme.amber-500;
+                drop-shadow-blur: 24px; drop-shadow-color: Theme.amber-500.with-alpha(0.4);
+                // Triangle dessiné (centrage exact, centre de gravité au milieu du cercle)
+                Path {
+                    x: (parent.width - 18px) / 2 + 2px; y: (parent.height - 20px) / 2; width: 18px; height: 20px;
+                    viewbox-width: 18; viewbox-height: 20;
+                    commands: "M 1 1 L 17 10 L 1 19 Z"; fill: Theme.zinc-950; stroke: Theme.zinc-950; stroke-width: 2px; stroke-line-join: round;
+                }
+            }
+            if !root.game.running && !root.game.starting && !root.game.installed: Rectangle {
+                width: 130px; height: 38px; x: (parent.width - 130px) / 2; y: (parent.height - 38px) / 2;
+                border-radius: 19px;
+                background: root.game.platform-variant == 1 ? (inst-ta.has-hover ? Theme.amber-500 : Theme.amber-600) : (inst-ta.has-hover ? #158ce0 : Theme.steam-blue);
+                drop-shadow-blur: 24px; drop-shadow-color: #1a9fff66;
+                HorizontalLayout {
+                    alignment: center; spacing: 8px;
+                    Ph { text: Icons.download; font-size: 16px; color: #ffffff; }
+                    Text { text: "Installer"; color: #ffffff; font-size: 12px; font-weight: 700; vertical-alignment: center; }
+                }
+            }
+        }
+
+        // Zones cliquables (déclarées hors des `if` pour rester référencables)
+        inst-ta := TouchArea {
+            width: 130px; height: 38px; x: (parent.width - 130px) / 2; y: (parent.height - 38px) / 2;
+            enabled: !root.game.installed && !root.game.running && !root.game.starting;
+            mouse-cursor: pointer;
+            clicked => { root.install(); }
+        }
+        play-ta := TouchArea {
+            width: 56px; height: 56px; x: (parent.width - 56px) / 2; y: (parent.height - 56px) / 2;
+            enabled: root.game.running || (root.game.installed && !root.game.starting);
+            mouse-cursor: pointer;
+            clicked => { if (root.game.running) { root.stop(); } else { root.play(); } }
+        }
+
+        // Statut coin bas-gauche
+        if root.game.running: Rectangle {
+            x: parent.width - self.width - 12px; y: parent.height - 12px - 24px; height: 24px;
+            min-width: rs.min-width; preferred-width: rs.preferred-width; width: self.preferred-width;
+            border-radius: 6px; background: Theme.emerald-500;
+            rs := HorizontalLayout {
+                padding-left: 8px; padding-right: 8px; spacing: 6px;
+                Rectangle { width: 6px; height: 6px; y: 9px; border-radius: 3px; background: Theme.zinc-950; }
+                Text { text: "EN JEU"; font-family: Theme.font-mono; font-size: 10px; font-weight: 700; color: Theme.zinc-950; vertical-alignment: center; }
+            }
+        }
+    }
+
+    // Menu contextuel (bouton réglages)
+    menu := PopupWindow {
+        x: root.width - 196px; y: root.height - 100px - (root.installed-menu ? 84px : 44px);
+        width: 188px;
+        Rectangle {
+            background: Theme.zinc-900; border-radius: 10px; border-width: 1px; border-color: Theme.zinc-700;
+            drop-shadow-blur: 20px; drop-shadow-color: #000000cc;
+            VerticalLayout {
+                padding: 4px;
+                MenuRow { glyph: Icons.hard-drive; text: "Ouvrir le dossier"; clicked => { root.open-folder(); } }
+                if root.game.installed: MenuRow { glyph: Icons.x; text: "Désinstaller"; danger: true; clicked => { root.uninstall(); } }
+            }
+        }
+    }
+
+    // --- Pied ---
+    VerticalLayout {
+        y: root.poster-h; height: parent.height - root.poster-h;
+        padding: 14px; spacing: 8px;
+        VerticalLayout {
+            spacing: 4px;
+            Text {
+                text: root.game.title; font-size: 14px; font-weight: 700; overflow: elide;
+                color: root.hovered ? Theme.amber-400 : Theme.zinc-100;
+            }
+            HorizontalLayout {
+                spacing: 6px; alignment: start;
+                Text { text: root.game.playtime; font-size: 11px; color: Theme.zinc-400; }
+                Text { text: "•"; font-size: 11px; color: Theme.zinc-400; }
+                Text {
+                    text: root.game.size-label; font-size: 11px; font-family: Theme.font-mono;
+                    color: root.game.installed ? Theme.zinc-400 : Theme.amber-400.with-alpha(0.8);
+                }
+            }
+        }
+        Rectangle { vertical-stretch: 1; }
+        Rectangle {
+            height: 28px;
+            Rectangle { y: 0px; height: 1px; background: #27272a99; }
+            Text { x: 0px; y: 8px; text: root.game.genre; font-size: 11px; color: Theme.zinc-500; overflow: elide; width: parent.width - 28px; }
+            Rectangle {
+                x: parent.width - 22px; y: 6px; width: 22px; height: 22px; border-radius: 4px;
+                background: cfg-ta.has-hover ? Theme.zinc-800 : transparent;
+                Ph { text: Icons.sliders; font-size: 14px; color: cfg-ta.has-hover ? Theme.zinc-200 : Theme.zinc-400; }
+                cfg-ta := TouchArea { mouse-cursor: pointer; clicked => { menu.show(); } }
+            }
+        }
+    }
+}

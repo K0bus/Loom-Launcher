@@ -1,0 +1,132 @@
+// Équivalent de src/views/ModdingView.vue + routeur des studios
+import { ScrollView } from "std-widgets.slint";
+import { Theme, Icons } from "../theme.slint";
+import { Ph } from "../components/ph.slint";
+import { UiBadge, UiButton } from "../components/ui.slint";
+import { Panel } from "../components/studio.slint";
+import { Modding } from "modding_state.slint";
+import { MinecraftStudio } from "minecraft.slint";
+import { WowStudio } from "wow.slint";
+import { BethesdaStudio } from "bethesda.slint";
+
+component GameCard inherits Rectangle {
+    in property <string> glyph;
+    in property <string> title;
+    in property <string> studio;
+    in property <string> badge;
+    in property <string> description;
+    in property <[string]> facts;
+    in property <[string]> tags;
+    in property <string> cta;
+    in property <string> secondary;
+    callback open();
+    callback secondary-clicked();
+    background: #18181b99; border-radius: 24px; border-width: 1px;
+    border-color: open-ta.has-hover ? Theme.amber-500.with-alpha(0.5) : Theme.border-subtle;
+    clip: true;
+    preferred-height: l.preferred-height;
+    open-ta := TouchArea { mouse-cursor: pointer; clicked => { root.open(); } }
+    Rectangle { x: parent.width - 160px; y: -80px; width: 280px; height: 280px; border-radius: 140px; background: Theme.amber-500.with-alpha(0.06); }
+    l := VerticalLayout {
+        padding: 28px; spacing: 18px;
+        HorizontalLayout {
+            spacing: 20px;
+            Rectangle {
+                width: 80px; height: 80px; border-radius: 20px; background: Theme.amber-bg-faint; border-width: 1px; border-color: Theme.amber-border-soft;
+                Ph { weight: 1; text: root.glyph; font-size: 38px; color: Theme.amber-400; }
+            }
+            VerticalLayout {
+                horizontal-stretch: 1; spacing: 6px; alignment: center;
+                HorizontalLayout {
+                    spacing: 10px; alignment: start;
+                    Text { text: root.title; font-size: 22px; font-weight: 800; color: Theme.zinc-100; vertical-alignment: center; }
+                    UiBadge { text: root.badge; variant: 2; }
+                    Text { text: root.studio; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-500; vertical-alignment: center; }
+                }
+                Text { text: root.description; font-size: 12px; color: Theme.zinc-400; wrap: word-wrap; }
+                HorizontalLayout {
+                    spacing: 14px; alignment: start;
+                    for f in root.facts: Text { text: f; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-300; vertical-alignment: center; }
+                }
+            }
+            VerticalLayout {
+                alignment: center; spacing: 10px;
+                if root.secondary != "": UiButton { variant: 2; size: 1; icon: Icons.play; text: root.secondary; clicked => { root.secondary-clicked(); } }
+                UiButton { variant: 0; size: 1; icon: Icons.arrow-right; text: root.cta; clicked => { root.open(); } }
+            }
+        }
+        Rectangle { height: 1px; background: #27272a99; }
+        HorizontalLayout {
+            spacing: 10px; alignment: start;
+            Text { text: "Fonctionnalités :"; font-family: Theme.font-mono; font-size: 11px; font-weight: 600; color: Theme.zinc-400; vertical-alignment: center; }
+            for t in root.tags: Rectangle {
+                height: 24px; border-radius: 12px; background: #27272acc; border-width: 1px; border-color: #3f3f4666;
+                min-width: tt.preferred-width + 20px;
+                tt := Text { text: t; font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-300; horizontal-alignment: center; vertical-alignment: center; }
+            }
+        }
+    }
+}
+
+export component ModdingHub inherits Rectangle {
+    background: Theme.zinc-950;
+    ScrollView {
+        VerticalLayout {
+            padding-left: max(56px, (root.width - 1280px) / 2 + 56px); padding-right: max(56px, (root.width - 1280px) / 2 + 56px);
+            padding-top: 24px; padding-bottom: 64px; spacing: 28px;
+            HorizontalLayout {
+                spacing: 16px;
+                VerticalLayout {
+                    horizontal-stretch: 1; spacing: 4px;
+                    HorizontalLayout {
+                        spacing: 12px; alignment: start;
+                        Ph { weight: 1; text: Icons.stack; font-size: 32px; color: Theme.amber-400; width: 36px; }
+                        Text { text: "Sous-Système de Modding"; font-size: 30px; font-weight: 900; color: Theme.zinc-100; vertical-alignment: center; }
+                    }
+                    Text { text: "Sélectionnez un titre supporté pour accéder à son studio de modding dédié, ses instances et ses catalogues unifiés"; font-size: 12px; color: Theme.zinc-400; wrap: word-wrap; }
+                }
+                UiBadge { y: 10px; text: "GAMEREGISTRY V2 • 5 ADAPTATEURS ACTIFS"; variant: 1; }
+            }
+            HorizontalLayout {
+                Text { horizontal-stretch: 1; text: "SÉLECTION DU JEU & STUDIOS DÉDIÉS"; font-family: Theme.font-mono; font-size: 13px; font-weight: 700; color: Theme.zinc-300; }
+                UiBadge { text: "5 ADAPTATEURS OPÉRATIONNELS"; variant: 2; dot: true; }
+            }
+            GameCard {
+                glyph: "\u{e1da}"; title: "Minecraft: Java Edition"; studio: "Mojang Studios"; badge: "STUDIO OPÉRATIONNEL";
+                description: "Gestionnaire modulaire avancé avec provisioning autonome Java (Adoptium 8/17/21), recherche unifiée Modrinth & CurseForge, isolation des instances et modpacks.";
+                facts: [Modding.mc-account, Modding.mc-instances + (Modding.mc-instances > 1 ? " instances configurées" : " instance configurée"), Modding.mc-playtime + " de jeu"];
+                tags: ["Fabric", "NeoForge", "Quilt", "Forge", "Vanilla"];
+                cta: "Ouvrir le Studio Minecraft";
+                secondary: Modding.mc-active-name != "" ? "Lancer " + Modding.mc-active-name : "";
+                open => { Modding.open(1); }
+                secondary-clicked => { Modding.launch-active-mc(); }
+            }
+            GameCard {
+                glyph: "\u{e5ba}"; title: "World of Warcraft"; studio: "Blizzard Entertainment"; badge: "ADDONS ENGINE";
+                description: "Gestionnaire natif d'addons : explorez, installez et maintenez vos modules d'interface (Questie, Details, DBM, Auctionator) à jour directement depuis CurseForge.";
+                facts: [Modding.wow-instances + (Modding.wow-instances > 1 ? " versions détectées" : " version détectée"), Modding.wow-addons + " addons installés"];
+                tags: ["Retail", "Classic", "Classic Era", "Forever", "CurseForge"];
+                cta: "Ouvrir le Studio WoW";
+                open => { Modding.open(3); }
+            }
+            GameCard {
+                glyph: "\u{e9d0}"; title: "Bethesda Game Studios"; studio: "Skyrim SE • Fallout 4 • Oblivion"; badge: "LOAD ORDER & DEPLOY";
+                description: "Profils de mods par jeu avec ordre de chargement des plugins, détection de conflits de fichiers, résolution des gagnants et déploiement par liens symboliques atomiques.";
+                facts: [Modding.beth-profiles + (Modding.beth-profiles > 1 ? " profils" : " profil")];
+                tags: ["Skyrim SE", "Fallout 4", "Oblivion", "Plugins", "Conflits", "Nexus Mods"];
+                cta: "Ouvrir le Studio Bethesda";
+                open => { Modding.open(4); }
+            }
+        }
+    }
+}
+
+export { Modding }
+export component ModdingView inherits Rectangle {
+    background: Theme.zinc-950;
+    in property <image> logo;
+    if Modding.screen == 0: ModdingHub { }
+    if Modding.screen == 1 || Modding.screen == 2: MinecraftStudio { }
+    if Modding.screen == 3: WowStudio { }
+    if Modding.screen == 4: BethesdaStudio { }
+}

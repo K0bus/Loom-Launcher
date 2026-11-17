@@ -1,0 +1,324 @@
+// Équivalents de src/components/ui/*.vue
+import { Theme } from "../theme.slint";
+import { Ph } from "ph.slint";
+
+// ---- UiBadge ---------------------------------------------------------------
+// variant: 0 zinc, 1 amber, 2 emerald, 3 sky, 4 rose, 5 purple
+export component UiBadge inherits Rectangle {
+    in property <string> text;
+    in property <int> variant: 0;
+    in property <bool> dot: false;
+    in property <bool> large: false;   // size md ; sinon xs
+    in property <image> logo;
+    in property <bool> has-logo: false;
+
+    private property <color> fg: variant == 1 ? Theme.amber-300 : variant == 2 ? Theme.emerald-300 : variant == 3 ? Theme.sky-300 : variant == 4 ? Theme.rose-300 : variant == 5 ? Theme.purple-300 : Theme.zinc-300;
+    private property <color> dot-color: variant == 1 ? Theme.amber-400 : variant == 2 ? Theme.emerald-400 : variant == 3 ? Theme.sky-400 : variant == 4 ? Theme.rose-400 : variant == 5 ? Theme.purple-400 : Theme.zinc-400;
+
+    background: variant == 1 ? Theme.amber-500.with-alpha(0.15) : variant == 2 ? #10b98126 : variant == 3 ? #0ea5e926 : variant == 4 ? #f43f5e26 : variant == 5 ? #a855f726 : #27272acc;
+    border-color: variant == 1 ? Theme.amber-500.with-alpha(0.3) : variant == 2 ? #10b9814d : variant == 3 ? #0ea5e94d : variant == 4 ? #f43f5e4d : variant == 5 ? #a855f74d : #3f3f4699;
+    border-width: 1px;
+    border-radius: self.height / 2;
+    min-width: l.min-width;
+    preferred-width: l.preferred-width;
+    max-width: l.preferred-width;
+    horizontal-stretch: 0;
+    height: l.preferred-height;
+
+    l := HorizontalLayout {
+        padding-left: root.large ? 10px : 6px;
+        padding-right: root.large ? 10px : 6px;
+        padding-top: root.large ? 4px : 2px;
+        padding-bottom: root.large ? 4px : 2px;
+        spacing: 6px;
+        if root.dot: Rectangle {
+            width: 6px; height: 6px; y: (parent.height - 6px) / 2;
+            border-radius: 3px; background: root.dot-color;
+        }
+        if root.has-logo: Image { source: root.logo; colorize: root.fg; width: 11px; height: 11px; y: (parent.height - 11px) / 2; image-fit: contain; }
+        Text {
+            text: root.text;
+            color: root.fg;
+            font-family: Theme.font-mono;
+            font-size: root.large ? 12px : 10px;
+            font-weight: root.large ? 600 : 500;
+            vertical-alignment: center;
+        }
+    }
+}
+
+// ---- UiButton --------------------------------------------------------------
+// variant: 0 primary, 1 secondary, 2 outline, 3 ghost, 4 danger ; size: 0 sm, 1 md, 2 lg
+export component UiButton inherits Rectangle {
+    in property <string> text;
+    in property <string> icon;
+    in property <int> variant: 0;
+    in property <int> size: 1;
+    in property <bool> enabled: true;
+    in property <bool> block: false;
+    callback clicked();
+
+    private property <bool> hov: ta.has-hover && enabled;
+    private property <color> fg: variant == 0 ? Theme.zinc-950
+        : variant == 1 ? Theme.zinc-100
+        : variant == 2 ? (hov ? Theme.amber-300 : Theme.zinc-200)
+        : variant == 3 ? (hov ? Theme.zinc-100 : Theme.zinc-400)
+        : #ffffff;
+
+    background: variant == 0 ? (hov ? Theme.amber-400 : Theme.amber-500)
+        : variant == 1 ? (hov ? #3f3f46e6 : #27272ae6)
+        : variant == 2 ? (hov ? #27272a99 : transparent)
+        : variant == 3 ? (hov ? #27272a80 : transparent)
+        : (hov ? Theme.rose-500 : #e11d48e6);
+    border-width: variant == 3 ? 0px : 1px;
+    border-color: variant == 0 ? Theme.amber-400.with-alpha(0.3)
+        : variant == 1 ? (hov ? Theme.zinc-600 : #3f3f4699)
+        : variant == 2 ? (hov ? Theme.amber-border-hover : Theme.border-strong)
+        : #f43f5e4d;
+    border-radius: 8px;
+    opacity: enabled ? 1.0 : 0.5;
+    drop-shadow-blur: variant == 0 ? 14px : 0px;
+    drop-shadow-color: Theme.amber-500.with-alpha(0.2);
+    min-width: l.min-width;
+    preferred-width: block ? 100000px : l.preferred-width;
+    horizontal-stretch: block ? 1 : 0;
+    height: l.preferred-height;
+
+    l := HorizontalLayout {
+        padding-left: size == 0 ? 10px : size == 2 ? 24px : 16px;
+        padding-right: size == 0 ? 10px : size == 2 ? 24px : 16px;
+        padding-top: size == 0 ? 6px : size == 2 ? 12px : 8px;
+        padding-bottom: size == 0 ? 6px : size == 2 ? 12px : 8px;
+        spacing: size == 2 ? 10px : size == 0 ? 6px : 8px;
+        alignment: center;
+        if root.icon != "": Ph {
+            text: root.icon; color: root.fg; font-size: size == 2 ? 18px : 14px;
+        }
+        Text {
+            text: root.text; color: root.fg;
+            font-size: size == 0 ? 12px : size == 2 ? 16px : 14px;
+            font-weight: variant == 0 ? 600 : 500;
+            vertical-alignment: center;
+        }
+    }
+    ta := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+// ---- UiInput ---------------------------------------------------------------
+export component UiInput inherits Rectangle {
+    in-out property <string> text;
+    in property <string> placeholder;
+    in property <string> icon;
+    in property <bool> error: false;
+    in property <bool> pill: false;     // champ de recherche du header (rounded-full, plus compact)
+    callback accepted(string);
+    callback edited(string);
+
+    private property <bool> focused: ti.has-focus;
+
+    background: pill ? (focused ? Theme.zinc-900 : #18181bb3) : #18181bcc;
+    border-width: 1px;
+    border-color: error ? #f43f5ecc : focused ? (pill ? Theme.zinc-600 : Theme.amber-500.with-alpha(0.7)) : Theme.border-subtle;
+    border-radius: pill ? self.height / 2 : 8px;
+    height: pill ? 30px : 40px;
+    min-width: 120px;
+
+    if icon != "": Ph {
+        x: pill ? 14px : 14px;
+        text: root.icon;
+        color: root.focused ? Theme.amber-400 : Theme.zinc-400;
+        font-size: 14px;
+        y: (parent.height - self.height) / 2;
+        height: 20px; width: 16px;
+    }
+    ti := TextInput {
+        x: root.icon != "" ? 38px : 14px;
+        width: parent.width - self.x - 14px;
+        y: 0px; height: parent.height; vertical-alignment: center;
+        color: Theme.zinc-100;
+        font-size: pill ? 12px : 14px;
+        font-family: Theme.font-sans;
+        selection-background-color: Theme.amber-500.with-alpha(0.3);
+        text <=> root.text;
+        accepted => { root.accepted(self.text); }
+        edited => { root.edited(self.text); }
+    }
+    if root.text == "": Text {
+        x: ti.x;
+        y: 0px; height: parent.height; vertical-alignment: center;
+        text: root.placeholder;
+        color: pill ? Theme.zinc-400 : Theme.zinc-500;
+        font-size: pill ? 12px : 14px;
+        overflow: elide;
+        width: ti.width;
+        // laisse passer les clics vers le TextInput
+    }
+}
+
+// ---- UiProgressBar ---------------------------------------------------------
+// variant: 0 amber, 1 emerald, 2 rose, 3 sky
+export component UiProgressBar inherits Rectangle {
+    in property <float> value;   // 0..100
+    in property <int> variant: 0;
+    in property <length> bar-height: 6px;
+
+    height: bar-height;
+    background: #27272acc;
+    border-radius: self.height / 2;
+    border-width: 1px;
+    border-color: #3f3f4666;
+    clip: true;
+
+    Rectangle {
+        x: 0px;
+        width: parent.width * (clamp(root.value, 0, 100) / 100);
+        height: parent.height;
+        border-radius: self.height / 2;
+        background: @linear-gradient(90deg,
+            root.variant == 1 ? #10b981 : root.variant == 2 ? #f43f5e : root.variant == 3 ? #0ea5e9 : Theme.amber-500,
+            root.variant == 1 ? #34d399 : root.variant == 2 ? #fb7185 : root.variant == 3 ? #38bdf8 : Theme.amber-400);
+        animate width { duration: 500ms; easing: ease-out; }
+    }
+}
+
+// ---- UiSwitch --------------------------------------------------------------
+export component UiSwitch inherits Rectangle {
+    in-out property <bool> checked;
+    in property <bool> enabled: true;
+    callback toggled(bool);
+
+    width: 44px;
+    height: 24px;
+    border-radius: 12px;
+    background: checked ? Theme.amber-500 : #3f3f46cc;
+    opacity: enabled ? 1.0 : 0.5;
+    drop-shadow-blur: checked ? 12px : 0px;
+    drop-shadow-color: Theme.amber-glow;
+    animate background { duration: 200ms; }
+
+    Rectangle {
+        x: root.checked ? 22px : 2px;
+        y: 2px;
+        width: 20px; height: 20px;
+        border-radius: 10px;
+        background: root.checked ? Theme.zinc-950 : Theme.zinc-300;
+        animate x { duration: 200ms; easing: ease-in-out; }
+    }
+    TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { root.checked = !root.checked; root.toggled(root.checked); }
+    }
+}
+
+// ---- UiTabs ----------------------------------------------------------------
+// pills: true → conteneur arrondi + onglet actif plein ambre ; false → soulignement
+export component UiTabs inherits Rectangle {
+    in property <[string]> tabs;
+    in-out property <int> current;
+    in property <bool> pills: false;
+    callback selected(int);
+
+    background: pills ? #18181bcc : transparent;
+    border-width: pills ? 1px : 0px;
+    border-color: Theme.border-subtle;
+    border-radius: pills ? 12px : 0px;
+    min-width: l.min-width;
+    preferred-width: l.preferred-width;
+    height: pills ? 44px : 41px;
+
+    l := HorizontalLayout {
+        padding: pills ? 4px : 0px;
+        spacing: 4px;
+        alignment: start;
+        for t[i] in root.tabs: Rectangle {
+            private property <bool> active: i == root.current;
+            min-width: tl.min-width;
+            preferred-width: tl.preferred-width;
+            background: root.pills ? (active ? Theme.amber-500 : (ta.has-hover ? #27272a80 : transparent)) : transparent;
+            border-radius: root.pills ? 8px : 0px;
+            tl := HorizontalLayout {
+                padding-left: 16px; padding-right: 16px;
+                Text {
+                    text: t;
+                    font-size: 14px;
+                    font-weight: active ? 600 : 500;
+                    color: active ? (root.pills ? Theme.zinc-950 : Theme.amber-400) : (ta.has-hover ? Theme.zinc-200 : Theme.zinc-400);
+                    vertical-alignment: center;
+                }
+            }
+            if !root.pills: Rectangle {
+                y: parent.height - 2px; height: 2px;
+                background: active ? Theme.amber-500 : transparent;
+            }
+            ta := TouchArea {
+                mouse-cursor: pointer;
+                clicked => { root.current = i; root.selected(i); }
+            }
+        }
+    }
+    if !pills: Rectangle {
+        y: parent.height - 1px; height: 1px; background: Theme.border-subtle; z: -1;
+    }
+}
+
+// ---- UiModal ---------------------------------------------------------------
+export component UiModal inherits Rectangle {
+    in property <bool> open;
+    in property <string> title;
+    in property <string> subtitle;
+    in property <length> dialog-width: 512px;
+    callback close();
+
+    visible: open;
+    background: #000000bf;
+    // Bloque les clics vers la page en dessous
+    TouchArea { clicked => { root.close(); } }
+
+    Rectangle {
+        width: min(root.dialog-width, parent.width - 32px);
+        height: min(box.preferred-height, parent.height - 32px);
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        background: Theme.zinc-900;
+        border-radius: 16px;
+        border-width: 1px;
+        border-color: Theme.zinc-800;
+        clip: true;
+        drop-shadow-blur: 40px;
+        drop-shadow-color: #000000cc;
+        TouchArea { }   // absorbe les clics
+
+        box := VerticalLayout {
+            Rectangle {
+                height: 64px;
+                background: #18181b99;
+                HorizontalLayout {
+                    padding-left: 24px; padding-right: 16px;
+                    VerticalLayout {
+                        alignment: center;
+                        Text { text: root.title; font-size: 18px; font-weight: 700; color: Theme.zinc-100; }
+                        if root.subtitle != "": Text { text: root.subtitle; font-size: 12px; color: Theme.zinc-400; }
+                    }
+                    Rectangle {
+                        width: 32px; height: 32px; y: (parent.height - 32px) / 2;
+                        border-radius: 8px;
+                        background: cl.has-hover ? Theme.zinc-800 : transparent;
+                        Ph { text: "\u{e4f6}"; font-size: 20px; color: cl.has-hover ? Theme.zinc-100 : Theme.zinc-400; }
+                        cl := TouchArea { mouse-cursor: pointer; clicked => { root.close(); } }
+                    }
+                }
+                Rectangle { y: parent.height - 1px; height: 1px; background: Theme.border-subtle; }
+            }
+            VerticalLayout {
+                padding: 24px;
+                spacing: 16px;
+                @children
+            }
+        }
+    }
+}

@@ -1,0 +1,115 @@
+// Tokens extraits de tailwind.config.js + main.css (thème "amber" par défaut).
+import "fonts/Phosphor.ttf";
+import "fonts/Phosphor-Fill.ttf";
+import "fonts/Phosphor-Bold.ttf";
+
+export global Theme {
+    // Zinc
+    out property <color> zinc-950: #09090b;
+    out property <color> zinc-900: #18181b;
+    out property <color> zinc-800: #27272a;
+    out property <color> zinc-700: #3f3f46;
+    out property <color> zinc-600: #52525b;
+    out property <color> zinc-500: #71717a;
+    out property <color> zinc-400: #a1a1aa;
+    out property <color> zinc-300: #d4d4d8;
+    out property <color> zinc-200: #e4e4e7;
+    out property <color> zinc-100: #f4f4f5;
+
+    // Alias sémantiques
+    out property <color> bg-root: #09090b;
+    out property <color> bg-header: #09090be6;        // zinc-950/90
+    out property <color> bg-surface: #18181b;
+    out property <color> bg-card: #18181bcc;          // zinc-900/80
+    out property <color> bg-elevated: #27272a;
+    out property <color> border-subtle: #27272acc;    // zinc-800/80
+    out property <color> border-strong: #3f3f46cc;    // zinc-700/80
+
+    // Accent (thème « amber » par défaut ; modifiable depuis Paramètres → Apparence)
+    in-out property <color> amber-500: #f59e0b;
+    in-out property <color> amber-400: #fbbf24;
+    in-out property <color> amber-300: #fcd34d;
+    in-out property <color> amber-200: #fde68a;
+    in-out property <color> amber-600: #d97706;
+    out property <color> amber-bg: amber-500.with-alpha(0.15);
+    out property <color> amber-bg-faint: amber-500.with-alpha(0.10);
+    out property <color> amber-border: amber-500.with-alpha(0.35);
+    out property <color> amber-border-soft: amber-500.with-alpha(0.30);
+    out property <color> amber-border-hover: amber-500.with-alpha(0.50);
+    out property <color> amber-glow: amber-500.with-alpha(0.40);
+
+    // Statuts
+    out property <color> emerald-400: #34d399;
+    out property <color> emerald-300: #6ee7b7;
+    out property <color> emerald-500: #10b981;
+    out property <color> sky-400: #38bdf8;
+    out property <color> sky-300: #7dd3fc;
+    out property <color> rose-600: #e11d48;
+    out property <color> rose-500: #f43f5e;
+    out property <color> rose-400: #fb7185;
+    out property <color> rose-300: #fda4af;
+    out property <color> purple-400: #c084fc;
+    out property <color> purple-300: #d8b4fe;
+    out property <color> steam-blue: #1a9fff;
+
+    // Typographie
+    out property <string> font-sans: "Inter";
+    out property <string> font-mono: "JetBrains Mono";
+    out property <string> font-display: "Cinzel";
+}
+
+// Codepoints Phosphor (régulier / fill / bold partagent les mêmes).
+export global Icons {
+    out property <string> arrow-left: "\u{e058}";
+    out property <string> arrow-right: "\u{e06c}";
+    out property <string> arrow-up: "\u{e08e}";
+    out property <string> search: "\u{e30c}";
+    out property <string> download: "\u{e20c}";
+    out property <string> bell: "\u{e0ce}";
+    out property <string> activity: "\u{e000}";
+    out property <string> gear: "\u{e270}";
+    out property <string> minus: "\u{e32a}";
+    out property <string> square: "\u{e45e}";
+    out property <string> copy: "\u{e1ca}";
+    out property <string> x: "\u{e4f6}";
+    out property <string> play: "\u{e3d0}";
+    out property <string> stop: "\u{e46c}";
+    out property <string> star: "\u{e46a}";
+    out property <string> fire: "\u{e242}";
+    out property <string> clock: "\u{e19a}";
+    out property <string> trophy: "\u{e67e}";
+    out property <string> gamepad: "\u{e26e}";
+    out property <string> sliders: "\u{e434}";
+    out property <string> refresh: "\u{e094}";
+    out property <string> globe: "\u{e28c}";
+    out property <string> stack: "\u{e466}";
+    out property <string> hard-drive: "\u{e29e}";
+    out property <string> plus-circle: "\u{e3d6}";
+    out property <string> caret-down: "\u{e136}";
+    out property <string> check-circle: "\u{e184}";
+    out property <string> squares: "\u{e464}";
+    out property <string> cloud-down: "\u{e1ac}";
+    out property <string> shield-check: "\u{e40c}";
+    out property <string> warning: "\u{e4e2}";
+    out property <string> info: "\u{e2ce}";
+    out property <string> eye: "\u{e220}";
+    out property <string> database: "\u{e1de}";
+    out property <string> key: "\u{e2d6}";
+    out property <string> folder-open: "\u{e256}";
+    out property <string> sparkle: "\u{e6a2}";
+    out property <string> lightning: "\u{e2de}";
+    out property <string> power: "\u{e3da}";
+    out property <string> palette: "\u{e6c8}";
+    out property <string> terminal: "\u{e47e}";
+    out property <string> check: "\u{e182}";
+    out property <string> reset: "\u{e038}";
+    out property <string> user-check: "\u{eafa}";
+    out property <string> link: "\u{e2e2}";
+    out property <string> unlink: "\u{e2e4}";
+    out property <string> folder-plus: "\u{e258}";
+    out property <string> external: "\u{e5de}";
+    out property <string> caret-up: "\u{e13c}";
+    out property <string> cpu: "\u{e610}";
+    out property <string> bell-ring: "\u{e5e8}";
+    out property <string> users: "\u{e4d6}";
+}

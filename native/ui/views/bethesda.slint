@@ -1,0 +1,215 @@
+// Équivalent de BethesdaModdingView.vue (profils, mods, plugins, conflits, déploiement)
+import { ScrollView } from "std-widgets.slint";
+import { Theme, Icons } from "../theme.slint";
+import { Ph } from "../components/ph.slint";
+import { UiBadge, UiButton, UiInput, UiSwitch, UiModal } from "../components/ui.slint";
+import { FieldLabel, SecretInput, UiSelect } from "../components/form.slint";
+import { Modding } from "modding_state.slint";
+import { BackLink, TabBar, TabPill, Panel, Stat, Chip, SmallBtn, EmptyState, Hero } from "../components/studio.slint";
+
+export struct BethMod { id: string, name: string, file: string, provider: string, enabled: bool, priority: int }
+export struct BethPlugin { name: string, active: bool, idx: int }
+export struct BethConflictMod { id: string, name: string, winner: bool }
+export struct BethConflict { path: string, mods: [BethConflictMod] }
+
+export global Beth {
+    in-out property <int> game: 0;                   // 0 skyrim_se, 1 fallout4, 2 oblivion
+    in property <bool> has-profile;
+    in property <string> profile-name;
+    in property <string> path;
+    in property <bool> path-ok;
+    in-out property <int> tab: 0;
+    in property <[BethMod]> mods;
+    in property <[BethPlugin]> plugins;
+    in property <[BethConflict]> conflicts;
+    in-out property <string> path-input;
+    in-out property <string> nexus-key;
+    in property <bool> nexus-configured;
+    in property <bool> busy;
+    in property <[string]> profiles;
+    in-out property <int> profile-idx: 0;
+    in-out property <bool> create-open;
+    in-out property <string> new-name;
+    in-out property <string> new-path;
+    in property <bool> launching;
+    in property <string> skse-cmd;
+    callback select-game(int);
+    callback create-profile();
+    callback select-profile(int);
+    callback delete-profile();
+    callback launch();
+    callback copy-skse();
+    callback mod-toggle(string);
+    callback mod-delete(string);
+    callback mod-move(string, int);
+    callback plugin-toggle(string);
+    callback plugin-move(int, int);
+    callback scan-conflicts();
+    callback set-winner(int, string);
+    callback deploy();
+    callback save-path();
+    callback pick-path();
+    callback save-nexus();
+    callback register-nxm();
+    callback load-tab(int);
+}
+
+export component BethesdaStudio inherits Rectangle {
+    background: Theme.zinc-950;
+    ScrollView {
+        VerticalLayout {
+            Hero {
+                hero-height: 250px; hue: #1e3a5f;
+                HorizontalLayout {
+                    x: 56px; y: 22px; width: parent.width - 112px; height: 40px; spacing: 10px;
+                    BackLink { text: "Retour au Hub Modding"; clicked => { Modding.back(); } }
+                    UiBadge { y: 6px; text: "BETHESDA ENGINE"; variant: 1; }
+                    UiBadge { y: 6px; text: "NEXUS MODS"; variant: 0; }
+                    Rectangle { horizontal-stretch: 1; }
+                    UiButton { y: 2px; variant: 1; size: 0; icon: Icons.refresh; text: Beth.busy ? "Déploiement..." : "Déployer"; enabled: Beth.has-profile && !Beth.busy; clicked => { Beth.deploy(); } }
+                    UiButton { y: 2px; variant: 0; size: 0; icon: Icons.play; text: Beth.launching ? "Lancement..." : "Lancer le Jeu"; enabled: !Beth.launching; clicked => { Beth.launch(); } }
+                }
+                HorizontalLayout {
+                    x: 56px; y: parent.height - 108px; width: parent.width - 112px; height: 84px; spacing: 18px;
+                    Rectangle { width: 72px; height: 72px; border-radius: 18px; background: #18181bcc; border-width: 1px; border-color: Theme.zinc-700; Ph { text: "\u{e9d0}"; weight: 1; font-size: 34px; color: Theme.amber-400; } }
+                    VerticalLayout {
+                        alignment: center; spacing: 4px;
+                        Text { text: "Bethesda Modding Studio"; font-size: 28px; font-weight: 800; color: #ffffff; }
+                        Text { text: "Ordre de chargement des plugins, conflits de fichiers et déploiement par liens symboliques atomiques."; font-size: 12px; color: Theme.zinc-300; }
+                    }
+                }
+            }
+            VerticalLayout {
+                padding-left: max(56px, (root.width - 1280px) / 2 + 56px); padding-right: max(56px, (root.width - 1280px) / 2 + 56px);
+                padding-top: 24px; padding-bottom: 64px; spacing: 20px;
+
+                HorizontalLayout {
+                    spacing: 12px;
+                    for g[i] in ["Skyrim Special Edition", "Fallout 4", "Oblivion"]: Rectangle {
+                        height: 56px; horizontal-stretch: 1; border-radius: 16px; border-width: 1px;
+                        background: Beth.game == i ? Theme.amber-bg-faint : #18181b99;
+                        border-color: Beth.game == i ? Theme.amber-border : Theme.border-subtle;
+                        Text { text: g; font-size: 14px; font-weight: 700; color: Beth.game == i ? Theme.amber-400 : Theme.zinc-200; horizontal-alignment: center; vertical-alignment: center; }
+                        TouchArea { mouse-cursor: pointer; clicked => { Beth.select-game(i); } }
+                    }
+                }
+
+                if !Beth.has-profile: EmptyState {
+                    glyph: Icons.stack; title: "Aucun profil pour ce jeu";
+                    text: "Créez un profil de mods : Loom détecte automatiquement le dossier du jeu Steam.";
+                }
+                if !Beth.has-profile: HorizontalLayout { alignment: center; UiButton { variant: 0; size: 1; icon: Icons.plus-circle; text: "Créer un profil"; clicked => { Beth.create-open = true; } } }
+
+                if Beth.has-profile: VerticalLayout {
+                    spacing: 20px;
+                    Panel {
+                        HorizontalLayout {
+                            spacing: 20px;
+                            Stat { label: "PROFIL"; value: Beth.profile-name; tint: Theme.amber-400; }
+                            Stat { label: "MODS"; value: Beth.mods.length; }
+                            Stat { label: "PLUGINS"; value: Beth.plugins.length; }
+                            Stat { horizontal-stretch: 1; label: "DOSSIER DU JEU"; value: Beth.path-ok ? Beth.path : "Non détecté"; tint: Beth.path-ok ? Theme.emerald-400 : Theme.rose-400; }
+                        }
+                    }
+                    Rectangle {
+                        background: #18181b99; border-radius: 16px; border-width: 1px; border-color: Theme.border-subtle; height: 64px;
+                        HorizontalLayout {
+                            padding: 12px; spacing: 12px;
+                            Text { text: "PROFIL :"; font-family: Theme.font-mono; font-size: 11px; font-weight: 600; color: Theme.zinc-400; vertical-alignment: center; }
+                            UiSelect { width: 300px; y: 0px; options: Beth.profiles; current <=> Beth.profile-idx; selected(i) => { Beth.select-profile(i); } }
+                            UiButton { variant: 1; size: 0; icon: Icons.plus-circle; text: "Nouveau profil"; clicked => { Beth.create-open = true; } }
+                            Rectangle { horizontal-stretch: 1; }
+                            UiButton { variant: 2; size: 0; icon: Icons.x; text: "Supprimer le profil"; clicked => { Beth.delete-profile(); } }
+                        }
+                    }
+                    HorizontalLayout {
+                        alignment: start;
+                        TabBar {
+                            TabPill { glyph: Icons.stack; text: "Mods"; badge: Beth.mods.length; active: Beth.tab == 0; clicked => { Beth.tab = 0; } }
+                            TabPill { glyph: Icons.sliders; text: "Plugins"; badge: Beth.plugins.length; active: Beth.tab == 1; clicked => { Beth.tab = 1; Beth.load-tab(1); } }
+                            TabPill { glyph: Icons.warning; text: "Conflits"; badge: Beth.conflicts.length; active: Beth.tab == 2; clicked => { Beth.tab = 2; Beth.scan-conflicts(); } }
+                            TabPill { glyph: Icons.gear; text: "Réglages"; active: Beth.tab == 3; clicked => { Beth.tab = 3; } }
+                        }
+                    }
+                    if Beth.tab == 0: Panel {
+                        Text { text: "MODS DU PROFIL (par priorité de chargement)"; font-family: Theme.font-mono; font-size: 12px; font-weight: 700; color: Theme.zinc-300; }
+                        VerticalLayout {
+                            for m in Beth.mods: Rectangle {
+                                height: 52px;
+                                Rectangle { y: parent.height - 1px; height: 1px; background: #27272a66; }
+                                HorizontalLayout {
+                                    padding-left: 12px; padding-right: 12px; spacing: 10px;
+                                    Text { width: 30px; text: "#" + m.priority; font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-500; vertical-alignment: center; }
+                                    VerticalLayout { horizontal-stretch: 1; alignment: center; Text { text: m.name; font-size: 13px; font-weight: 600; color: m.enabled ? Theme.zinc-100 : Theme.zinc-500; overflow: elide; } Text { text: m.file; font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-500; overflow: elide; } }
+                                    UiBadge { y: 14px; text: m.provider; variant: 0; }
+                                    Rectangle { width: 30px; SmallBtn { y: 12px; glyph: Icons.arrow-up; clicked => { Beth.mod-move(m.id, -1); } } }
+                                    Rectangle { width: 30px; SmallBtn { y: 12px; glyph: "\u{e03e}"; clicked => { Beth.mod-move(m.id, 1); } } }
+                                    UiSwitch { y: 14px; checked: m.enabled; toggled(c) => { Beth.mod-toggle(m.id); } }
+                                    Rectangle { width: 30px; SmallBtn { y: 12px; glyph: Icons.x; danger: true; clicked => { Beth.mod-delete(m.id); } } }
+                                }
+                            }
+                            if Beth.mods.length == 0: Text { text: "Aucun mod dans ce profil. L'installation passe par Nexus Mods (clé API requise) ou une archive locale."; font-size: 12px; color: Theme.zinc-500; horizontal-alignment: center; wrap: word-wrap; height: 60px; vertical-alignment: center; }
+                        }
+                    }
+                    if Beth.tab == 1: Panel {
+                        Text { text: "ORDRE DE CHARGEMENT DES PLUGINS (.esp / .esm / .esl)"; font-family: Theme.font-mono; font-size: 12px; font-weight: 700; color: Theme.zinc-300; }
+                        VerticalLayout {
+                            for p in Beth.plugins: Rectangle {
+                                height: 44px;
+                                Rectangle { y: parent.height - 1px; height: 1px; background: #27272a66; }
+                                HorizontalLayout {
+                                    padding-left: 12px; padding-right: 12px; spacing: 10px;
+                                    Text { width: 36px; text: p.idx; font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-500; vertical-alignment: center; }
+                                    Text { horizontal-stretch: 1; text: p.name; font-family: Theme.font-mono; font-size: 12px; color: p.active ? Theme.zinc-100 : Theme.zinc-500; vertical-alignment: center; overflow: elide; }
+                                    Rectangle { width: 30px; SmallBtn { y: 8px; glyph: Icons.arrow-up; clicked => { Beth.plugin-move(p.idx, -1); } } }
+                                    Rectangle { width: 30px; SmallBtn { y: 8px; glyph: "\u{e03e}"; clicked => { Beth.plugin-move(p.idx, 1); } } }
+                                    UiSwitch { y: 10px; checked: p.active; toggled(c) => { Beth.plugin-toggle(p.name); } }
+                                }
+                            }
+                            if Beth.plugins.length == 0: Text { text: "Aucun plugin détecté. Déployez le profil pour scanner les fichiers de données."; font-size: 12px; color: Theme.zinc-500; horizontal-alignment: center; height: 60px; vertical-alignment: center; }
+                        }
+                    }
+                    if Beth.tab == 2: Panel {
+                        HorizontalLayout { Text { horizontal-stretch: 1; text: "CONFLITS DE FICHIERS"; font-family: Theme.font-mono; font-size: 12px; font-weight: 700; color: Theme.zinc-300; } SmallBtn { glyph: Icons.refresh; text: "Rescanner"; clicked => { Beth.scan-conflicts(); } } }
+                        VerticalLayout {
+                            spacing: 10px;
+                            for c[ci] in Beth.conflicts: Rectangle {
+                                background: #09090b99; border-radius: 12px; border-width: 1px; border-color: #27272a99;
+                                preferred-height: cl.preferred-height;
+                                cl := VerticalLayout {
+                                    padding: 12px; spacing: 8px;
+                                    Text { text: c.path; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-200; overflow: elide; }
+                                    HorizontalLayout { spacing: 8px; alignment: start; for m in c.mods: Chip { text: (m.winner ? "★ " : "") + m.name; active: m.winner; clicked => { Beth.set-winner(ci, m.id); } } }
+                                }
+                            }
+                            if Beth.conflicts.length == 0: Text { text: "Aucun conflit de fichiers détecté."; font-size: 12px; color: Theme.emerald-400; horizontal-alignment: center; height: 60px; vertical-alignment: center; }
+                        }
+                    }
+                    if Beth.tab == 3: Panel {
+                        Text { text: "RÉGLAGES DU PROFIL"; font-family: Theme.font-mono; font-size: 12px; font-weight: 700; color: Theme.zinc-300; }
+                        VerticalLayout { spacing: 6px; FieldLabel { text: "DOSSIER DU JEU (déploiement)"; } HorizontalLayout { spacing: 8px; SecretInput { horizontal-stretch: 1; text <=> Beth.path-input; placeholder: "/home/.../steamapps/common/Skyrim Special Edition"; } UiButton { variant: 1; size: 1; icon: Icons.folder-open; text: "Parcourir"; clicked => { Beth.pick-path(); } } UiButton { variant: 0; size: 1; text: "Appliquer"; clicked => { Beth.save-path(); } } } }
+                        VerticalLayout { spacing: 6px; FieldLabel { text: "OPTION DE LANCEMENT STEAM (SCRIPT EXTENDER)"; } HorizontalLayout { spacing: 8px; Rectangle { horizontal-stretch: 1; height: 40px; background: #09090b; border-radius: 12px; border-width: 1px; border-color: Theme.zinc-800; Text { x: 14px; width: parent.width - 28px; text: Beth.skse-cmd; font-family: Theme.font-mono; font-size: 11px; color: Theme.zinc-300; vertical-alignment: center; overflow: elide; } } UiButton { variant: 1; size: 1; icon: Icons.copy; text: "Copier"; clicked => { Beth.copy-skse(); } } } Text { text: "Collez-la dans Steam → clic droit sur le jeu → Propriétés → Options de lancement : lancer le jeu lancera alors le Script Extender."; font-size: 11px; color: Theme.zinc-500; wrap: word-wrap; } }
+                        VerticalLayout { spacing: 6px; FieldLabel { text: "CLÉ API NEXUS MODS" + (Beth.nexus-configured ? "  (configurée)" : ""); } HorizontalLayout { spacing: 8px; SecretInput { horizontal-stretch: 1; text <=> Beth.nexus-key; secret: true; placeholder: "Clé API personnelle Nexus Mods"; } UiButton { variant: 0; size: 1; text: "Enregistrer"; clicked => { Beth.save-nexus(); } } } }
+                        VerticalLayout { spacing: 6px; FieldLabel { text: "LIENS NXM:// (« MOD MANAGER DOWNLOAD »)"; } HorizontalLayout { spacing: 12px; alignment: start; Text { text: "Les liens Nexus Mods s'ouvrent dans Loom natif (téléchargement, installation et déploiement automatiques)."; font-size: 12px; color: Theme.zinc-400; vertical-alignment: center; wrap: word-wrap; } UiButton { variant: 1; size: 1; icon: Icons.link; text: "Associer à Loom"; clicked => { Beth.register-nxm(); } } } }
+                    }
+                }
+                Rectangle { vertical-stretch: 1; }
+            }
+        }
+    }
+
+    UiModal {
+        open: Beth.create-open; title: "Nouveau profil de mods"; subtitle: "Un profil = un jeu + sa liste de mods, ses plugins et son déploiement"; dialog-width: 512px;
+        close => { Beth.create-open = false; }
+        VerticalLayout {
+            spacing: 14px;
+            VerticalLayout { spacing: 6px; FieldLabel { text: "NOM DU PROFIL"; } SecretInput { mono: false; text <=> Beth.new-name; placeholder: "Ex : Playthrough Skyrim 2026"; } }
+            VerticalLayout { spacing: 6px; FieldLabel { text: "DOSSIER DU JEU (optionnel, auto-détecté si vide)"; } SecretInput { text <=> Beth.new-path; placeholder: "/home/.../steamapps/common/Skyrim Special Edition"; } }
+            HorizontalLayout {
+                spacing: 8px; alignment: end;
+                UiButton { variant: 3; size: 0; text: "Annuler"; clicked => { Beth.create-open = false; } }
+                UiButton { variant: 0; size: 0; text: "Créer le profil"; enabled: Beth.new-name != ""; clicked => { Beth.create-profile(); } }
+            }
+        }
+    }
+}

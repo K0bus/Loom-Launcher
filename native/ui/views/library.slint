@@ -1,0 +1,291 @@
+// Équivalent de src/views/LibraryView.vue
+import { ScrollView } from "std-widgets.slint";
+import { Theme, Icons } from "../theme.slint";
+import { Ph } from "../components/ph.slint";
+import { UiBadge, UiButton, UiInput } from "../components/ui.slint";
+import { GameCard } from "../components/game-card.slint";
+import { GameData } from "../structs.slint";
+
+component FilterChip inherits Rectangle {
+    in property <string> text;
+    in property <string> glyph;
+    in property <bool> active;
+    callback clicked();
+    min-width: l.min-width; preferred-width: l.preferred-width; height: 30px;
+    border-radius: 15px;
+    border-width: 1px;
+    background: active ? Theme.amber-500 : (ta.has-hover ? #27272acc : #18181bcc);
+    border-color: active ? Theme.amber-400 : Theme.border-subtle;
+    drop-shadow-blur: active ? 14px : 0px;
+    drop-shadow-color: Theme.amber-glow;
+    l := HorizontalLayout {
+        padding-left: 12px; padding-right: 12px; spacing: 6px; alignment: center;
+        if root.glyph != "": Ph { text: root.glyph; font-size: 12px; color: root.active ? Theme.zinc-950 : Theme.zinc-400; }
+        Text { text: root.text; font-size: 12px; font-weight: root.active ? 700 : 500; vertical-alignment: center; color: root.active ? Theme.zinc-950 : (ta.has-hover ? Theme.zinc-100 : Theme.zinc-300); }
+    }
+    ta := TouchArea { mouse-cursor: pointer; clicked => { root.clicked(); } }
+}
+
+component Metric inherits Rectangle {
+    in property <string> glyph;
+    in property <string> label;
+    in property <string> value;
+    min-width: l.min-width; preferred-width: l.preferred-width;
+    l := HorizontalLayout {
+        spacing: 12px;
+        Rectangle {
+            width: 40px;
+            Rectangle {
+                y: (parent.height - 40px) / 2; width: 40px; height: 40px; border-radius: 12px;
+                background: Theme.amber-bg-faint; border-width: 1px; border-color: Theme.amber-border-soft;
+                Ph { text: root.glyph; font-size: 20px; color: Theme.amber-400; width: parent.width; height: parent.height; }
+            }
+        }
+        VerticalLayout {
+            alignment: center; spacing: 2px;
+            Text { text: root.label; font-family: Theme.font-mono; font-size: 10px; font-weight: 600; color: Theme.zinc-400; }
+            Text { text: root.value; font-family: Theme.font-mono; font-size: 14px; font-weight: 700; color: Theme.zinc-100; }
+        }
+    }
+}
+
+export component LibraryView inherits Rectangle {
+    in property <[GameData]> games;
+    in property <[GameData]> recent;
+    in property <GameData> hero;
+    in property <bool> has-hero;
+    in property <string> hero-playtime;
+    in property <int> hero-unlocked;
+    in property <int> hero-total;
+    in property <int> installed-count;
+    in property <int> total-count;
+    in-out property <string> search;
+    in property <[string]> tag-labels;
+    in property <bool> loading;
+    in property <int> filtered-total;
+    callback load-more();
+    in-out property <int> filter: 0;   // 0 tous, 1 installés, 2 non installés, 3 favoris, 4 steam, 5 battle.net
+
+    callback hero-action();
+    callback play(string);
+    callback stop(string);
+    callback install(string);
+    callback toggle-favorite(string);
+    callback open-game(string);
+    callback uninstall(string);
+    callback open-folder(string);
+    callback refresh();
+    callback open-igdb();
+
+    background: Theme.zinc-950;
+
+    // Colonnes responsives (grid-cols 2→6, gap 20px)
+    private property <length> content-w: min(root.width - 112px, 1280px);
+    private property <int> cols: max(2, min(6, floor((content-w + 20px) / 200px)));
+    private property <length> card-w: (content-w - (cols - 1) * 20px) / cols;
+    private property <length> card-h: card-w * 4 / 3 + 100px;
+    private property <int> rows: ceil(games.length / cols);
+    private property <int> recent-rows: ceil(recent.length / cols);
+    private property <length> recent-h: recent-rows * (card-h + 16px) + 40px;
+
+    ScrollView {
+        content-width: root.width;
+        content-height: (root.has-hero ? max(root.height, 580px) : 0px) + 140px + (recent.length > 0 ? recent-h + 40px : 0px) + 220px + rows * (card-h + 20px);
+
+        // ============ HERO ============
+        if root.has-hero: Rectangle {
+            x: 0px; y: 0px; width: root.width; height: max(root.height, 580px);
+            clip: true;
+            background: Theme.zinc-950;
+            if root.hero.has-cover: Image { source: root.hero.cover; width: parent.width; height: parent.height; image-fit: cover; }
+            if !root.hero.has-cover: Rectangle { background: @linear-gradient(135deg, root.hero.hue, Theme.zinc-950); }
+            // hero-glow + vignettes
+            Rectangle { background: @radial-gradient(circle, Theme.amber-500.with-alpha(0.18) 0%, #dc262626 35%, transparent 70%); }
+            Rectangle { background: @linear-gradient(90deg, #09090bd9 0%, #09090b4d 45%, #09090bb3 100%); }
+            Rectangle { background: @linear-gradient(0deg, #09090b 0%, #09090b66 40%, transparent 100%); }
+
+            VerticalLayout {
+                x: 64px; y: 0px; width: min(parent.width - 128px, 1024px); height: parent.height;
+                padding-bottom: 64px; spacing: 24px;
+                alignment: end;
+                VerticalLayout {
+                    spacing: 4px;
+                    Text {
+                        text: root.hero.title; font-family: Theme.font-display; font-size: 64px; font-weight: 900;
+                        color: #ffffff; wrap: word-wrap;
+                    }
+                    if root.hero.subtitle != "": Text {
+                        text: root.hero.subtitle; font-family: Theme.font-display; font-size: 24px; font-weight: 700;
+                        color: Theme.amber-200;
+                    }
+                }
+                HorizontalLayout {
+                    spacing: 24px; alignment: start;
+                    // CTA
+                    Rectangle {
+                        width: 190px; height: 54px; border-radius: 12px;
+                        background: root.hero.running ? Theme.rose-600 : root.hero.starting ? Theme.amber-500 : root.hero.installed ? (cta.has-hover ? Theme.amber-400 : Theme.amber-500) : (cta.has-hover ? #158ce0 : Theme.steam-blue);
+                        drop-shadow-blur: 28px;
+                        drop-shadow-color: root.hero.running ? #e11d4866 : root.hero.installed ? Theme.amber-glow : #1a9fff66;
+                        HorizontalLayout {
+                            alignment: center; spacing: 12px;
+                            Ph {
+                                weight: 1;
+                                text: root.hero.running ? Icons.stop : root.hero.installed ? Icons.play : Icons.download;
+                                font-size: 20px;
+                                color: root.hero.installed && !root.hero.running ? Theme.zinc-950 : #ffffff;
+                            }
+                            Text {
+                                text: root.hero.running ? "ARRÊTER" : root.hero.starting ? "DÉMARRAGE..." : root.hero.installed ? "JOUER" : "INSTALLER";
+                                font-size: 16px; font-weight: 700; vertical-alignment: center;
+                                color: root.hero.installed && !root.hero.running ? Theme.zinc-950 : #ffffff;
+                            }
+                        }
+                        cta := TouchArea { mouse-cursor: pointer; clicked => { root.hero-action(); } }
+                    }
+                    // Métriques
+                    Rectangle {
+                        background: #18181be6; border-radius: 16px; border-width: 1px; border-color: Theme.border-subtle;
+                        min-width: ml.min-width; preferred-width: ml.preferred-width; height: 66px;
+                        ml := HorizontalLayout {
+                            padding-left: 24px; padding-right: 24px; spacing: 32px;
+                            Metric { glyph: Icons.clock; label: "TEMPS DE JEU"; value: root.hero-playtime; }
+                            Rectangle { width: 1px; Rectangle { y: (parent.height - 32px) / 2; height: 32px; width: 1px; background: Theme.border-subtle; } }
+                            Metric {
+                                glyph: Icons.trophy;
+                                label: "SUCCÈS DÉBLOQUÉS";
+                                value: root.hero-total > 0 ? root.hero-unlocked + "/" + root.hero-total : "Non répertoriés";
+                            }
+                        }
+                    }
+                }
+            }
+            Text {
+                x: (parent.width - self.width) / 2; y: parent.height - 34px;
+                text: "BIBLIOTHÈQUE  ⌄"; font-family: Theme.font-mono; font-size: 10px; color: Theme.zinc-400;
+            }
+        }
+
+        // ============ CONTENU ============
+        Rectangle {
+            x: (root.width - root.content-w) / 2;
+            y: (root.has-hero ? max(root.height, 580px) : 0px) + 40px;
+            width: root.content-w;
+
+            // --- Récents ---
+            if root.recent.length > 0: Rectangle {
+                y: 0px; height: root.recent-h;
+                HorizontalLayout {
+                    y: 0px; height: 24px; spacing: 10px;
+                    Ph { weight: 1; text: Icons.fire; font-size: 18px; color: Theme.amber-400; width: 20px; }
+                    Text { text: "Reprendre une Partie — Derniers Jeux Joués"; font-size: 16px; font-weight: 700; color: Theme.zinc-100; vertical-alignment: center; }
+                    Rectangle { horizontal-stretch: 1; }
+                    Text { text: root.recent.length + " titres récents"; font-family: Theme.font-mono; font-size: 12px; color: Theme.zinc-500; vertical-alignment: center; }
+                }
+                for g[i] in root.recent: GameCard {
+                    x: mod(i, root.cols) * (root.card-w + 20px);
+                    y: 40px + floor(i / root.cols) * (root.card-h + 16px);
+                    width: root.card-w;
+                    game: g;
+                    select => { root.open-game(g.id); }
+                    play => { root.play(g.id); }
+                    stop => { root.stop(g.id); }
+                    install => { root.install(g.id); }
+                    toggle-favorite => { root.toggle-favorite(g.id); }
+                    uninstall => { root.uninstall(g.id); }
+                    open-folder => { root.open-folder(g.id); }
+                }
+            }
+
+            // --- Catalogue complet ---
+            Rectangle {
+                y: (root.recent.length > 0 ? root.recent-h + 40px : 0px);
+                Rectangle { y: 0px; height: 1px; background: Theme.border-subtle; }
+
+                HorizontalLayout {
+                    y: 24px; height: 44px; spacing: 12px;
+                    VerticalLayout {
+                        alignment: center; spacing: 4px;
+                        HorizontalLayout {
+                            spacing: 10px; alignment: start;
+                            Ph { weight: 1; text: Icons.gamepad; font-size: 24px; color: Theme.amber-400; }
+                            Text { text: "Votre Bibliothèque"; font-size: 20px; font-weight: 900; color: Theme.zinc-100; vertical-alignment: center; }
+                        }
+                        HorizontalLayout {
+                            spacing: 8px; alignment: start;
+                            Rectangle { width: 6px; height: 6px; y: 4px; border-radius: 3px; background: Theme.emerald-400; }
+                            Text { text: root.installed-count + " installés"; font-size: 12px; font-weight: 600; color: Theme.emerald-400; }
+                            Rectangle { width: 6px; height: 6px; y: 4px; border-radius: 3px; background: Theme.zinc-500; }
+                            Text { text: (root.total-count - root.installed-count) + " dans la bibliothèque"; font-size: 12px; font-weight: 600; color: Theme.zinc-300; }
+                            Text { text: "(" + root.games.length + " affichés sur " + root.total-count + ")"; font-family: Theme.font-mono; font-size: 12px; color: Theme.zinc-500; }
+                        }
+                    }
+                    Rectangle { horizontal-stretch: 1; }
+                    UiInput {
+                        width: 320px; height: 38px; y: 3px;
+                        icon: Icons.search; placeholder: "Rechercher dans la bibliothèque...";
+                        text <=> root.search;
+                    }
+                    UiButton { y: 3px; variant: 1; size: 1; icon: Icons.refresh; text: root.loading ? "Analyse..." : "Actualiser"; enabled: !root.loading; clicked => { root.refresh(); } }
+                    UiButton { y: 3px; variant: 2; size: 1; icon: Icons.globe; text: "IGDB"; clicked => { root.open-igdb(); } }
+                }
+
+                HorizontalLayout {
+                    y: 84px; height: 30px; spacing: 8px; alignment: start;
+                    for t[i] in root.tag-labels: FilterChip {
+                        text: t;
+                        glyph: [Icons.squares, Icons.hard-drive, Icons.cloud-down, Icons.star, Icons.gamepad, Icons.shield-check][i];
+                        active: root.filter == i;
+                        clicked => { root.filter = i; }
+                    }
+                }
+
+                if root.games.length < root.filtered-total: UiButton {
+                    x: (root.content-w - self.width) / 2;
+                    y: 134px + root.rows * (root.card-h + 20px) + 4px;
+                    variant: 1; icon: Icons.plus-circle;
+                    text: "Afficher plus (" + (root.filtered-total - root.games.length) + ")";
+                    clicked => { root.load-more(); }
+                }
+
+                for g[i] in root.games: GameCard {
+                    x: mod(i, root.cols) * (root.card-w + 20px);
+                    y: 134px + floor(i / root.cols) * (root.card-h + 20px);
+                    width: root.card-w;
+                    game: g;
+                    select => { root.open-game(g.id); }
+                    play => { root.play(g.id); }
+                    stop => { root.stop(g.id); }
+                    install => { root.install(g.id); }
+                    toggle-favorite => { root.toggle-favorite(g.id); }
+                    uninstall => { root.uninstall(g.id); }
+                    open-folder => { root.open-folder(g.id); }
+                }
+            }
+        }
+    }
+
+    if root.total-count == 0: Rectangle {
+        background: Theme.zinc-950;
+        VerticalLayout {
+            alignment: center; spacing: 16px;
+            Rectangle {
+                width: 80px; height: 80px; border-radius: 24px;
+                background: Theme.amber-bg-faint; border-width: 1px; border-color: Theme.amber-border-soft;
+                Ph { weight: 2; text: Icons.gamepad; font-size: 40px; color: Theme.amber-400; }
+            }
+            Text {
+                text: root.loading ? "Analyse de votre bibliothèque..." : "Votre Bibliothèque Loom est Vide";
+                font-family: Theme.font-display; font-size: 32px; font-weight: 900; color: #ffffff; horizontal-alignment: center;
+            }
+            Text {
+                text: root.loading ? "Détection Steam et Battle.net en cours." : "Aucun jeu détecté. Liez votre compte Steam / Battle.net ou actualisez la détection locale.";
+                font-size: 14px; color: Theme.zinc-400; horizontal-alignment: center;
+            }
+            HorizontalLayout {
+                alignment: center;
+                UiButton { variant: 1; icon: Icons.refresh; text: "Actualiser la détection locale"; enabled: !root.loading; clicked => { root.refresh(); } }
+            }
+        }
+    }
+}
