@@ -5,11 +5,20 @@ use crate::db::{MinecraftInstanceRecord, ProfileModRecord};
 use crate::minecraft::instance::{
     create_instance, delete_instance, get_instances, update_instance_settings, CreateInstanceParams,
 };
-use crate::minecraft::launcher::launch_instance;
+use crate::minecraft::launcher::{launch_instance, LaunchEvents, MinecraftExitEvent, MinecraftLogEvent};
 use crate::minecraft::mods::{
     delete_mod, install_local_mod, install_mod, search_mods, toggle_mod,
 };
 use crate::modding::adapter::UnifiedModSearchResult;
+
+impl LaunchEvents for AppHandle {
+    fn emit_log(&self, evt: MinecraftLogEvent) {
+        let _ = tauri::Emitter::emit(self, "minecraft-log", evt);
+    }
+    fn emit_exit(&self, evt: MinecraftExitEvent) {
+        let _ = tauri::Emitter::emit(self, "minecraft-exit", evt);
+    }
+}
 
 #[tauri::command]
 pub fn create_minecraft_instance_cmd(

@@ -2,7 +2,6 @@ use std::path::{Path, PathBuf};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::process::Stdio;
-use tauri::Emitter;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 
@@ -284,8 +283,15 @@ fn parse_log_line(raw: &str) -> (String, String, String) {
     (level, source, message)
 }
 
-pub async fn launch_instance(
-    app_handle: tauri::AppHandle,
+/// Destination des événements du jeu (console + fin de processus).
+/// Implémentée pour `tauri::AppHandle` (commands/minecraft.rs) et par le front natif Slint.
+pub trait LaunchEvents: Clone + Send + Sync + 'static {
+    fn emit_log(&self, evt: MinecraftLogEvent);
+    fn emit_exit(&self, evt: MinecraftExitEvent);
+}
+
+pub async fn launch_instance<E: LaunchEvents>(
+    app_handle: E,
     instance_id: String,
     allocated_ram_gb: Option<u32>,
 ) -> Result<(), String> {
@@ -513,7 +519,7 @@ pub async fn launch_instance(
                 source,
                 message,
             };
-            let _ = app_handle_out.emit("minecraft-log", evt);
+            app_handle_out.emit_log(evt);
         }
     });
 
@@ -531,7 +537,7 @@ pub async fn launch_instance(
                 source: "JVM/stderr".to_string(),
                 message: line,
             };
-            let _ = app_handle_err.emit("minecraft-log", evt);
+            app_handle_err.emit_log(evt);
         }
     });
 
@@ -543,13 +549,10 @@ pub async fn launch_instance(
         match child.wait().await {
             Ok(status) => {
                 let code = status.code();
-                let _ = app_handle_exit.emit(
-                    "minecraft-exit",
-                    MinecraftExitEvent {
-                        instance_id: inst_id_exit,
-                        exit_code: code,
-                    },
-                );
+                app_handle_exit.emit_exit(MinecraftExitEvent {
+                    instance_id: inst_id_exit,
+                    exit_code: code,
+                });
             }
             Err(e) => {
                 eprintln!("[Loom::Launcher] Error waiting on child: {}", e);
